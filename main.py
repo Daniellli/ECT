@@ -16,7 +16,7 @@ import time
 
 import numpy as np
 import shutil
-
+import wandb
 import sys
 from PIL import Image
 import torch
@@ -43,10 +43,14 @@ except ImportError:
     pass
 
 
+#*====================
+from torch.utils.data.distributed import DistributedSampler
+run = wandb.init(project="train_cerberus") 
 cur_dir=osp.dirname(__file__)
-
+print(f"cur_dir = {cur_dir}")
+#*====================
 FORMAT = "[%(asctime)-15s %(filename)s:%(lineno)d %(funcName)s] %(message)s"
-logging.basicConfig(format=FORMAT, filename=osp.join(cur_dir,'logs')+ datetime.now().strftime("%Y%m%d_%H%M%S") + '.txt')
+logging.basicConfig(format=FORMAT, filename=osp.join(cur_dir,'logs', run.name +"_"+ datetime.now().strftime("%Y%m%d_%H%M%S") + '.txt'))
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -894,6 +898,8 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                         epoch, i, len(train_loader), batch_time=batch_time_list[index],
                         data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info,
                         top1=scores_list[index]))
+                    
+
                     logger.info('File name is: {}'.format(','.join(name)))
                     TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_losses_val', losses_list[index].val,
                         global_step= epoch * len(train_loader) + i)
@@ -906,6 +912,12 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
     for i in range(3):
         TENSORBOARD_WRITER.add_scalar('train_epoch_loss_average', losses_list[index].avg, global_step= epoch)
         TENSORBOARD_WRITER.add_scalar('train_epoch_scores_val', scores_list[index].avg, global_step= epoch)
+        #!=============
+        wandb.log({"loss_avg_%d"%i: losses_list[i].avg,"score_val_%d"%i: scores_list[i].avg})
+        #!=============
+
+        
+    
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
@@ -1082,73 +1094,155 @@ def train_seg(args):
                 history_path = 'checkpoint_{:03d}.pth.tar'.format(epoch + 1)
                 shutil.copyfile(checkpoint_path, history_path)
 
-def train_seg_cerberus(args):
-    batch_size = args.batch_size
-    num_workers = args.workers
-    crop_size = args.crop_size
-
-    print(' '.join(sys.argv))
-
+'''
+description: 就是将args 的参数上传至wandb
+param {*} args
+return {*}
+'''
+def common_init_wandb(args):
+    # project_id = run.name #* 获取wandb 随机给项目分配的id 
     for k, v in args.__dict__.items():
+        setattr(wandb.config,k,v)
         print(k, ':', v)
     
-    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-    model = single_model.cuda()
-        
-    criterion = nn.NLLLoss2d(ignore_index=255)
-
-    criterion.cuda()
-
-    # Data loading code
-    data_dir = args.data_dir
-    info = json.load(open(join(data_dir, 'info.json'), 'r'))
 
 
+    
+'''
+description:  构建模型, 修改了判断是否分布式训练的代码
+param {*} args
+return {*}
+'''
+def construct_model(args):
+
+    if args.distributed_train:
+        torch.cuda.set_device(args.local_rank) 
+        torch.distributed.init_process_group(backend='nccl')
+        print(f"local_rank = {args.local_rank}")
+        single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+        model = single_model.cuda()
+        # model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True) #todo : find_unused_parameters   是干嘛的?
+        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
+                output_device=args.local_rank) 
+        # model = torch.nn.parallel.DataParallel(model) 
+        # model = torch.nn.parallel.DataParallel(model,device_ids=[0,1, 2]) #* success 
+        # model = torch.nn.parallel.DataParallel(model)  #* success 
+        model=model.module
+    else :
+        single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+        model = single_model.cuda()
+    return model,single_model
+
+
+'''
+description:  构建训练数据集的dataloader
+param {*} data_dir : 数据集路径
+return {*}
+'''
+def construct_train_data(args):
+    data_dir = args.data_dir   
+    info = json.load(open(join(data_dir, 'info.json'), 'r'))#*数据集的信息,主要用于构建  normalize , 数据集处理类
     normalize = transforms.Normalize(mean=info['mean'],
                                      std=info['std'])
-    t = []
 
+    t = []
     if args.random_rotate > 0:
         t.append(transforms.RandomRotateMultiHead(args.random_rotate))
     if args.random_scale > 0:
         t.append(transforms.RandomScaleMultiHead(args.random_scale))
-    t.extend([transforms.RandomCropMultiHead(crop_size),
+    t.extend([transforms.RandomCropMultiHead(args.crop_size),
                 transforms.RandomHorizontalFlipMultiHead(),
                 transforms.ToTensorMultiHead(),
                 normalize])
 
-    dataset_at_train = SegMultiHeadList(data_dir, 'train_attribute', transforms.Compose(t), out_name=True)
+
+    dataset_at_train = SegMultiHeadList(data_dir, 'train_attribute', transforms.Compose(t), out_name=True)#* dataset 类
     dataset_af_train = SegMultiHeadList(data_dir, 'train_affordance', transforms.Compose(t), out_name=True)
     dataset_seg_train = SegMultiHeadList(data_dir, 'train', transforms.Compose(t), out_name=True)
+    #*==========
+    concated_train_datasets = ConcatSegList(dataset_at_train, dataset_af_train, dataset_seg_train)
+    if args.distributed_train:
+        train_sampler = DistributedSampler(concated_train_datasets) # 这个sampler会自动分配数据到各个gpu上
+        train_loader = (torch.utils.data.DataLoader(
+            concated_train_datasets,
+            batch_size=args.batch_size, num_workers=args.workers,
+                pin_memory=True, drop_last=True, sampler=train_sampler
+        ))
+    else :
+        train_loader = (torch.utils.data.DataLoader(
+            concated_train_datasets,batch_size=args.batch_size, shuffle=True, 
+            num_workers=args.workers,pin_memory=True, drop_last=True, 
+        ))
+    return train_loader
+    
 
-    train_loader = (torch.utils.data.DataLoader(
-        ConcatSegList(dataset_at_train, dataset_af_train, dataset_seg_train),
-         batch_size=batch_size, shuffle=True, num_workers=num_workers,
-            pin_memory=True, drop_last=True
-    ))
+'''
+description: 
+param {*} data_dir
+param {*} args 
+return {*}
+#todo 将 construct_val_data 和construct_train_data 整合在一起
+'''
+def  construct_val_data(args):
+    data_dir = args.data_dir   
+    info = json.load(open(join(data_dir, 'info.json'), 'r'))#*数据集的信息,主要用于构建  normalize , 数据集处理类
+    normalize = transforms.Normalize(mean=info['mean'],
+                                     std=info['std'])
 
+    #* 验证集做的数据预处理比较多,  
     dataset_at_val = SegMultiHeadList(data_dir, 'val_attribute', transforms.Compose([
-                transforms.RandomCropMultiHead(crop_size),
+                transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
     dataset_af_val = SegMultiHeadList(data_dir, 'val_affordance', transforms.Compose([
-                transforms.RandomCropMultiHead(crop_size),
+                transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
     dataset_seg_val = SegMultiHeadList(data_dir, 'val', transforms.Compose([
-                transforms.RandomCropMultiHead(crop_size),
+                transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
 
-    val_loader = (torch.utils.data.DataLoader(
-        ConcatSegList(dataset_at_val, dataset_af_val, dataset_seg_val),
-        batch_size=1, shuffle=False, num_workers=num_workers,
-        pin_memory=True, drop_last=True
-    ))
+    
+    concated_val_datasets = ConcatSegList(dataset_at_val, dataset_af_val, dataset_seg_val)
+    if args.distributed_train: #* 是否分布式训练判断
+        val_sampler = DistributedSampler(concated_val_datasets) # 这个sampler会自动分配数据到各个gpu上
+       
+        val_loader = (torch.utils.data.DataLoader(
+            concated_val_datasets,
+            batch_size=1, num_workers=args.workers,
+            pin_memory=True, drop_last=True,sampler=val_sampler
+        ))
+    else :
+        val_loader = (torch.utils.data.DataLoader(
+            ConcatSegList(dataset_at_val, dataset_af_val, dataset_seg_val),
+            batch_size=1, shuffle=False, num_workers=args.workers,
+            pin_memory=True, drop_last=True
+        ))
+    return val_loader
 
+
+'''
+description: 
+param {*} args
+return {*}
+'''
+def train_seg_cerberus(args):
+    common_init_wandb(args) 
+    print(' '.join(sys.argv))
+    
+    model,single_model = construct_model(args)
+
+    criterion = nn.NLLLoss2d(ignore_index=255)
+    criterion.cuda()
+    # Data loading code
+    
+    train_loader = construct_train_data(args)
+    val_loader= construct_val_data(args)
+    #*==========
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD([
                                 {'params':single_model.pretrained.parameters()},
@@ -1222,6 +1316,8 @@ def train_seg_cerberus(args):
         
         #if epoch%10==1:
         prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
+        wandb.log({"prec":prec1})
+
 
         is_best = prec1 > best_prec1
         best_prec1 = max(prec1, best_prec1)
@@ -1572,6 +1668,11 @@ def test_ms_cerberus(eval_data_loader, model, scales,
         return round(np.nanmean([np.nanmean(i) for i in ious_array]), 2)
 
 
+'''
+description:  这个函数没有被调用????? #? 为什么
+param {*} args
+return {*}
+'''
 def test_seg(args):
     batch_size = args.batch_size
     num_workers = args.workers
@@ -1649,29 +1750,34 @@ def test_seg(args):
 
     logger.info('%s mAP: %f', TASK, mAP)
 
+'''
+description:  这个才是测试函数, 有调用
+param {*} args
+return {*}
+'''
 def test_seg_cerberus(args):
     batch_size = args.batch_size
     num_workers = args.workers
     phase = args.phase
 
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
-                    ['L','M','R','S','W'],
-                    ['Segmentation']] 
+    
+    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],#! attribute
+                    ['L','M','R','S','W'],#! affordence 
+                    ['Segmentation']]  #! segment class 
 
     for k, v in args.__dict__.items():
         print(k, ':', v)
 
-
+    #* 加载模型
     single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
 
     checkpoint = torch.load(args.resume)
-    
     for name, param in checkpoint['state_dict'].items():
         # name = name[7:]
         single_model.state_dict()[name].copy_(param)
     
     model = single_model.cuda()
-
+    #* 加载数据
     data_dir = args.data_dir
     info = json.load(open(join(data_dir, 'info.json'), 'r'))
     normalize = transforms.Normalize(mean=info['mean'], std=info['std'])
@@ -1680,6 +1786,7 @@ def test_seg_cerberus(args):
     test_loader_list = []
     if args.ms:
         for i in ['_attribute', '_affordance', '']:
+            #! 分别加载三个子任务的数据
             test_loader_list.append(torch.utils.data.DataLoader(
                 SegListMSMultiHead(data_dir, phase + i, transforms.Compose([
                     transforms.ToTensorMultiHead(),
@@ -1694,7 +1801,7 @@ def test_seg_cerberus(args):
 
 
     cudnn.benchmark = True
-
+    #? 还是加载模型??
     # optionally resume from a checkpoint
     start_epoch = 0
     if args.resume:
@@ -1717,7 +1824,7 @@ def test_seg_cerberus(args):
         out_dir += '_' + args.test_suffix
     if args.ms:
         out_dir += '_ms'
-
+    #! 测试吗? 
     if args.ms:
         mAP = test_ms_cerberus(test_loader_list, model, save_vis=True,
                       has_gt=phase != 'test' or args.with_gt,
@@ -1733,6 +1840,10 @@ def test_seg_cerberus(args):
 def parse_args():
     # Training settings
     parser = argparse.ArgumentParser(description='')
+    #!=================
+    parser.add_argument("--local_rank", type=int)
+    parser.add_argument("--distributed_train",type=bool,default=False)
+    #!=================
     parser.add_argument('cmd', choices=['train', 'test'])
     parser.add_argument('-d', '--data-dir', default='./dataset/nyud2')
     parser.add_argument('-c', '--classes', default=0, type=int)
@@ -1772,6 +1883,8 @@ def parse_args():
     parser.add_argument('--bn-sync', action='store_true')
     parser.add_argument('--ms', action='store_true',
                         help='Turn on multi-scale testing')
+                        
+                    
     parser.add_argument('--trans', action='store_true',
                         help='Turn on transfer learning')
     parser.add_argument('--with-gt', action='store_true')
@@ -1790,6 +1903,7 @@ def parse_args():
     return args
 
 
+
 def main():
     args = parse_args()
     if args.cmd == 'train':
@@ -1799,4 +1913,7 @@ def main():
 
 
 if __name__ == '__main__':
+    
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,6"
     main()
+    torch.cuda.empty_cache()

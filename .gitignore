@@ -14,3 +14,9 @@ runs/*
 
 
 *.txt
+
+*wandb
+wandb*
+*.pyc
+
+
