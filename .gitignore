@@ -1,0 +1,11 @@
+
+
+*.tar
+*.rar
+*.zip
+*.jpg
+
+*event*
+
+*.log
+runs/*
