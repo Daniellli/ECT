@@ -1738,7 +1738,8 @@ def parse_args():
     parser.add_argument('-c', '--classes', default=0, type=int)
     parser.add_argument('-s', '--crop-size', default=0, type=int)
     parser.add_argument('--step', type=int, default=200)
-    parser.add_argument('--arch')
+    parser.add_argument('--arch',type=str, default="test_arch",help='save_name dir ')
+    # parser.add_argument('--arch')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=10, metavar='N',

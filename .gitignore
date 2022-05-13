@@ -9,3 +9,8 @@
 
 *.log
 runs/*
+
+*.png
+
+
+*.txt

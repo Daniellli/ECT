@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "test",  "-s", "512", "--resume", "model_best.pth.tar", 
+                "test",  "-s", "512", "--resume", "./networks/model_best.pth.tar", 
                 "--phase", "val", "--batch-size", "1", "--ms", "--workers", "10",
                 "--classes","1"
             ]
