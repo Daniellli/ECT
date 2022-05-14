@@ -315,33 +315,64 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         head = None
 
         super().__init__(head, **kwargs)
-
+        #!======================
+        # full_output_task_list = ( \
+        #     (2, ['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny']), \
+        #     (2, ['L','M','R','S','W']), \
+        #     (40, ['Segmentation']) \
+        # )
         full_output_task_list = ( \
-            (2, ['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny']), \
-            (2, ['L','M','R','S','W']), \
-            (40, ['Segmentation']) \
+            (2, ['Segmentation1']), \
+            (2, ['Segmentation2']), \
+            (2, ['Segmentation3']) ,\
+            (2, ['Segmentation4']) ,
         )
+        
 
         self.full_output_task_list = full_output_task_list
         self.add_module('sigma',nn.Module())
 
-        self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
 
-        self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        # self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(-1.60, 0.0), requires_grad=True)
         
-        self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
 
-        self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(0.20, 1.0), requires_grad=True)
+        # self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(0.20, 1.0), requires_grad=True)
         
 
+        self.sigma.depth_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.illumination_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.normal_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.reflectance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
+
+        #? 为什么这个和第四个code block重复了? 变量不是覆盖吗?
+        self.sigma.sub_depth_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.sub_illumination_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.sub_normal_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        self.sigma.sub_reflectance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[3][1])).uniform_(-1.60, 0.0), requires_grad=True)
+        
+
+        self.sigma.depth_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.illumination_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.normal_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.reflectance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
+
+
+        self.sigma.sub_depth_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.sub_illumination_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.sub_normal_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(0.20, 1.0), requires_grad=True)
+        self.sigma.sub_reflectance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[3][1])).uniform_(0.20, 1.0), requires_grad=True)
+        
+        #!======================
 
         for (num_classes, output_task_list) in full_output_task_list:
             for it in output_task_list:
@@ -411,13 +442,25 @@ class CerberusSegmentationModelMultiHead(Cerberus):
             fun = eval("self.scratch.output_" + it + '_upsample')
             out = fun(out)
             outs.append(out)
+        #!=============
+        # return outs,  [self.sigma.sub_attribute_sigmas, 
+        #             self.sigma.sub_affordance_sigmas,
+        #             self.sigma.sub_seg_sigmas, 
+        #             self.sigma.attribute_sigmas, 
+        #             self.sigma.affordance_sigmas, 
+        #             self.sigma.seg_sigmas], []
 
-        return outs,  [self.sigma.sub_attribute_sigmas, 
-                    self.sigma.sub_affordance_sigmas,
-                    self.sigma.sub_seg_sigmas, 
-                    self.sigma.attribute_sigmas, 
-                    self.sigma.affordance_sigmas, 
-                    self.sigma.seg_sigmas], []
+        return outs,  [self.sigma.sub_depth_sigmas, 
+                    self.sigma.sub_illumination_sigmas,
+                    self.sigma.sub_normal_sigmas, 
+                    self.sigma.sub_reflectance_sigmas, 
+                    self.sigma.depth_sigmas, 
+                    self.sigma.illumination_sigmas, 
+                    self.sigma.normal_sigmas,
+                    self.sigma.reflectance_sigmas], []
+
+
+        #!=============
 
 
 #################### two head ##################

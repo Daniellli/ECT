@@ -185,6 +185,11 @@ def fill_up_weights(up):
         w[c, 0, :, :] = w[0, 0, :, :]
 
 
+'''
+description: 
+param {*}
+return {*}
+'''
 class SegList(torch.utils.data.Dataset):
     def __init__(self, data_dir, phase, transforms, list_dir=None,
                  out_name=False):
@@ -225,6 +230,11 @@ class SegList(torch.utils.data.Dataset):
             self.label_list = [line.strip() for line in open(label_path, 'r')]
             assert len(self.image_list) == len(self.label_list)
 
+'''
+description:  将SegMultiHeadList 构建好的数据集整合成一个数据集 , 
+param {*}
+return {*}
+'''
 class ConcatSegList(torch.utils.data.Dataset):
     def __init__(self, at, af, seg):
         self.at = at
@@ -237,7 +247,83 @@ class ConcatSegList(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.at)
 
+
+'''
+description:  将SegMultiHeadList 构建好的数据集整合成一个数据集 , 
+param {*}
+return {*}
+'''
+class ConcatEDList(torch.utils.data.Dataset):
+    def __init__(self, depth, illumination, normal,reflectance):
+        self.depth = depth
+        self.illumination = illumination
+        self.normal = normal
+        self.reflectance = reflectance
+
+    def __getitem__(self, index):
+        return (self.depth[index], self.illumination[index], self.normal[index],self.reflectance[index])
+    
+    def __len__(self):
+        return len(self.depth)
+
+
+'''
+description: 构建三种数据集
+param {*}
+return {*}
+'''
 class SegMultiHeadList(torch.utils.data.Dataset):
+    def __init__(self, data_dir, phase, transforms, list_dir=None,
+                 out_name=False):
+        self.list_dir = data_dir if list_dir is None else list_dir
+        self.data_dir = data_dir
+        self.out_name = out_name
+        self.phase = phase
+        self.transforms = transforms
+        self.image_list = None
+        self.label_list = None
+        self.bbox_list = None
+        self.read_lists()
+
+    def __getitem__(self, index):
+        data = [Image.open(join(self.data_dir, self.image_list[index]))]#* 用PIL 库加载图像 
+        data = np.array(data[0]) #? 加载是一张image类,转矩阵,这个很奇怪, 上面故意放一个list里面, 这里又展开
+        if len(data.shape) == 2:#? 加载是是标签, 需要进一步处理,这个扩大这个标签是为什么?
+            data = np.stack([data , data , data] , axis = 2)
+        data = [Image.fromarray(data)]#* 转成一张RGB图像,然后存储到list中, 这个list的第二个标签开始都是放label图像
+        
+        label_data = list()
+        if self.label_list is not None:
+            for it in self.label_list[index].split(','):#* 标签是多个图像, 每个图像的相对路径用,分割, 除了semantic 只有一个标签图像,其他都是逗号分隔有多个
+       	        label_data.append(Image.open(join(self.data_dir, it))) #* 读取这个标签
+            data.append(label_data)#* 放到和图像一个list中
+        data = list(self.transforms(*data))#? 不需要判断是否为None吗? ,对图像和标签都进行一样的数据增强
+        if self.out_name:#?  加载原来的origin image的相对路径
+            if self.label_list is None:
+                data.append(data[0][0, :, :])
+            data.append(self.image_list[index])
+        return tuple(data)
+
+    def __len__(self):
+        return len(self.image_list)
+
+    def read_lists(self):
+        image_path = join(self.list_dir, self.phase + FILE_DESCRIPTION+ '_images.txt')
+        label_path = join(self.list_dir, self.phase + FILE_DESCRIPTION+ '_labels.txt')
+        assert exists(image_path)
+        self.image_list = [line.strip() for line in open(image_path, 'r')]#*  获取图像相对路径, 相对于 data_dir 的相对路径
+        if exists(label_path):
+            self.label_list = [line.strip() for line in open(label_path, 'r')]#*  获取标签相对路径, 相对于 data_dir 的相对路径 , 
+            assert len(self.image_list) == len(self.label_list)
+
+
+
+'''
+description: 构建edge detection 数据集的datasets
+param {*}
+return {*}
+'''
+class EDMultiHeadList(torch.utils.data.Dataset):
     def __init__(self, data_dir, phase, transforms, list_dir=None,
                  out_name=False):
         self.list_dir = data_dir if list_dir is None else list_dir
@@ -282,6 +368,14 @@ class SegMultiHeadList(torch.utils.data.Dataset):
             assert len(self.image_list) == len(self.label_list)
 
 
+
+
+
+'''
+description: 
+param {*}
+return {*}
+'''
 class SegListMS(torch.utils.data.Dataset):
     def __init__(self, data_dir, phase, transforms, scales, list_dir=None):
         self.list_dir = data_dir if list_dir is None else list_dir
@@ -323,6 +417,11 @@ class SegListMS(torch.utils.data.Dataset):
             self.label_list = [line.strip() for line in open(label_path, 'r')]
             assert len(self.image_list) == len(self.label_list)
 
+'''
+description: 
+param {*}
+return {*}
+'''
 class SegListMSMultiHead(torch.utils.data.Dataset):
     def __init__(self, data_dir, phase, transforms, scales, list_dir=None):
         self.list_dir = data_dir if list_dir is None else list_dir
@@ -715,20 +814,32 @@ def train(train_loader, model, criterion, optimizer, epoch,
 
 def train_cerberus(train_loader, model, criterion, optimizer, epoch,
           eval_score=None, print_freq=1): # transfer_model=None, transfer_optim=None):
-    
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
-                       ['L','M','R','S','W'],
-                       ['Segmentation']]
+    #!==============
+    # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
+    #                    ['L','M','R','S','W'],
+    #                    ['Segmentation']]
 
-    root_task_list_array = ['At', 'Af', 'Seg']
+    # root_task_list_array = ['At', 'Af', 'Seg']
+    task_list_array = [['Segmentation1'],
+                       ['Segmentation2'],
+                       ['Segmentation3'],
+                       ['Segmentation4'],]
+
+                
+        
+
+    root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
+    #!==============
 
     batch_time_list = list()
     data_time_list = list()
     losses_list = list()
     losses_array_list = list()
     scores_list = list()
-    
-    for i in range(3):
+    #!=========
+    # for i in range(3):
+    for i in range(4):
+    #!=========
         batch_time_list.append(AverageMeter())
         data_time_list.append(AverageMeter())
         losses_list.append(AverageMeter())
@@ -744,18 +855,18 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
 
     moo = True
 
-    for i, in_tar_name_pair in enumerate(train_loader):
+    for i, in_tar_name_pair in enumerate(train_loader):#* 一个一个batch取数据
         if moo :
             grads = {}
         task_loss_array = []
-        for index, (input, target, name) in enumerate(in_tar_name_pair):
-            # measure data loading time
+        for index, (input, target, name) in enumerate(in_tar_name_pair):# * 便利一个一个任务
+            # measure data loading time #* input 输入图像数据, target 图像的标签, name : input 的相对路径
             data_time_list[index].update(time.time() - end)
 
             if moo:
 
                 input = input.cuda()
-                input_var = torch.autograd.Variable(input)
+                input_var = torch.autograd.Variable(input)#? 将输入转成可导的对象???
 
                 target_var = list()
                 for idx in range(len(target)):
@@ -770,7 +881,7 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                 softmaxf = nn.LogSoftmax()
                 loss_array = list()
 
-                assert len(output) == len(target)
+                assert len(output) == len(target) #? 为什么模型的输出 大小是[11,1,2,512,512]  11表示的是该subtask 的分类类别,而target 是 [1,512,512],而且11 和1也对不上
 
                 for idx in range(len(output)):
                     output[idx] = softmaxf(output[idx])
@@ -841,7 +952,7 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
 
                 scores_list[index].update(np.nanmean(scores_array), input.size(0))
 
-            # compute gradient and do SGD step
+            # compute gradient and do SGD step ,index =2 就是最后一个subtask 做完了
             if index == 2:
                 if moo:
                     del input, target, input_var, target_var
@@ -1156,11 +1267,12 @@ def construct_train_data(args):
                 normalize])
 
 
-    dataset_at_train = SegMultiHeadList(data_dir, 'train_attribute', transforms.Compose(t), out_name=True)#* dataset 类
-    dataset_af_train = SegMultiHeadList(data_dir, 'train_affordance', transforms.Compose(t), out_name=True)
-    dataset_seg_train = SegMultiHeadList(data_dir, 'train', transforms.Compose(t), out_name=True)
+    dataset_depth_train = SegMultiHeadList(data_dir, 'train_depth', transforms.Compose(t), out_name=True)#* dataset 类
+    dataset_illumination_train = SegMultiHeadList(data_dir, 'train_illumination', transforms.Compose(t), out_name=True)
+    dataset_normal_train = SegMultiHeadList(data_dir, 'train_normal', transforms.Compose(t), out_name=True)
+    dataset_reflectance_train = SegMultiHeadList(data_dir, 'train_reflectance', transforms.Compose(t), out_name=True)
     #*==========
-    concated_train_datasets = ConcatSegList(dataset_at_train, dataset_af_train, dataset_seg_train)
+    concated_train_datasets = ConcatEDList(dataset_depth_train, dataset_illumination_train, dataset_normal_train,dataset_reflectance_train)
     if args.distributed_train:
         train_sampler = DistributedSampler(concated_train_datasets) # 这个sampler会自动分配数据到各个gpu上
         train_loader = (torch.utils.data.DataLoader(
@@ -1190,24 +1302,29 @@ def  construct_val_data(args):
                                      std=info['std'])
 
     #* 验证集做的数据预处理比较多,  
-    dataset_at_val = SegMultiHeadList(data_dir, 'val_attribute', transforms.Compose([
+    dataset_depth_val = SegMultiHeadList(data_dir, 'val_depth', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_af_val = SegMultiHeadList(data_dir, 'val_affordance', transforms.Compose([
+    dataset_illumination_val = SegMultiHeadList(data_dir, 'val_illumination', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_seg_val = SegMultiHeadList(data_dir, 'val', transforms.Compose([
+    dataset_normal_val = SegMultiHeadList(data_dir, 'val_normal', transforms.Compose([
+                transforms.RandomCropMultiHead(args.crop_size),
+                transforms.ToTensorMultiHead(),
+                normalize,
+            ]))
+    dataset_reflection_val = SegMultiHeadList(data_dir, 'val_reflectance', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
 
     
-    concated_val_datasets = ConcatSegList(dataset_at_val, dataset_af_val, dataset_seg_val)
+    concated_val_datasets = ConcatEDList(dataset_depth_val, dataset_illumination_val, dataset_normal_val,dataset_reflection_val)
     if args.distributed_train: #* 是否分布式训练判断
         val_sampler = DistributedSampler(concated_val_datasets) # 这个sampler会自动分配数据到各个gpu上
        
@@ -1218,7 +1335,7 @@ def  construct_val_data(args):
         ))
     else :
         val_loader = (torch.utils.data.DataLoader(
-            ConcatSegList(dataset_at_val, dataset_af_val, dataset_seg_val),
+            concated_val_datasets,
             batch_size=1, shuffle=False, num_workers=args.workers,
             pin_memory=True, drop_last=True
         ))
@@ -1845,7 +1962,7 @@ def parse_args():
     parser.add_argument("--distributed_train",type=bool,default=False)
     #!=================
     parser.add_argument('cmd', choices=['train', 'test'])
-    parser.add_argument('-d', '--data-dir', default='./dataset/nyud2')
+    parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND')
     parser.add_argument('-c', '--classes', default=0, type=int)
     parser.add_argument('-s', '--crop-size', default=0, type=int)
     parser.add_argument('--step', type=int, default=200)
@@ -1914,6 +2031,6 @@ def main():
 
 if __name__ == '__main__':
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2,3,6"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "6"
     main()
     torch.cuda.empty_cache()
