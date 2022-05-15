@@ -180,8 +180,9 @@ def forward_flex(self, x, attn = False, name = None):
             x = x[-1]  # last feature if backbone outputs list/tuple of features
 
     x = self.patch_embed.proj(x).flatten(2).transpose(1, 2)
-
-    if self.dist_token:
+    #* 加了hasattr 这句话 , 不然会报错, 很奇怪在10.0.0.15 不会报错, 在10.0.0.14会报错
+    if hasattr(self,"dist_token") and self.dist_token:
+    #*=========================================================
         cls_tokens = self.cls_token.expand(
             B, -1, -1
         )  # stole cls_tokens impl from Phil Wang, thanks

@@ -18,5 +18,9 @@ runs/*
 *wandb
 wandb*
 *.pyc
+*pycache*
+
+
+
 
 
