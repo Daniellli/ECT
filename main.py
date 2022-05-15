@@ -542,11 +542,32 @@ def validate(val_loader, model, criterion, eval_score=None, print_freq=10, trans
     return score.avg
 
 
+'''
+description:  
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+return {*}
+'''
 def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=10, transfer_model=None, epoch=None):
     
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
-                       ['L','M','R','S','W'],
-                       ['Segmentation']] 
+
+    #!=======================
+    # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
+    #                    ['L','M','R','S','W'],
+    #                    ['Segmentation']] 
+    task_list_array = [['Segmentation1'],
+                       ['Segmentation2'],
+                       ['Segmentation3'],
+                       ['Segmentation4'],]
+
+    root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
+    
+    
     
     batch_time_list = list()
     losses_list = list()
@@ -554,7 +575,8 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
     score_list = list()
     score = AverageMeter()
 
-    for i in range(3):
+    # for i in range(3):
+    for i in range(4):
         batch_time_list.append(AverageMeter())
         losses_list.append(AverageMeter())
         losses_array = list()
@@ -562,6 +584,7 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
             losses_array.append(AverageMeter())
         losses_array_list.append(losses_array)
         score_list.append(AverageMeter())
+    #!=======================
 
     # switch to evaluate mode
     model.eval()
@@ -600,15 +623,18 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
                     (losses_array_list[index][idx]).update((loss_array[idx]).item(), input.size(0))
 
                 scores_array = list()
-
-                if index < 2:
+                #!===========
+                # if index < 2:
+                if index < 3:
                     for idx in range(len(output)):
                         scores_array.append(eval_score(output[idx], target_var[idx]))
-                elif index == 2:
+                # elif index == 2:
+                elif index == 3:
                     for idx in range(len(output)):
                         scores_array.append(mIoUAll(output[idx], target_var[idx]))
                 else:
                     assert 0 == 1
+                #!===========
                 
                 tmp = np.nanmean(scores_array)
                 if not np.isnan(tmp):
@@ -627,19 +653,30 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
                             'Score {score.val:.3f} ({score.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time_list[index], loss=losses_list[index],
                     score=score_list[index]))
-        score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val]))
+        #!+================
+        # score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val]))
+        score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val,score_list[3].val]))
+        #!+================
         if i % print_freq == 0:
             logger.info('total score is:{score.val:.3f} ({score.avg:.3f})'.format(
                 score = score
             ))
-    
-    for idx, item in enumerate(['attribute','affordance','segmentation']):
+    #!===============================
+    need_upload = {}
+    # for idx, item in enumerate(['attribute','affordance','segmentation']):
+    for idx, item in enumerate(root_task_list_array):
         TENSORBOARD_WRITER.add_scalar('val_'+ item +'_loss_average', losses_list[idx].avg, global_step=epoch)
         TENSORBOARD_WRITER.add_scalar('val_'+ item +'_score_average', score_list[idx].avg, global_step=epoch)
-
+        need_upload['val_'+ item +'_loss_average']  = losses_list[idx].avg
+        need_upload['val_'+ item +'_score_average']  = score_list[idx].avg
+        
+    
     logger.info(' * Score {top1.avg:.3f}'.format(top1=score))
-    TENSORBOARD_WRITER.add_scalar('val_score_average', score.avg, global_step=epoch)
-
+    TENSORBOARD_WRITER.add_scalar('val_score_average', score.avg, global_step=epoch)    
+    
+    need_upload ['val_score_average']=score.avg
+    wandb.log(need_upload)
+    #!===============================
 
     return score.avg
 
@@ -1327,23 +1364,25 @@ def  construct_val_data(args):
     normalize = transforms.Normalize(mean=info['mean'],
                                      std=info['std'])
 
+    phase = "test"
+
     #* 验证集做的数据预处理比较多,  
-    dataset_depth_val = SegMultiHeadList(data_dir, 'val_depth', transforms.Compose([
+    dataset_depth_val = SegMultiHeadList(data_dir, phase+'_depth', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_illumination_val = SegMultiHeadList(data_dir, 'val_illumination', transforms.Compose([
+    dataset_illumination_val = SegMultiHeadList(data_dir, phase+'_illumination', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_normal_val = SegMultiHeadList(data_dir, 'val_normal', transforms.Compose([
+    dataset_normal_val = SegMultiHeadList(data_dir, phase+'_normal', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_reflection_val = SegMultiHeadList(data_dir, 'val_reflectance', transforms.Compose([
+    dataset_reflection_val = SegMultiHeadList(data_dir, phase+'_reflectance', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
