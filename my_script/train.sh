@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-05-13 14:03:58
+ # @LastEditTime: 2022-05-15 15:32:26
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/my_script/train.sh
+ # @FilePath: /cerberus/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -23,8 +23,8 @@
 
 python  -m torch.distributed.launch --nproc_per_node=2  --master_port 29501 main.py \
 train  -s 512 --batch-size 1 --random-scale 2 \
---random-rotate 10 --epochs 5 --lr 0.007 --momentum 0.9 \
---lr-mode poly --workers 12 --classes 1 \
+--random-rotate 10 --epochs 300 --lr 0.007 --momentum 0.9 \
+--lr-mode poly --workers 12 --classes 2 --distributed_train \
 2>&1 | tee -a logs/train.log
 
 # python   -u  main.py \

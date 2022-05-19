@@ -37,6 +37,9 @@ from model.transforms import PrepareForNet
 
 import os
 import os.path as osp
+
+from torchcam.methods import SmoothGradCAMpp
+
 try:
     from modules import batchnormsync
 except ImportError:
@@ -849,6 +852,10 @@ def train(train_loader, model, criterion, optimizer, epoch,
 
 
 
+'''
+description: 
+return {*}
+'''
 def train_cerberus(train_loader, model, criterion, optimizer, epoch,
           eval_score=None, print_freq=1): # transfer_model=None, transfer_optim=None):
     #!==============
@@ -910,8 +917,22 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                     target[idx] = target[idx].cuda()
                     target_var.append(torch.autograd.Variable(target[idx]))
 
+
+                #!===============
+                # cam_extractor = SmoothGradCAMpp(model.scratch,target_layer="layer3_rn")
+        
+                #!===============
+
                 # compute output
                 output, _, _ = model(input_var, index)
+
+                #!===============
+                # activation_map = cam_extractor(output[0].argmax(1).cpu().numpy(), output[0])
+                # import matplotlib.pyplot as plt
+                # # Visualize the raw CAM
+                # plt.imshow(activation_map[0].squeeze(0).numpy()); plt.axis('off'); plt.tight_layout()
+                # plt.savefig("/home/DISCOVER_summer2022/xusc/exp/cerberus/debug/vis.jpg")
+                #!===============
                 
                 # if transfer_model is not None:
                 #     output = transfer_model(output)
@@ -1329,11 +1350,13 @@ def construct_train_data(args):
                 transforms.ToTensorMultiHead(),
                 normalize])
 
-
-    dataset_depth_train = SegMultiHeadList(data_dir, 'train_depth', transforms.Compose(t), out_name=True)#* dataset 类
-    dataset_illumination_train = SegMultiHeadList(data_dir, 'train_illumination', transforms.Compose(t), out_name=True)
-    dataset_normal_train = SegMultiHeadList(data_dir, 'train_normal', transforms.Compose(t), out_name=True)
-    dataset_reflectance_train = SegMultiHeadList(data_dir, 'train_reflectance', transforms.Compose(t), out_name=True)
+    #!================
+    data_prefix = "train_val"
+    dataset_depth_train = SegMultiHeadList(data_dir, data_prefix+'_depth', transforms.Compose(t), out_name=True)#* dataset 类
+    dataset_illumination_train = SegMultiHeadList(data_dir, data_prefix+'_illumination', transforms.Compose(t), out_name=True)
+    dataset_normal_train = SegMultiHeadList(data_dir, data_prefix+'_normal', transforms.Compose(t), out_name=True)
+    dataset_reflectance_train = SegMultiHeadList(data_dir, data_prefix+'_reflectance', transforms.Compose(t), out_name=True)
+    #!================
     #*==========
     concated_train_datasets = ConcatEDList(dataset_depth_train, dataset_illumination_train, dataset_normal_train,dataset_reflectance_train)
     if args.distributed_train:
@@ -1540,7 +1563,7 @@ def fast_hist(pred, label, n):
         n * label[k].astype(int) + pred[k], minlength=n ** 2).reshape(n, n)
 
 
-def per_class_iu(hist):
+def per_class_iu(hist):#? 这是什么 
     return np.diag(hist) / (hist.sum(1) + hist.sum(0) - np.diag(hist))
 
 def save_output_images(predictions, filenames, output_dir):
@@ -1703,27 +1726,42 @@ def test_ms_cerberus(eval_data_loader, model, scales,
             output_dir='pred', has_gt=True, save_vis=False):
     model.eval()
     
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
-                       ['L','M','R','S','W'],
-                       ['Segmentation']]
+    #!===============
+    # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
+    #                    ['L','M','R','S','W'],
+    #                    ['Segmentation']]
 
-    task_name = ['Attribute', 'Affordance', 'Segmentation']
+    # task_name = ['Attribute', 'Affordance', 'Segmentation']
+
+
+    task_list_array = [['Segmentation1'],
+                       ['Segmentation2'],
+                       ['Segmentation3'],
+                       ['Segmentation4']]
+
+    task_name = ['depth', 'illumination', 'normal',"reflectance"]
+
+    #!===============
     
     batch_time_array = list()
     data_time_array = list()
     hist_array_array = list()
     hist_array_array_acc = list()
-    for i in range(3):
+    # for i in range(3):
+    for i in range(4):
         batch_time_array.append(AverageMeter())
         data_time_array.append(AverageMeter())
         hist_array_array.append([])
         hist_array_array_acc.append([])
-        if i < 2:
-            num_classes = 2
-        elif i == 2:
-            num_classes = 40
-        else:
-            assert 0 == 1
+        
+        num_classes = 2
+        # if i < 2:
+        #     num_classes = 2
+        # elif i == 2:
+        #     num_classes = 40
+        # else:
+        #     assert 0 == 1
+        
         for j in range(len(task_list_array[i])):
             hist_array_array[i].append(np.zeros((num_classes, num_classes)))
             hist_array_array_acc[i].append(np.zeros((num_classes, num_classes)))
@@ -1733,20 +1771,26 @@ def test_ms_cerberus(eval_data_loader, model, scales,
     # batch_time = AverageMeter()
     # data_time = AverageMeter()
     end = time.time()
-
-    for i, in_tar_pair in enumerate(zip(eval_data_loader[0], eval_data_loader[1], eval_data_loader[2])):
-        for index, input in enumerate(in_tar_pair):
-            if index < 2:
-                num_classes = 2
-                PALETTE = AFFORDANCE_PALETTE
-            elif index == 2:
-                num_classes = 40
-                PALETTE = NYU40_PALETTE
-            else:
-                assert 0 == 1
+    #!=========
+    # for i, in_tar_pair in enumerate(zip(eval_data_loader[0], eval_data_loader[1], eval_data_loader[2])):
+    for i, in_tar_pair in enumerate(zip(eval_data_loader[0], eval_data_loader[1], eval_data_loader[2],eval_data_loader[3])):
+    #!=========
+        for index, input in enumerate(in_tar_pair):#*一次循环代表的是一次subtask 
+            num_classes = 2
+            PALETTE = AFFORDANCE_PALETTE
+            # if index < 2:
+            #     num_classes = 2
+            #     PALETTE = AFFORDANCE_PALETTE
+            # elif index == 2:
+            #     num_classes = 40
+            #     PALETTE = NYU40_PALETTE
+            # else:
+            #     assert 0 == 1
             task_list = task_list_array[index]
             iou_compute_cmd = 'per_class_iu(hist_array_array[index][idx])'
+
             if num_classes == 2:
+            
                 iou_compute_cmd = '[' + iou_compute_cmd + '[1]]'
 
             num_scales = len(scales)
@@ -1766,10 +1810,14 @@ def test_ms_cerberus(eval_data_loader, model, scales,
             outputs = []
 
             with torch.no_grad():
-                for image in images:
+                for image in images:#? 一个subtask 为什么要用模型重复推理len(scale)次?
                     image_var = Variable(image, requires_grad=False)
                     image_var = image_var.cuda()
+               
+
                     final, _, _ = model(image_var, index)
+              
+
                     final_array = list()
                     for entity in final:
                         final_array.append(entity.data)
@@ -1779,12 +1827,12 @@ def test_ms_cerberus(eval_data_loader, model, scales,
                 for label_idx in range(len(outputs[0])):
                     tmp_tensor_list = list()
                     for out in outputs:
-                        tmp_tensor_list.append(resize_4d_tensor(out[label_idx], w, h))
+                        tmp_tensor_list.append(resize_4d_tensor(out[label_idx], w, h))#* 把结果图像一张一张取出来resize 成 w,h
                     
-                    final.append(sum(tmp_tensor_list))
+                    final.append(sum(tmp_tensor_list))#? 4个结果合并成一个!!!, 所以这个scale 指的是将需要测试的图像转成不同的scale进行测试???/
                 pred = list()
                 for label_entity in final:
-                    pred.append(label_entity.argmax(axis=1))
+                    pred.append(label_entity.argmax(axis=1))#* 根据对每个像素的预测概率得最终预测结果, 也就是从[1,2,W,H] to [1,W,H] ,每个像素点表示类别,要么0要么1
 
             batch_time_array[index].update(time.time() - end)
             if save_vis:
@@ -1800,7 +1848,7 @@ def test_ms_cerberus(eval_data_loader, model, scales,
 
                         save_colorful_images((label[idx]-label_mask*255).numpy(), gt_name, output_dir + '_color',PALETTE)
 
-            if has_gt:
+            if has_gt:#* 有gt就可以计算精度,这个代码和上面代码重复了
                 map_score_array = list()
                 for idx in range(len(label)):
                     label[idx] = label[idx].numpy()
@@ -1838,13 +1886,14 @@ def test_ms_cerberus(eval_data_loader, model, scales,
                 tmp_result = [i * 100.0 for i in eval(iou_compute_cmd)]
                 ious.append(tmp_result)
             ious_array.append(ious)
-        task_name = ['attribute', 'affordance','segmentation']
+        # task_name = ['attribute', 'affordance','segmentation']
+        task_name = ['depth', 'illumination', 'normal',"reflectance"]
         for num, ious in enumerate(ious_array):
             for idx, i in enumerate(ious):
-                logger.info('task %s', task_list_array[num][idx])
+                logger.info('task %s', task_list_array[num][idx])#* 输出任务名字
                 logger.info(' '.join('{:.3f}'.format(ii) for ii in i))
-        for num, ious in enumerate(ious_array):
-            logger.info('task %s : %.2f',task_name[num], 
+        for num, ious in enumerate(ious_array):#?
+            logger.info('task %s : %.2f',task_name[num],#* 输出任务名字 
                 [np.nanmean(i) for i in ious_array][num])
 
         return round(np.nanmean([np.nanmean(i) for i in ious_array]), 2)
@@ -1943,9 +1992,14 @@ def test_seg_cerberus(args):
     phase = args.phase
 
     
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],#! attribute
-                    ['L','M','R','S','W'],#! affordence 
-                    ['Segmentation']]  #! segment class 
+    # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],#! attribute
+    #                 ['L','M','R','S','W'],#! affordence 
+    #                 ['Segmentation']]  #! segment class 
+
+    task_list_array = [['Segmentation1'],
+                       ['Segmentation2'],
+                       ['Segmentation3'],
+                       ['Segmentation4'],]
 
     for k, v in args.__dict__.items():
         print(k, ':', v)
@@ -1953,21 +2007,31 @@ def test_seg_cerberus(args):
     #* 加载模型
     single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
 
+    
+
     checkpoint = torch.load(args.resume)
     for name, param in checkpoint['state_dict'].items():
         # name = name[7:]
         single_model.state_dict()[name].copy_(param)
     
     model = single_model.cuda()
+    
+    logger.info(model)
     #* 加载数据
     data_dir = args.data_dir
     info = json.load(open(join(data_dir, 'info.json'), 'r'))
     normalize = transforms.Normalize(mean=info['mean'], std=info['std'])
-    scales = [0.9, 1, 1.25]
+    #!=========
+    scales = [0.9, 1, 1.25]#? 这个scale 什么意思? 
+    # scales = [0.9, 1, 1.25,1]#? 这个scale 什么意思? 
+    #!=========
 
     test_loader_list = []
     if args.ms:
-        for i in ['_attribute', '_affordance', '']:
+        #!=====================
+        # for i in ['_attribute', '_affordance', '']:
+        for i in ['_depth', '_illumination', '_normal','_reflectance']:
+        #!=====================
             #! 分别加载三个子任务的数据
             test_loader_list.append(torch.utils.data.DataLoader(
                 SegListMSMultiHead(data_dir, phase + i, transforms.Compose([
@@ -2009,7 +2073,8 @@ def test_seg_cerberus(args):
     #! 测试吗? 
     if args.ms:
         mAP = test_ms_cerberus(test_loader_list, model, save_vis=True,
-                      has_gt=phase != 'test' or args.with_gt,
+                    #   has_gt=phase != 'test' or args.with_gt,
+                      has_gt=phase == 'test' or args.with_gt,
                       output_dir=out_dir,
                       scales=scales)
     else:
@@ -2024,7 +2089,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='')
     #!=================
     parser.add_argument("--local_rank", type=int)
-    parser.add_argument("--distributed_train",type=bool,default=True)
+    parser.add_argument("--distributed_train",action='store_true')
     #!=================
     parser.add_argument('cmd', choices=['train', 'test'])
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND')
@@ -2095,7 +2160,6 @@ def main():
 
 
 if __name__ == '__main__':
-    
     os.environ["CUDA_VISIBLE_DEVICES"] = "3,6"
     main()
     torch.cuda.empty_cache()
