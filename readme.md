@@ -19,6 +19,14 @@
 - datasets 主要就是一些数据集的加载类
 
 
+### 2022-5-15
+
+- 修改模型 
+- 成功在BSDS_RIND 数据集开始训练
+
+
+
+
 
 
 [**Paper**](https://arxiv.org/pdf/2111.12608.pdf) Accepted to CVPR 2022.

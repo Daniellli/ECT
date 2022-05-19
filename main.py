@@ -542,11 +542,32 @@ def validate(val_loader, model, criterion, eval_score=None, print_freq=10, trans
     return score.avg
 
 
+'''
+description:  
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+param undefined
+return {*}
+'''
 def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=10, transfer_model=None, epoch=None):
     
-    task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
-                       ['L','M','R','S','W'],
-                       ['Segmentation']] 
+
+    #!=======================
+    # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
+    #                    ['L','M','R','S','W'],
+    #                    ['Segmentation']] 
+    task_list_array = [['Segmentation1'],
+                       ['Segmentation2'],
+                       ['Segmentation3'],
+                       ['Segmentation4'],]
+
+    root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
+    
+    
     
     batch_time_list = list()
     losses_list = list()
@@ -554,7 +575,8 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
     score_list = list()
     score = AverageMeter()
 
-    for i in range(3):
+    # for i in range(3):
+    for i in range(4):
         batch_time_list.append(AverageMeter())
         losses_list.append(AverageMeter())
         losses_array = list()
@@ -562,6 +584,7 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
             losses_array.append(AverageMeter())
         losses_array_list.append(losses_array)
         score_list.append(AverageMeter())
+    #!=======================
 
     # switch to evaluate mode
     model.eval()
@@ -600,15 +623,18 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
                     (losses_array_list[index][idx]).update((loss_array[idx]).item(), input.size(0))
 
                 scores_array = list()
-
-                if index < 2:
+                #!===========
+                # if index < 2:
+                if index < 3:
                     for idx in range(len(output)):
                         scores_array.append(eval_score(output[idx], target_var[idx]))
-                elif index == 2:
+                # elif index == 2:
+                elif index == 3:
                     for idx in range(len(output)):
                         scores_array.append(mIoUAll(output[idx], target_var[idx]))
                 else:
                     assert 0 == 1
+                #!===========
                 
                 tmp = np.nanmean(scores_array)
                 if not np.isnan(tmp):
@@ -627,19 +653,30 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
                             'Score {score.val:.3f} ({score.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time_list[index], loss=losses_list[index],
                     score=score_list[index]))
-        score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val]))
+        #!+================
+        # score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val]))
+        score.update(np.nanmean([score_list[0].val, score_list[1].val, score_list[2].val,score_list[3].val]))
+        #!+================
         if i % print_freq == 0:
             logger.info('total score is:{score.val:.3f} ({score.avg:.3f})'.format(
                 score = score
             ))
-    
-    for idx, item in enumerate(['attribute','affordance','segmentation']):
+    #!===============================
+    need_upload = {}
+    # for idx, item in enumerate(['attribute','affordance','segmentation']):
+    for idx, item in enumerate(root_task_list_array):
         TENSORBOARD_WRITER.add_scalar('val_'+ item +'_loss_average', losses_list[idx].avg, global_step=epoch)
         TENSORBOARD_WRITER.add_scalar('val_'+ item +'_score_average', score_list[idx].avg, global_step=epoch)
-
+        need_upload['val_'+ item +'_loss_average']  = losses_list[idx].avg
+        need_upload['val_'+ item +'_score_average']  = score_list[idx].avg
+        
+    
     logger.info(' * Score {top1.avg:.3f}'.format(top1=score))
-    TENSORBOARD_WRITER.add_scalar('val_score_average', score.avg, global_step=epoch)
-
+    TENSORBOARD_WRITER.add_scalar('val_score_average', score.avg, global_step=epoch)    
+    
+    need_upload ['val_score_average']=score.avg
+    wandb.log(need_upload)
+    #!===============================
 
     return score.avg
 
@@ -883,7 +920,7 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
 
                 assert len(output) == len(target) #? 为什么模型的输出 大小是[11,1,2,512,512]  11表示的是该subtask 的分类类别,而target 是 [1,512,512],而且11 和1也对不上
 
-                for idx in range(len(output)):
+                for idx in range(len(output)):#? 遍历每个子任务预测的各个类别mask
                     output[idx] = softmaxf(output[idx])
                     loss_raw = criterion(output[idx],target_var[idx])
                     
@@ -939,21 +976,27 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                     (losses_array_list[index][idx]).update((loss_array[idx]).item(), input.size(0))
 
                 scores_array = list()
-
-                if index < 2:
+                #? 这里是干嘛? 
+                #!+================================= comment is origin  code 
+                # if index < 2:
+                if index < 3:
                     for idx in range(len(output)):
                         scores_array.append(eval_score(output[idx], target_var[idx]))
-                elif index == 2:
+                # elif index == 2:
+                elif index == 3:
                     for idx in range(len(output)):
                         scores_array.append(mIoUAll(output[idx], target_var[idx]))
                 else:
                     assert 0 == 1
-                
+                #!+=================================
 
                 scores_list[index].update(np.nanmean(scores_array), input.size(0))
 
-            # compute gradient and do SGD step ,index =2 就是最后一个subtask 做完了
-            if index == 2:
+            # compute gradient and do SGD step ,#* index =2 就是最后一个subtask 做完了
+            #!================== 应该改成3 
+            # if index == 2:
+            if index == 3:
+            #!================== 
                 if moo:
                     del input, target, input_var, target_var
                     task_loss_array_new = []
@@ -965,14 +1008,34 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                             for idx in range(len(output_new))]
                         local_loss_new = sum(loss_array_new)
                         task_loss_array_new.append(local_loss_new)
-                    assert len(task_loss_array_new) == 3
-                    sol, min_norm = MinNormSolver.find_min_norm_element([grads[cnt] for cnt in root_task_list_array])
+                    #!===============
+                    # assert len(task_loss_array_new) == 3
+                    assert len(task_loss_array_new) == 4
+                    #!===============
 
-                    logger.info('scale is: |{0}|\t|{1}|\t|{2}|\t'.format(sol[0], sol[1], sol[2]))
+                    sol, min_norm = MinNormSolver.find_min_norm_element([grads[cnt] for cnt in root_task_list_array])
+                    
+                    
+
+                    logger.info('scale is: |{0}|\t|{1}|\t|{2}|\t {3}'.format(sol[0], sol[1], sol[2],sol[3]))
                     
                     loss_new = 0
+                    #!========================
+                  
+                    # loss_new = sol[0] * task_loss_array_new[0] + sol[1] * task_loss_array_new[1] \
+                    #      + sol[2] * task_loss_array_new[2]
                     loss_new = sol[0] * task_loss_array_new[0] + sol[1] * task_loss_array_new[1] \
-                         + sol[2] * task_loss_array_new[2]
+                         + sol[2] * task_loss_array_new[2] +  sol[3] * task_loss_array_new[3]  
+
+                         
+                    all_need_upload= {}
+                    loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
+                    loss_scale= { "scale_"+k:v  for k,v  in  zip(root_task_list_array,sol)}
+                    all_need_upload.update(loss_old)
+                    all_need_upload.update(loss_scale)
+                    all_need_upload.update({"total_loss_with_scale":loss_new})
+                    wandb.log(all_need_upload)
+                    #!========================
                     
                     optimizer.zero_grad()
                     loss_new.backward()
@@ -1301,23 +1364,25 @@ def  construct_val_data(args):
     normalize = transforms.Normalize(mean=info['mean'],
                                      std=info['std'])
 
+    phase = "test"
+
     #* 验证集做的数据预处理比较多,  
-    dataset_depth_val = SegMultiHeadList(data_dir, 'val_depth', transforms.Compose([
+    dataset_depth_val = SegMultiHeadList(data_dir, phase+'_depth', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_illumination_val = SegMultiHeadList(data_dir, 'val_illumination', transforms.Compose([
+    dataset_illumination_val = SegMultiHeadList(data_dir, phase+'_illumination', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_normal_val = SegMultiHeadList(data_dir, 'val_normal', transforms.Compose([
+    dataset_normal_val = SegMultiHeadList(data_dir, phase+'_normal', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
             ]))
-    dataset_reflection_val = SegMultiHeadList(data_dir, 'val_reflectance', transforms.Compose([
+    dataset_reflection_val = SegMultiHeadList(data_dir, phase+'_reflectance', transforms.Compose([
                 transforms.RandomCropMultiHead(args.crop_size),
                 transforms.ToTensorMultiHead(),
                 normalize,
@@ -1959,7 +2024,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='')
     #!=================
     parser.add_argument("--local_rank", type=int)
-    parser.add_argument("--distributed_train",type=bool,default=False)
+    parser.add_argument("--distributed_train",type=bool,default=True)
     #!=================
     parser.add_argument('cmd', choices=['train', 'test'])
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND')
@@ -2031,6 +2096,6 @@ def main():
 
 if __name__ == '__main__':
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3,6"
     main()
     torch.cuda.empty_cache()

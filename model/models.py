@@ -139,6 +139,18 @@ class Cerberus(BaseModel):
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
 
+        #!+================ 
+
+        self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet14 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet15 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet16 = _make_fusion_block(features, use_bn)
+
+
+
+        #!+================
+
+
 class DPTDepthModel(DPT):
     def __init__(self, path=None, non_negative=True, **kwargs):
         features = kwargs["features"] if "features" in kwargs else 256
@@ -424,11 +436,18 @@ class CerberusSegmentationModelMultiHead(Cerberus):
             path_3 = self.scratch.refinenet07(path_4, layer_3_rn)
             path_2 = self.scratch.refinenet06(path_3, layer_2_rn)
             path_1 = self.scratch.refinenet05(path_2, layer_1_rn)
-        elif(index == 2):
+        elif(index == 2):#?'Module' object has no attribute 'refinenet16'
             path_4 = self.scratch.refinenet12(layer_4_rn)
             path_3 = self.scratch.refinenet11(path_4, layer_3_rn)
             path_2 = self.scratch.refinenet10(path_3, layer_2_rn)
             path_1 = self.scratch.refinenet09(path_2, layer_1_rn)
+        #!========================
+        elif(index==3):
+            path_4 = self.scratch.refinenet16(layer_4_rn)
+            path_3 = self.scratch.refinenet15(path_4, layer_3_rn)
+            path_2 = self.scratch.refinenet14(path_3, layer_2_rn)
+            path_1 = self.scratch.refinenet13(path_2, layer_1_rn)
+        #!=======================
         else:
             assert 0 == 1
         
