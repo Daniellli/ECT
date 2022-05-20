@@ -334,10 +334,10 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         #     (40, ['Segmentation']) \
         # )
         full_output_task_list = ( \
-            (2, ['Segmentation1']), \
-            (2, ['Segmentation2']), \
-            (2, ['Segmentation3']) ,\
-            (2, ['Segmentation4']) ,
+            (1, ['depth']), \
+            (1, ['illumination']), \
+            (1, ['normal']) ,\
+            (1, ['reflectance']) ,
         )
         
 
@@ -400,6 +400,12 @@ class CerberusSegmentationModelMultiHead(Cerberus):
                 setattr(self.scratch, "output_" + it + '_upsample', 
                     Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
                 )
+
+                #!=================== sigmoid 输出 每个像素点是边缘的概率
+                setattr(self.scratch, "output_" + it + '_sigmoid', 
+                    nn.Sigmoid()
+                )
+                #!===================
             
 
         if path is not None:
@@ -460,6 +466,10 @@ class CerberusSegmentationModelMultiHead(Cerberus):
             out = fun(path_1)
             fun = eval("self.scratch.output_" + it + '_upsample')
             out = fun(out)
+            #!==========
+            fun =  eval("self.scratch.output_" + it + '_sigmoid')
+            out = fun(out)
+            #!==========
             outs.append(out)
         #!=============
         # return outs,  [self.sigma.sub_attribute_sigmas, 

@@ -315,6 +315,10 @@ class ResidualConvUnit_custom(nn.Module):
         # return out + x
 
 
+'''
+description:   
+return {*}
+'''
 class FeatureFusionBlock_custom(nn.Module):
     """Feature fusion block."""
 

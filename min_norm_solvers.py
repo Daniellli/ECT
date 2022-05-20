@@ -35,7 +35,11 @@ class MinNormSolver:
         This is correct only in 2D
         ie. min_c |\sum c_i x_i|_2^2 st. \sum c_i = 1 , 1 >= c_1 >= 0 for all i, c_i + c_j = 1.0 for some i, j
         """
-        dmin = 1e8
+        #!+=========
+        # dmin = 1e8
+        dmin = 1e12
+        #!+=========
+        sol=None
         for i in range(len(vecs)):
             for j in range(i+1,len(vecs)):
                 if (i,j) not in dps:

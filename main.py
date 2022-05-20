@@ -39,7 +39,7 @@ import os
 import os.path as osp
 
 from torchcam.methods import SmoothGradCAMpp
-
+import torch.nn.functional as F
 try:
     from modules import batchnormsync
 except ImportError:
@@ -563,10 +563,11 @@ def validate_cerberus(val_loader, model, criterion, eval_score=None, print_freq=
     # task_list_array = [['Wood','Painted','Paper','Glass','Brick','Metal','Flat','Plastic','Textured','Glossy','Shiny'],
     #                    ['L','M','R','S','W'],
     #                    ['Segmentation']] 
-    task_list_array = [['Segmentation1'],
-                       ['Segmentation2'],
-                       ['Segmentation3'],
-                       ['Segmentation4'],]
+    task_list_array = [['depth'],
+                       ['illumination'],
+                       ['normal'],
+                       ['reflectance'],]
+ 
 
     root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
     
@@ -721,7 +722,7 @@ def mIoU(output, target):
     """Computes the iou for the specified values of k"""
     num_classes = output.shape[1]
     hist = np.zeros((num_classes, num_classes))
-    _, pred = output.max(1)
+    _, pred = output.max(1)#* 这个不适合 边缘检测评估 , 因为不知道如何确定这个阈值
     pred = pred.cpu().data.numpy()
     target = target.cpu().data.numpy()
     hist += fast_hist(pred.flatten(), target.flatten(), num_classes)
@@ -864,12 +865,12 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
     #                    ['Segmentation']]
 
     # root_task_list_array = ['At', 'Af', 'Seg']
-    task_list_array = [['Segmentation1'],
-                       ['Segmentation2'],
-                       ['Segmentation3'],
-                       ['Segmentation4'],]
+    task_list_array = [['depth'],
+                       ['illumination'],
+                       ['normal'],
+                       ['reflectance'],]
 
-                
+    
         
 
     root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
@@ -914,36 +915,33 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
 
                 target_var = list()
                 for idx in range(len(target)):
+                    #!+============ 将255 映射成1 
+                    target[idx][target[idx]==255] =   1 #* 
+                    target[idx] = target[idx]
+                    #!+============
                     target[idx] = target[idx].cuda()
                     target_var.append(torch.autograd.Variable(target[idx]))
 
 
-                #!===============
-                # cam_extractor = SmoothGradCAMpp(model.scratch,target_layer="layer3_rn")
-        
-                #!===============
+       
 
                 # compute output
                 output, _, _ = model(input_var, index)
-
-                #!===============
-                # activation_map = cam_extractor(output[0].argmax(1).cpu().numpy(), output[0])
-                # import matplotlib.pyplot as plt
-                # # Visualize the raw CAM
-                # plt.imshow(activation_map[0].squeeze(0).numpy()); plt.axis('off'); plt.tight_layout()
-                # plt.savefig("/home/DISCOVER_summer2022/xusc/exp/cerberus/debug/vis.jpg")
-                #!===============
-                
+               
                 # if transfer_model is not None:
                 #     output = transfer_model(output)
-                softmaxf = nn.LogSoftmax()
+                #!=============将softmaxf 改成 Sigmoid  并嵌入到模型中
+                # softmaxf = nn.LogSoftmax() 
+                #!=============
                 loss_array = list()
 
                 assert len(output) == len(target) #? 为什么模型的输出 大小是[11,1,2,512,512]  11表示的是该subtask 的分类类别,而target 是 [1,512,512],而且11 和1也对不上
-
+                #! 之前的任务是 每个类计算loss, 以[11,1,2,512,512]  为例子, 会循环11次, 输入[2,512,512] 输出[1,512,512] 也就是每个像素是否属于这个像素, 然后和gt[1,512,512]计算loss
                 for idx in range(len(output)):#? 遍历每个子任务预测的各个类别mask
-                    output[idx] = softmaxf(output[idx])
-                    loss_raw = criterion(output[idx],target_var[idx])
+                    #!+=============
+                    # output[idx] = softmaxf(output[idx]) 
+                    #!+=============
+                    loss_raw = criterion(output[idx],target_var[idx].reshape(output[idx].shape)) #* 计算loss, output 经过softmax 变成0-1 ,但是target_var 确实0-255
                     
                     loss_enhance = loss_raw 
 
@@ -996,22 +994,23 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                 for idx, it in enumerate(task_list_array[index]):
                     (losses_array_list[index][idx]).update((loss_array[idx]).item(), input.size(0))
 
-                scores_array = list()
-                #? 这里是干嘛? 
-                #!+================================= comment is origin  code 
-                # if index < 2:
-                if index < 3:
-                    for idx in range(len(output)):
-                        scores_array.append(eval_score(output[idx], target_var[idx]))
-                # elif index == 2:
-                elif index == 3:
-                    for idx in range(len(output)):
-                        scores_array.append(mIoUAll(output[idx], target_var[idx]))
-                else:
-                    assert 0 == 1
-                #!+=================================
+                if eval_score is not None:
+                    scores_array = list()
+                    #? 这里是干嘛? 
+                    #!+================================= comment is origin  code 
+                    # if index < 2:
+                    if index < 3:
+                        for idx in range(len(output)):
+                            scores_array.append(eval_score(output[idx], target_var[idx]))
+                    # elif index == 2:
+                    elif index == 3:
+                        for idx in range(len(output)):
+                            scores_array.append(mIoUAll(output[idx], target_var[idx]))
+                    else:
+                        assert 0 == 1
+                    #!+=================================
 
-                scores_list[index].update(np.nanmean(scores_array), input.size(0))
+                    scores_list[index].update(np.nanmean(scores_array), input.size(0))
 
             # compute gradient and do SGD step ,#* index =2 就是最后一个subtask 做完了
             #!================== 应该改成3 
@@ -1025,8 +1024,11 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                         input_var_new = torch.autograd.Variable(input_new.cuda())
                         target_var_new = [torch.autograd.Variable(target_new[idx].cuda()) for idx in range(len(target_new))]
                         output_new, _, _ = model(input_var_new, index_new)
-                        loss_array_new = [criterion(softmaxf(output_new[idx]),target_var_new[idx]) \
-                            for idx in range(len(output_new))]
+                        #!+=========
+                        # loss_array_new = [criterion(softmaxf(output_new[idx]),target_var_new[idx]) \                            
+                        #     for idx in range(len(output_new))]
+                        loss_array_new = [criterion(output_new[idx],target_var_new[idx].reshape(output[idx].shape) ) for idx in range(len(output_new))]
+                        #!+=========
                         local_loss_new = sum(loss_array_new)
                         task_loss_array_new.append(local_loss_new)
                     #!===============
@@ -1083,32 +1085,40 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                             global_step= epoch * len(train_loader) + i)
                         TENSORBOARD_WRITER.add_scalar('train_task_'+ it +'_loss_avg', losses_array_list[index][idx].avg,
                             global_step= epoch * len(train_loader) + i)
-
+                    #!=================
+                    # logger.info('Epoch: [{0}][{1}/{2}]\t'
+                    #             'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                    #             'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                    #             'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                    #             '{loss_info}'
+                    #             'Score {top1.val:.3f} ({top1.avg:.3f})'.format(
+                    #     epoch, i, len(train_loader), batch_time=batch_time_list[index],
+                    #     data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info,
+                    #     top1=scores_list[index]))
                     logger.info('Epoch: [{0}][{1}/{2}]\t'
                                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                                 'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                                 'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                                '{loss_info}'
-                                'Score {top1.val:.3f} ({top1.avg:.3f})'.format(
+                                '{loss_info}'.format(
                         epoch, i, len(train_loader), batch_time=batch_time_list[index],
-                        data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info,
-                        top1=scores_list[index]))
-                    
+                        data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info))
 
                     logger.info('File name is: {}'.format(','.join(name)))
                     TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_losses_val', losses_list[index].val,
                         global_step= epoch * len(train_loader) + i)
                     TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_losses_avg', losses_list[index].avg,
                         global_step= epoch * len(train_loader) + i)
-                    TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_val', scores_list[index].val,
-                        global_step= epoch * len(train_loader) + i)
-                    TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_avg', scores_list[index].avg,
-                        global_step= epoch * len(train_loader) + i)
+                    # TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_val', scores_list[index].val,
+                    #     global_step= epoch * len(train_loader) + i)
+                    # TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_avg', scores_list[index].avg,
+                    #     global_step= epoch * len(train_loader) + i)
+                    #!================================================================
+                    
     for i in range(3):
         TENSORBOARD_WRITER.add_scalar('train_epoch_loss_average', losses_list[index].avg, global_step= epoch)
-        TENSORBOARD_WRITER.add_scalar('train_epoch_scores_val', scores_list[index].avg, global_step= epoch)
+        # TENSORBOARD_WRITER.add_scalar('train_epoch_scores_val', scores_list[index].avg, global_step= epoch)
         #!=============
-        wandb.log({"loss_avg_%d"%i: losses_list[i].avg,"score_val_%d"%i: scores_list[i].avg})
+        wandb.log({"loss_avg_%d"%i: losses_list[i].avg})
         #!=============
 
         
@@ -1319,7 +1329,6 @@ def construct_model(args):
         # model = torch.nn.parallel.DistributedDataParallel(model, find_unused_parameters=True) #todo : find_unused_parameters   是干嘛的?
         model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
                 output_device=args.local_rank) 
-        # model = torch.nn.parallel.DataParallel(model) 
         # model = torch.nn.parallel.DataParallel(model,device_ids=[0,1, 2]) #* success 
         # model = torch.nn.parallel.DataParallel(model)  #* success 
         model=model.module
@@ -1430,6 +1439,68 @@ def  construct_val_data(args):
     return val_loader
 
 
+
+'''
+description: 
+return {*}
+'''
+class AttentionLoss(nn.Module):
+    def __init__(self,alpha=0.1,gamma=2,lamda=0.5):
+        super(AttentionLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.lamda = lamda
+
+    '''
+    description:  
+    param {*} self
+    param {*} output
+    param {*} label
+    return {*}
+    '''
+    def forward(self,output,label):
+        # batch_size, c, height, width = label.size()# B,C,H,W 
+        total_loss = 0
+        for i in range(len(output)):#* 一个通道一个通道计算loss , 每个通道表示一个类别
+            o = output[i] #* [1,H,W]
+            l = label[i] #*[C,H,W]
+            loss_focal = self.attention_loss2(o, l)#? 
+            total_loss = total_loss + loss_focal
+        # total_loss = total_loss / batch_size
+
+        return total_loss
+    
+    '''
+    description: 
+    param {*} self
+    param {*} output
+    param {*} target
+    return {*}
+    '''
+    def attention_loss2(self, output,target):
+        num_pos = torch.sum(target == 1).float()
+        num_neg = torch.sum(target == 0).float()
+        alpha = num_neg / (num_pos + num_neg) * 1.0
+        eps = 1e-14
+        p_clip = torch.clamp(output, min=eps, max=1.0 - eps)
+
+        weight = target * alpha * (4 ** ((1.0 - p_clip) ** 0.5)) + \
+                (1.0 - target) * (1.0 - alpha) * (4 ** (p_clip ** 0.5))
+        weight=weight.detach()
+
+        #!========
+        target = target.float()
+        #!========
+        loss = F.binary_cross_entropy(output, target, weight, reduction='none')
+        loss = torch.sum(loss)
+        return loss
+
+
+
+
+
+
+
 '''
 description: 
 param {*} args
@@ -1441,8 +1512,14 @@ def train_seg_cerberus(args):
     
     model,single_model = construct_model(args)
 
-    criterion = nn.NLLLoss2d(ignore_index=255)
+
+    #!+=============
+    # criterion = nn.NLLLoss2d(ignore_index=255)
+    criterion = AttentionLoss()
     criterion.cuda()
+    
+
+    #!+=============
     # Data loading code
     
     train_loader = construct_train_data(args)
@@ -1515,9 +1592,12 @@ def train_seg_cerberus(args):
     for epoch in range(start_epoch, args.epochs):
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
-
-        train_cerberus(train_loader, model, criterion, optimizer, epoch,
-        eval_score=mIoU)
+        #!+=====================
+        # train_cerberus(train_loader, model, criterion, optimizer, epoch,
+        # eval_score=mIoU)
+        
+        train_cerberus(train_loader, model, criterion, optimizer, epoch)
+        #!+=====================
         
         #if epoch%10==1:
         prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
@@ -1734,10 +1814,12 @@ def test_ms_cerberus(eval_data_loader, model, scales,
     # task_name = ['Attribute', 'Affordance', 'Segmentation']
 
 
-    task_list_array = [['Segmentation1'],
-                       ['Segmentation2'],
-                       ['Segmentation3'],
-                       ['Segmentation4']]
+    task_list_array = [['depth'],
+                       ['illumination'],
+                       ['normal'],
+                       ['reflectance']]
+
+
 
     task_name = ['depth', 'illumination', 'normal',"reflectance"]
 
@@ -1996,10 +2078,13 @@ def test_seg_cerberus(args):
     #                 ['L','M','R','S','W'],#! affordence 
     #                 ['Segmentation']]  #! segment class 
 
-    task_list_array = [['Segmentation1'],
-                       ['Segmentation2'],
-                       ['Segmentation3'],
-                       ['Segmentation4'],]
+    task_list_array = [['depth'],
+                       ['illumination'],
+                       ['normal'],
+                       ['reflectance'],]
+
+
+
 
     for k, v in args.__dict__.items():
         print(k, ':', v)
@@ -2160,6 +2245,6 @@ def main():
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3,6"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
     main()
     torch.cuda.empty_cache()
