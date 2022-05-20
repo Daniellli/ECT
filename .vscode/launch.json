@@ -19,10 +19,16 @@
             // ]
             // train
             "args": [
-                "train",  "-s", "512", "--batch-size", "1","--random-scale","2", 
-                "--random-rotate","10",  "--epochs","200","--lr","0.007","--momentum","0.9","--lr-mode","poly",
-                "--ms", "--workers", "12","--classes","1"
+                "test",  "-s", "512", "--resume", "./networks/model_best.pth.tar", 
+                "--phase", "val", "--batch-size", "1", "--ms", "--workers", "10",
+                "--classes","1"
             ]
+            // train
+            // "args": [
+            //     "train",  "-s", "512", "--batch-size", "1","--random-scale","2", 
+            //     "--random-rotate","10",  "--epochs","200","--lr","0.007","--momentum","0.9","--lr-mode","poly",
+            //     "--ms", "--workers", "12","--classes","1"
+            // ]
         }
     ]
 }

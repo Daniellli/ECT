@@ -2245,6 +2245,6 @@ def main():
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
     main()
     torch.cuda.empty_cache()
