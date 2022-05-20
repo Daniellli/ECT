@@ -38,7 +38,7 @@ from model.transforms import PrepareForNet
 import os
 import os.path as osp
 
-from torchcam.methods import SmoothGradCAMpp
+# from torchcam.methods import SmoothGradCAMpp
 import torch.nn.functional as F
 try:
     from modules import batchnormsync
@@ -1053,9 +1053,9 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                          
                     all_need_upload= {}
                     loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-                    loss_scale= { "scale_"+k:v  for k,v  in  zip(root_task_list_array,sol)}
+                    # loss_scale= { "scale_"+k:v  for k,v  in  zip(root_task_list_array,sol)}
                     all_need_upload.update(loss_old)
-                    all_need_upload.update(loss_scale)
+                    # all_need_upload.update(loss_scale)
                     all_need_upload.update({"total_loss_with_scale":loss_new})
                     wandb.log(all_need_upload)
                     #!========================
@@ -1600,22 +1600,26 @@ def train_seg_cerberus(args):
         #!+=====================
         
         #if epoch%10==1:
-        prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
-        wandb.log({"prec":prec1})
+        #!+===========
+        # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
+        # wandb.log({"prec":prec1})
 
 
-        is_best = prec1 > best_prec1
-        best_prec1 = max(prec1, best_prec1)
+
+        # is_best = prec1 > best_prec1
+        # best_prec1 = max(prec1, best_prec1)
+        is_best =True #* 假设每次都是最好的 
+        #!+=========== 
         checkpoint_path = 'checkpoint_latest.pth.tar'
-        
         save_checkpoint({
             'epoch': epoch + 1,
             'arch': args.arch,
             'state_dict': model.state_dict(),
             'best_prec1': best_prec1,
         }, is_best, filename=checkpoint_path)
-        if (epoch + 1) % 10 == 0:
-            history_path = 'checkpoint_{:03d}.pth.tar'.format(epoch + 1)
+
+        if (epoch + 1) % 5 == 0:
+            history_path =osp.join("networks/exp1",'checkpoint_{:03d}.pth.tar'.format(epoch + 1)) 
             shutil.copyfile(checkpoint_path, history_path)
 
 
@@ -2177,7 +2181,7 @@ def parse_args():
     parser.add_argument("--distributed_train",action='store_true')
     #!=================
     parser.add_argument('cmd', choices=['train', 'test'])
-    parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND')
+    parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND_mine')
     parser.add_argument('-c', '--classes', default=0, type=int)
     parser.add_argument('-s', '--crop-size', default=0, type=int)
     parser.add_argument('--step', type=int, default=200)
@@ -2245,6 +2249,6 @@ def main():
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
+    os.environ["CUDA_VISIBLE_DEVICES"] = "5,7"
     main()
     torch.cuda.empty_cache()
