@@ -23,5 +23,10 @@ wandb*
 
 
 
+*.mat
+*.gz
+
+*.tar.gz
+
 
 

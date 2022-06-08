@@ -2094,6 +2094,7 @@ def test_seg(args):
 
     logger.info('%s mAP: %f', TASK, mAP)
 
+
 '''
 description:  这个才是测试函数, 有调用
 param {*} args

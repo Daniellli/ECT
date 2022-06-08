@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-05-16 09:18:44
+ # @LastEditTime: 2022-06-08 23:34:17
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /cerberus/my_script/test.sh
+ # @FilePath: /Cerberus-main/my_script/test.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -20,9 +20,9 @@
 
 
 #* 在测试集上测试精度
-python main.py test  -s 1024 --resume ./model_best.pth.tar \
---phase test  --batch-size 1 --ms --workers 20 --classes 1 --arch test_arch \
---with-gt 2>&1 | tee -a logs/test.log
+# python main.py test  -s 1024 --resume ./model_best.pth.tar \
+# --phase test  --batch-size 1 --ms --workers 20 --classes 1 --arch test_arch \
+# --with-gt 2>&1 | tee -a logs/test.log
 
 #* 在验证集上测试精度
 # python main.py test  -s 1024 --resume ./model_best.pth.tar \
@@ -30,3 +30,7 @@ python main.py test  -s 1024 --resume ./model_best.pth.tar \
 # --with-gt 2>&1 | tee -a logs/test.log
 
 
+#* rindnet  在测试集上测试精度
+python main3.py test  -s 320 --resume ./model_best.pth.tar \
+--phase test  --batch-size 1 --ms --workers 20 \
+2>&1 | tee -a logs/test.log

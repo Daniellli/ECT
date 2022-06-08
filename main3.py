@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-LastEditTime: 2022-06-08 12:00:27
+LastEditTime: 2022-06-08 23:35:22
 LastEditors: xushaocong
 Description:  改成5个头部
 FilePath: /Cerberus-main/main3.py
@@ -47,7 +47,9 @@ from model.transforms import PrepareForNet
 
 import os
 import os.path as osp
-
+from tqdm import tqdm
+import scipy.io as sio
+import torchvision.transforms as transforms
 # from torchcam.methods import SmoothGradCAMpp
 import torch.nn.functional as F
 try:
@@ -1315,22 +1317,6 @@ def common_init_wandb(args):
     
 
 
-    
-'''
-description:  构建模型, 修改了判断是否分布式训练的代码
-param {*} args
-return {*}
-'''
-def construct_model(args):
-
-   
-    return model,single_model
-
-
-
-
-
-
 '''
 description: 
 param {*} args
@@ -1355,7 +1341,6 @@ def train_seg_cerberus(args):
         single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
         model = single_model.cuda()
 
-        
     atten_criterion = AttentionLoss2().cuda()
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
     
@@ -1915,6 +1900,7 @@ def test_seg(args):
 
     logger.info('%s mAP: %f', TASK, mAP)
 
+
 '''
 description:  这个才是测试函数, 有调用
 param {*} args
@@ -2021,6 +2007,84 @@ def test_seg_cerberus(args):
 
 
 
+def make_dir(depth_output_dir):
+
+    if not os.path.exists(depth_output_dir):
+        os.makedirs(depth_output_dir)
+
+
+def test_edge(args):
+    #* 加载模型
+    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    checkpoint = torch.load(args.resume,map_location='cuda:0')
+    for name, param in checkpoint['state_dict'].items():
+        single_model.state_dict()[name].copy_(param)
+    model = single_model.cuda()
+    
+    #* load data 
+    train_dataset = Mydataset(root_path="dataset/BSDS-RIND/BSDS-RIND/Augmentation/", split='test', crop_size=320)
+    test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
+                        shuffle=False,num_workers=args.workers,pin_memory=False)
+    
+    cudnn.benchmark = True
+    
+    output_dir = "networks"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    depth_output_dir = os.path.join(output_dir, 'depth/met')
+    make_dir(depth_output_dir)
+    
+    normal_output_dir = os.path.join(output_dir, 'normal/met')
+    make_dir(normal_output_dir)
+
+    reflectance_output_dir = os.path.join(output_dir, 'reflectance/met')
+    make_dir(reflectance_output_dir)
+
+    illumination_output_dir = os.path.join(output_dir, 'illumination/met')
+    make_dir(illumination_output_dir)
+
+    model.eval()
+    tbar = tqdm(test_loader, desc='\r')
+    for i, image in enumerate(tbar):#*  B,C,H,W
+        name = test_loader.dataset.images_name[i]
+        image = Variable(image, requires_grad=False)
+        image = image.cuda()
+        B,C,H,W = image.shape 
+        trans1 = transforms.Compose([transforms.Resize(size=(320, 480))])
+        trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
+        image = trans1(image)#* debug
+
+        with torch.no_grad():
+            res = list()#* out_depth, out_normal, out_reflectance, out_illumination
+            for idx in range(0,5,1):#* 第0个分支不用推理, 
+                tmp,_,_ = model(image,idx)
+                res.append(trans2(tmp[0])) #* debug
+
+
+        out_depth, out_normal, out_reflectance, out_illumination = res[1],res[2],res[3],res[4]
+        depth_pred = out_depth.data.cpu().numpy()
+        depth_pred = depth_pred.squeeze()
+        sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
+
+        normal_pred = out_normal.data.cpu().numpy()
+        normal_pred = normal_pred.squeeze()
+        sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
+
+        reflectance_pred = out_reflectance.data.cpu().numpy()
+        reflectance_pred = reflectance_pred.squeeze()
+        sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
+
+        illumination_pred = out_illumination.data.cpu().numpy()
+        illumination_pred = illumination_pred.squeeze()
+        sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
+                    {'result': illumination_pred})
+
+
+
+    
+
+
 def parse_args():
     # Training settings
     parser = argparse.ArgumentParser(description='')
@@ -2096,7 +2160,8 @@ def main():
     if args.cmd == 'train':
         train_seg_cerberus(args)
     elif args.cmd == 'test':
-        test_seg_cerberus(args)
+        # test_seg_cerberus(args)
+        test_edge(args)
 
 
 if __name__ == '__main__':
