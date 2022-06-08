@@ -103,6 +103,12 @@ class Transpose(nn.Module):
         return x
 
 
+'''
+description:  
+param {*} pretrained
+param {*} x
+return {*}
+'''
 def forward_vit(pretrained, x):
     b, c, h, w = x.shape
 

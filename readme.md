@@ -27,6 +27,12 @@
 
 
 
+### 2022-6-7
+
+添加了data 和dataloaders
+- dataloaders 拷贝自 rindnet
+- data 和dataset 一样 ,for debug
+
 
 
 [**Paper**](https://arxiv.org/pdf/2111.12608.pdf) Accepted to CVPR 2022.

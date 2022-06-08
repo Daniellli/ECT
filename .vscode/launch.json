@@ -24,10 +24,15 @@
             //     "--classes","1"
             // ]
             // train
+            // "args": [
+            //     "train",  "-s", "512", "--batch-size", "1","--random-scale","2", 
+            //     "--random-rotate","10",  "--epochs","200","--lr","0.007","--momentum","0.9","--lr-mode","poly",
+            //     "--ms", "--workers", "10","--classes","1"
+            // ]
+            //train  minimize the parameter numebr 
             "args": [
-                "train",  "-s", "512", "--batch-size", "1","--random-scale","2", 
-                "--random-rotate","10",  "--epochs","200","--lr","0.007","--momentum","0.9","--lr-mode","poly",
-                "--ms", "--workers", "10","--classes","1"
+                "train",  "-s", "512", "--batch-size", "2",
+                 "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10"
             ]
         }
     ]

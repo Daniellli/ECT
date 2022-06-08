@@ -37,7 +37,9 @@ class MinNormSolver:
         """
         #!+=========
         # dmin = 1e8
-        dmin = 1e12
+        dmin = 1e10
+        # dmin = 1e14
+        # dmin = 1e16
         #!+=========
         sol=None
         for i in range(len(vecs)):

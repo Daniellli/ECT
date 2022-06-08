@@ -106,12 +106,15 @@ class Cerberus(BaseModel):
         self.channels_last = channels_last
 
         hooks = {
-            "vitb_rn50_384": [0, 1, 8, 11],
-            "vitb16_384": [2, 5, 8, 11],
-            "vitl16_384": [5, 11, 17, 23],
+            "vitb_rn50_384": [0, 1, 8, 11], #* 不同的backbone对应提取不同layer, 如果backbone是vitb_rn50_384 则 提取resnet 0,1 and encoder  8,11 
+            "vitb16_384": [2, 5, 8, 11],    #* 如果backbone 是vitb16_384 则提取resnet  2,5 and encoder 8,11 
+            "vitl16_384": [5, 11, 17, 23],  
         }
 
         # Instantiate backbone and reassemble blocks
+        #* self.pretrained : 对应backbone , 就是 resnet 50+ transformer encoder 
+        #? self.scratch 对应什么? 
+        #* self.scratch  对应 特征融合模块, 后面还需要接refinenet0d , 
         self.pretrained, self.scratch = _make_encoder(
             backbone,
             features,
@@ -124,6 +127,9 @@ class Cerberus(BaseModel):
             enable_attention_hooks=enable_attention_hooks,
         )
 
+        #* 特征融合模块? 
+        #?  reassemble operation 呢?  
+        #? 是不是 self.scratch 的卷积部分就是对应 网络的reassemble operation ? 
         self.scratch.refinenet01 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet02 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
@@ -140,14 +146,15 @@ class Cerberus(BaseModel):
         self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
 
         #!+================ 
-
         self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet14 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet15 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet16 = _make_fusion_block(features, use_bn)
 
-
-
+        self.scratch.refinenet17 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet18 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet19 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet20 = _make_fusion_block(features, use_bn)
         #!+================
 
 
@@ -334,58 +341,17 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         #     (40, ['Segmentation']) \
         # )
         full_output_task_list = ( \
+            (5, ['background']), \
             (1, ['depth']), \
-            (1, ['illumination']), \
-            (1, ['normal']) ,\
-            (1, ['reflectance']) ,
+            (1, ['normal']) , \
+            (1, ['reflectance']),\
+            (1, ['illumination'])
         )
-        
 
         self.full_output_task_list = full_output_task_list
-        self.add_module('sigma',nn.Module())
 
-        # self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        # self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        # self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-
-        # self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        # self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        # self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        
-        # self.sigma.attribute_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        # self.sigma.affordance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        # self.sigma.seg_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-
-        # self.sigma.sub_attribute_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(0.20, 1.0), requires_grad=True)
-        # self.sigma.sub_affordance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(0.20, 1.0), requires_grad=True)
-        # self.sigma.sub_seg_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(0.20, 1.0), requires_grad=True)
-        
-
-        self.sigma.depth_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.illumination_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.normal_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.reflectance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(-1.60, 0.0), requires_grad=True)
-
-        #? 为什么这个和第四个code block重复了? 变量不是覆盖吗?
-        self.sigma.sub_depth_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.sub_illumination_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.sub_normal_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        self.sigma.sub_reflectance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[3][1])).uniform_(-1.60, 0.0), requires_grad=True)
-        
-
-        self.sigma.depth_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.illumination_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.normal_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.reflectance_sigmas = nn.Parameter(torch.Tensor(1).uniform_(0.20, 1.0), requires_grad=True)
-
-
-        self.sigma.sub_depth_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[0][1])).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.sub_illumination_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[1][1])).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.sub_normal_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[2][1])).uniform_(0.20, 1.0), requires_grad=True)
-        self.sigma.sub_reflectance_sigmas = nn.Parameter(torch.Tensor(len(full_output_task_list[3][1])).uniform_(0.20, 1.0), requires_grad=True)
-        
-        #!======================
-
+   
+        #* 网络头部, 每个子任务的子类别都对应一个头部 , 每个头部由 一个 nn.Sequential 和 upsample , sigmoid 组成, 其中sigmoid是我加上去的
         for (num_classes, output_task_list) in full_output_task_list:
             for it in output_task_list:
                 setattr(self.scratch, "output_" + it ,nn.Sequential(
@@ -413,6 +379,13 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         else:
             pass
 
+    '''
+    description:  这个好像也没调用?
+    param {*} self
+    param {*} x
+    param {*} name
+    return {*}
+    '''
     def get_attention(self, x ,name):
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
@@ -421,16 +394,25 @@ class CerberusSegmentationModelMultiHead(Cerberus):
 
         return x
 
+    '''
+    description: 
+    param {*} self
+    param {*} x
+    param {*} index : 对应当前前向传播的是哪个子任务 
+    return {*}
+    '''
     def forward(self, x ,index):
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
 
-        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x)
+        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
 
+        #*  reassemble operatoion ? 
         layer_1_rn = self.scratch.layer1_rn(layer_1)
         layer_2_rn = self.scratch.layer2_rn(layer_2)
         layer_3_rn = self.scratch.layer3_rn(layer_3)
         layer_4_rn = self.scratch.layer4_rn(layer_4)
+
 
         if (index == 0):
             path_4 = self.scratch.refinenet04(layer_4_rn)
@@ -453,22 +435,30 @@ class CerberusSegmentationModelMultiHead(Cerberus):
             path_3 = self.scratch.refinenet15(path_4, layer_3_rn)
             path_2 = self.scratch.refinenet14(path_3, layer_2_rn)
             path_1 = self.scratch.refinenet13(path_2, layer_1_rn)
+        elif(index==4):
+            path_4 = self.scratch.refinenet20(layer_4_rn)
+            path_3 = self.scratch.refinenet19(path_4, layer_3_rn)
+            path_2 = self.scratch.refinenet18(path_3, layer_2_rn)
+            path_1 = self.scratch.refinenet17(path_2, layer_1_rn)
         #!=======================
         else:
             assert 0 == 1
         
+
+        #* 特征融合后 , 下面就是网络的头部, 主要为了输出每个任务的mask  
         output_task_list = self.full_output_task_list[index][1]
-
+        
         outs = list()
-
+        
         for it in output_task_list:
-            fun = eval("self.scratch.output_" + it)
+            fun = eval("self.scratch.output_" + it)#* 全连接
             out = fun(path_1)
-            fun = eval("self.scratch.output_" + it + '_upsample')
+            fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
             out = fun(out)
             #!==========
-            fun =  eval("self.scratch.output_" + it + '_sigmoid')
-            out = fun(out)
+            if it != "background":
+                fun =  eval("self.scratch.output_" + it + '_sigmoid')
+                out = fun(out)
             #!==========
             outs.append(out)
         #!=============
@@ -479,14 +469,7 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         #             self.sigma.affordance_sigmas, 
         #             self.sigma.seg_sigmas], []
 
-        return outs,  [self.sigma.sub_depth_sigmas, 
-                    self.sigma.sub_illumination_sigmas,
-                    self.sigma.sub_normal_sigmas, 
-                    self.sigma.sub_reflectance_sigmas, 
-                    self.sigma.depth_sigmas, 
-                    self.sigma.illumination_sigmas, 
-                    self.sigma.normal_sigmas,
-                    self.sigma.reflectance_sigmas], []
+        return outs,  None, None
 
 
         #!=============

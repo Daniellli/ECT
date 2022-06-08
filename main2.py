@@ -1,3 +1,12 @@
+'''
+Author: xushaocong
+Date: 2022-06-07 17:03:15
+LastEditTime: 2022-06-08 08:01:40
+LastEditors: xushaocong
+Description:  dataloader 改成rindnet的
+FilePath: /Cerberus-main/main2.py
+email: xushaocong@stu.xmu.edu.cn
+'''
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
@@ -7,6 +16,7 @@ import json
 import logging
 import math
 import os
+
 # import pdb
 from os.path import exists, join, split
 import threading
@@ -46,7 +56,12 @@ except ImportError:
     pass
 
 
+
 #*====================
+
+from dataloaders.datasets.bsds_hd5 import Mydataset
+
+
 from torch.utils.data.distributed import DistributedSampler
 run = wandb.init(project="train_cerberus") 
 cur_dir=osp.dirname(__file__)
@@ -871,8 +886,6 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                        ['reflectance'],]
 
     
-        
-
     root_task_list_array = ['depth', 'illumination', 'normal',"reflectance"]
     #!==============
 
@@ -899,8 +912,8 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
     end = time.time()
 
     # moo = True
-    moo = False
-    debug =True
+    moo = True
+    debug =False
 
     for i, in_tar_name_pair in enumerate(train_loader):#* 一个一个batch取数据
         if moo :
@@ -908,12 +921,16 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
         
         if debug:
             task_loss_array_new=[]
-            for index_new, (input_new, target_new, _) in enumerate(in_tar_name_pair):
-                input_var_new = torch.autograd.Variable(input_new.cuda())
+            input_new = in_tar_name_pair[0].cuda() #* image
+            B,C,W,H=in_tar_name_pair[0].shape
+            for index_new, ( target_new) in enumerate(in_tar_name_pair[1][0][1:]):
+                target_new=  target_new.reshape(B,W,H)
+                input_var_new = torch.autograd.Variable(input_new)
                 target_var_new   = list()
-                for idx in range (len(target_new)):
-                    target_new[idx][target_new[idx]==255] = 1
-                    target_var_new.append(torch.autograd.Variable(target_new[idx].cuda()))
+
+                target_var_new= torch.autograd.Variable(target_new.cuda())#* 跑几次还是会遇到上次的问题
+                # for idx in range (len(target_new)):
+                #     target_var_new.append(torch.autograd.Variable(target_new[idx].cuda()))
 
                 output_new, _, _ = model(input_var_new, index_new)
                 
@@ -936,10 +953,14 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
             optimizer.step()
         else :
             task_loss_array = []
-            for index, (input, target, name) in enumerate(in_tar_name_pair):# * 遍历一个一个任务
+            in_tar_name_pair_labels = in_tar_name_pair[1].permute(1,0,2,3)
+            for index,  target in enumerate(in_tar_name_pair_labels[1:]):# * 遍历一个一个任务
+                input   = in_tar_name_pair[0].clone().cuda()
                 # measure data loading time #* input 输入图像数据, target 图像的标签, name : input 的相对路径
+                B,W,H= target.shape
+                target = target.reshape([B,1,W,H])
+
                 data_time_list[index].update(time.time() - end)
-                
                 '''
                 description: 前向推理每个子任务的数据的循环内, #!第一个moo, 
                 #! 主要就是将数据前向推理 然后计算loss ,存储loss,  然后是反向传播,处理梯度 ?, 不是很清楚是如何处理梯度的  
@@ -949,51 +970,33 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                     input = input.cuda()
                     input_var = torch.autograd.Variable(input)#?将输入转成可导的对象 
 
-                    target_var = list()
-                    for idx in range(len(target)):
-                        #!+============ 将255 映射成1 
-                        target[idx][target[idx]==255] =   1 #* 
-                        target[idx] = target[idx]
-                        #!+============
-                        target[idx] = target[idx].cuda()
-                        target_var.append(torch.autograd.Variable(target[idx]))
-
-
+                    target_var = [torch.autograd.Variable(target[idx].cuda()) for idx in range(len(target)) ]
         
                     # compute output
                     output, _, _ = model(input_var, index)
                 
-                    # if transfer_model is not None:
-                    #     output = transfer_model(output)
-                    #!=============将softmaxf 改成 Sigmoid  并嵌入到模型中
-                    # softmaxf = nn.LogSoftmax() 
-                    #!=============
                     loss_array = list()
 
-                    assert len(output) == len(target) #? 为什么模型的输出 大小是[11,1,2,512,512]  11表示的是该subtask 的分类类别,而target 是 [1,512,512],而且11 和1也对不上
+                    # assert len(output) == len(target) #? 为什么模型的输出 大小是[11,1,2,512,512]  11表示的是该subtask 的分类类别,而target 是 [1,512,512],而且11 和1也对不上
                     #! 之前的任务是 每个类计算loss, 以[11,1,2,512,512]  为例子, 会循环11次, 输入[2,512,512] 输出[1,512,512] 也就是每个像素是否属于这个像素, 然后和gt[1,512,512]计算loss
                     for idx in range(len(output)):#? 遍历该子任务预测的各个类别mask, 然后我只有一个类别, 并且只输出概率
-                        #!+=============
-                        # output[idx] = softmaxf(output[idx]) 
-                        #!+=============
-                        loss_raw = criterion(output[idx],target_var[idx].reshape(output[idx].shape)) #* 计算loss, output 经过softmax 变成0-1 ,但是target_var 确实0-255
+                        
+                        loss_raw = criterion(output[idx],target_var[idx]) #* 计算loss, output 经过softmax 变成0-1 ,但是target_var 确实0-255
                         
                         loss_enhance = loss_raw 
                         #? 这不是一样的吗?  所以说明代码还是基于其他代码  ?
                         if torch.isnan(loss_enhance):
-                            # print("nan")
+                            print("nan")
                             logger.info('loss_raw is: {0}'.format(loss_raw))
                             logger.info('loss_enhance is: {0}'.format(loss_enhance)) 
-                            exit(0)
-                            # loss_array.append(loss_enhance)
+                            exit(0) #* 推出程序
                         else:
                             loss_array.append(loss_enhance)
 
                         local_loss = sum(loss_array)
                         local_loss_enhance = local_loss 
-                        #!
-
-
+                        
+                    
                     # backward for gradient calculate
                     for cnt in model.pretrained.parameters():
                         cnt.grad = None
@@ -1001,7 +1004,6 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                     model.scratch.layer2_rn.weight.grad = None
                     model.scratch.layer3_rn.weight.grad = None
                     model.scratch.layer4_rn.weight.grad = None
-
                     local_loss_enhance.backward() #? 反向传播
 
                     grads[root_task_list_array[index]] = []
@@ -1050,7 +1052,6 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                         task_loss_array.append(local_loss_enhance)
 
                     # measure accuracy and record loss
-
                     losses_list[index].update(local_loss_enhance.item(), input.size(0))
 
                     for idx, it in enumerate(task_list_array[index]): #* 遍历当前处理的子任务的每个类别, 每个类别都有一个loss 
@@ -1058,28 +1059,18 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
 
                     if eval_score is not None:
                         scores_array = list()
-                        #? 这里是干嘛? 
-                        #!+================================= comment is origin  code 
-                        # if index < 2:
                         if index < 3:
                             for idx in range(len(output)):
                                 scores_array.append(eval_score(output[idx], target_var[idx]))
-                        # elif index == 2:
                         elif index == 3:
                             for idx in range(len(output)):
                                 scores_array.append(mIoUAll(output[idx], target_var[idx]))
                         else:
                             assert 0 == 1
-                        #!+=================================
-
                         scores_list[index].update(np.nanmean(scores_array), input.size(0))
 
                 # compute gradient and do SGD step ,#* index =2 就是最后一个subtask 做完了
-                #!================== 应该改成3  ,
-                # if index == 2:
-                if index == 3: 
-                #!================== 
-                    
+                if index == 3:     
                     '''
                     description:  在最后一个子任务 , 前向推理结束, 第三个moo
                     #! 将所有子任务在重新前向推理一次, 计算loss , 对应文章的二次求导
@@ -1090,41 +1081,32 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                         del input, target, input_var, target_var
                         task_loss_array_new = []
                         #! 重新前向传播计算梯度
-                        for index_new, (input_new, target_new, _) in enumerate(in_tar_name_pair):
-                            input_var_new = torch.autograd.Variable(input_new.cuda())
-                            #!+=================================================== 将一行代码改成多行, 主要是因为需要将0-255 映射成0-1 没办法用一行完成    
-                            # target_var_new = [torch.autograd.Variable(target_new[idx].cuda()) for idx in range(len(target_new))]
-                        
-                            target_var_new   = list()
-                            for idx in range (len(target_new)):
-                                target_new[idx][target_new[idx]==255] = 1
-                                target_var_new.append(torch.autograd.Variable(target_new[idx].cuda()))
 
-                            #!+===================================================
+                        for index_new, target_new in enumerate(in_tar_name_pair_labels[1:]):
+                            input_new = in_tar_name_pair[0].clone().cuda() #* image
+                            B,W,H =target_new.shape
+                            target_new=  target_new.reshape([B,1,W,H])
+                            input_var_new = torch.autograd.Variable(input_new)
+
+                            target_var_new = [torch.autograd.Variable(target_new[idx].cuda()) for idx in range (len(target_new)) ]
+
                             output_new, _, _ = model(input_var_new, index_new)
-                            #!+=========-
-                            # loss_array_new = [criterion(softmaxf(output_new[idx]),target_var_new[idx]) \                            
-                            #     for idx in range(len(output_new))]#?illumination 为什么loss为0 
+
                             loss_array_new = [criterion(output_new[idx],target_var_new[idx].reshape(output[idx].shape) ) for idx in range(len(output_new))]
-                            #!+=========
+                            
+                            
                             local_loss_new = sum(loss_array_new)
                             task_loss_array_new.append(local_loss_new)
-                        #!===============
-                        # assert len(task_loss_array_new) == 3
+                
+                        
                         assert len(task_loss_array_new) == 4
-                        #!===============
-
+                        
                         sol, min_norm = MinNormSolver.find_min_norm_element([grads[cnt] for cnt in root_task_list_array])
                         
                         
-
                         logger.info('scale is: |{0}|\t|{1}|\t|{2}|\t {3}'.format(sol[0], sol[1], sol[2],sol[3]))
                         
-                        loss_new = 0
-                        #!========================
-                    
-                        # loss_new = sol[0] * task_loss_array_new[0] + sol[1] * task_loss_array_new[1] \
-                        #      + sol[2] * task_loss_array_new[2]#! 计算新的loss, 用MinNormSolver.find_min_norm_element 找到的alpha 作为权重计算loss
+                        
                         loss_new = sol[0] * task_loss_array_new[0] + sol[1] * task_loss_array_new[1] \
                             + sol[2] * task_loss_array_new[2] +  sol[3] * task_loss_array_new[3]  
 
@@ -1136,20 +1118,16 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                         # all_need_upload.update(loss_scale)
                         all_need_upload.update({"total_loss_with_scale":loss_new})
                         wandb.log(all_need_upload)
-                        #!========================
                         
                         optimizer.zero_grad()
                         loss_new.backward()
                         optimizer.step()
                     else:
-                        #!+======================
-                        # assert len(task_loss_array) == 3
                         assert len(task_loss_array) == 4
-                        #!+======================
                         loss = sum(task_loss_array)
-                        #!+=======
+                        
                         wandb.log({"loss":loss})
-                        #!+=======
+                        
                         optimizer.zero_grad()
                         loss.backward()
                         optimizer.step()
@@ -1165,25 +1143,11 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                 # measure elapsed time
                     batch_time_list[index].update(time.time() - end)
                     end = time.time()
-
                     if i % print_freq == 0:
                         losses_info = ''
                         for idx, it in enumerate(task_list_array[index]):
                             losses_info += 'Loss_{0} {loss.val:.4f} ({loss.avg:.4f}) \t'.format(it, loss=losses_array_list[index][idx])
-                            TENSORBOARD_WRITER.add_scalar('train_task_'+ it +'_loss_val', losses_array_list[index][idx].val,
-                                global_step= epoch * len(train_loader) + i)
-                            TENSORBOARD_WRITER.add_scalar('train_task_'+ it +'_loss_avg', losses_array_list[index][idx].avg,
-                                global_step= epoch * len(train_loader) + i)
-                        #!=================
-                        # logger.info('Epoch: [{0}][{1}/{2}]\t'
-                        #             'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                        #             'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                        #             'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                        #             '{loss_info}'
-                        #             'Score {top1.val:.3f} ({top1.avg:.3f})'.format(
-                        #     epoch, i, len(train_loader), batch_time=batch_time_list[index],
-                        #     data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info,
-                        #     top1=scores_list[index]))
+                           
                         logger.info('Epoch: [{0}][{1}/{2}]\t'
                                     'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                                     'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -1191,20 +1155,8 @@ def train_cerberus(train_loader, model, criterion, optimizer, epoch,
                                     '{loss_info}'.format(
                             epoch, i, len(train_loader), batch_time=batch_time_list[index],
                             data_time=data_time_list[index], loss=losses_list[index],loss_info=losses_info))
-
-                        logger.info('File name is: {}'.format(','.join(name)))
-                        TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_losses_val', losses_list[index].val,
-                            global_step= epoch * len(train_loader) + i)
-                        TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_losses_avg', losses_list[index].avg,
-                            global_step= epoch * len(train_loader) + i)
-                        # TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_val', scores_list[index].val,
-                        #     global_step= epoch * len(train_loader) + i)
-                        # TENSORBOARD_WRITER.add_scalar('train_'+ str(index) +'_score_avg', scores_list[index].avg,
-                        #     global_step= epoch * len(train_loader) + i)
-                        #!================================================================
-        
-           
-                
+                      
+                 
     
     
     '''
@@ -1442,46 +1394,23 @@ param {*} data_dir : 数据集路径
 return {*}
 '''
 def construct_train_data(args):
-    data_dir = args.data_dir   
-    info = json.load(open(join(data_dir, 'info.json'), 'r'))#*数据集的信息,主要用于构建  normalize , 数据集处理类
-    normalize = transforms.Normalize(mean=info['mean'],
-                                     std=info['std'])
-
-    t = []
-    if args.random_rotate > 0:
-        t.append(transforms.RandomRotateMultiHead(args.random_rotate))
-        
-    if args.random_scale > 0:
-        t.append(transforms.RandomScaleMultiHead(args.random_scale))
-    t.extend([transforms.RandomCropMultiHead(args.crop_size),
-                transforms.RandomHorizontalFlipMultiHead(),
-                transforms.ToTensorMultiHead(),
-                normalize])
-
-    #!================
-    data_prefix = "train_val"
-    dataset_depth_train = SegMultiHeadList(data_dir, data_prefix+'_depth', transforms.Compose(t), out_name=True)#* dataset 类
-    dataset_illumination_train = SegMultiHeadList(data_dir, data_prefix+'_illumination', transforms.Compose(t), out_name=True)
-    dataset_normal_train = SegMultiHeadList(data_dir, data_prefix+'_normal', transforms.Compose(t), out_name=True)
-    dataset_reflectance_train = SegMultiHeadList(data_dir, data_prefix+'_reflectance', transforms.Compose(t), out_name=True)
-    #!================
-
-    #*==========
-    concated_train_datasets = ConcatEDList(dataset_depth_train, dataset_illumination_train, dataset_normal_train,dataset_reflectance_train)
+    # data_dir = args.data_dir   
+    train_dataset = Mydataset(root_path="dataset/BSDS-RIND/BSDS-RIND/Augmentation/", split='trainval', crop_size=320)
+    
 
     if args.distributed_train:
-        train_sampler = DistributedSampler(concated_train_datasets) # 这个sampler会自动分配数据到各个gpu上
+        train_sampler = DistributedSampler(train_dataset) # 这个sampler会自动分配数据到各个gpu上
         train_loader = (torch.utils.data.DataLoader(
-            concated_train_datasets,
+            train_dataset,
             batch_size=args.batch_size, num_workers=args.workers,
                 pin_memory=True, drop_last=True, sampler=train_sampler
         ))
     else :
         train_loader = (torch.utils.data.DataLoader(
-            concated_train_datasets,batch_size=args.batch_size, shuffle=True, 
+            train_dataset,batch_size=args.batch_size, shuffle=True, 
             num_workers=args.workers,pin_memory=True, drop_last=True, 
         ))
-        
+
     return train_loader
     
 
@@ -1617,7 +1546,7 @@ def train_seg_cerberus(args):
 
     #!+=============
     # criterion = nn.NLLLoss2d(ignore_index=255)
-    criterion = AttentionLoss().cuda()
+    criterion = AttentionLoss()
     criterion.cuda()
     
 
@@ -1625,7 +1554,7 @@ def train_seg_cerberus(args):
     # Data loading code
     
     train_loader = construct_train_data(args)
-    val_loader= construct_val_data(args)
+    # val_loader= construct_val_data(args)
     #*==========
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD([
@@ -1687,9 +1616,7 @@ def train_seg_cerberus(args):
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
 
-    if args.evaluate:
-        validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=0)
-        return
+
 
     for epoch in range(start_epoch, args.epochs):
         lr = adjust_learning_rate(args, optimizer, epoch)
@@ -1705,8 +1632,6 @@ def train_seg_cerberus(args):
         #!+===========
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})
-
-
 
         # is_best = prec1 > best_prec1
         # best_prec1 = max(prec1, best_prec1)
