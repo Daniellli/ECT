@@ -1,10 +1,14 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
+<<<<<<< HEAD
 LastEditTime: 2022-06-13 20:48:12
+=======
+LastEditTime: 2022-06-13 20:02:09
+>>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
 LastEditors: xushaocong
 Description:  改成5个头部
-FilePath: /Cerberus-main/main3.py
+FilePath: /cerberus/main3.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -460,6 +464,10 @@ def train_seg_cerberus(args,config,run):
             pin_memory=True, drop_last=True, sampler=train_sampler
     )
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
     #* load test data =====================
     test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
@@ -467,6 +475,10 @@ def train_seg_cerberus(args,config,run):
     
     #*=====================================
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD([
                                 {'params':single_model.pretrained.parameters()},
@@ -536,6 +548,10 @@ def train_seg_cerberus(args,config,run):
                 'best_prec1': best_prec1,
             }, is_best, filename=checkpoint_path)
 
+<<<<<<< HEAD
+=======
+        #* test in last epoch 
+>>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
         if epoch +1 == args.epochs:
             wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
         # if (epoch + 1) % 5 == 0:
@@ -586,6 +602,7 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     # logger.info(output_dir)
+    
     
     #* 加载模型
     single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
@@ -652,8 +669,8 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     #* 读取评估的结果
     with open (osp.join(output_dir,"eval_res.json"),'r')as f :
         eval_res = json.load(f)
+
     spend_time =  time.time() - tic
-    
     #* 计算耗时
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
 
@@ -669,7 +686,8 @@ def main():
     elif config.phase == 'test':
         #* load data 
         train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-        test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
+        test_loade
+        r = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
                             shuffle=False,num_workers=args.workers,pin_memory=False)
         test_edge(args.resume,test_loader,args.run_id)#! resume 给的model path需要是绝对路径
 
