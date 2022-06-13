@@ -31,17 +31,19 @@
 # 2>&1 | tee -a logs/train.log
 
 #* moo == True , 
-# python  -m torch.distributed.launch --nproc_per_node=5  --master_port 29505 main3.py \
-# train  -s 320 --batch-size 4  --epochs 100 --lr 1e-4 --momentum 0.9 \
-# --lr-mode poly --workers 12 --distributed_train --gpu-ids '0,3,4,5,7' \
-# 2>&1 | tee -a logs/train.log
-
-#* resume from last model  
 python  -m torch.distributed.launch --nproc_per_node=2  --master_port 29505 main3.py \
 train  -s 320 --batch-size 4  --epochs 300 --lr 1e-4 --momentum 0.9 \
---lr-mode poly --workers 12 --distributed_train --gpu-ids '4,5' \
---resume "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar" \
+--lr-mode poly --workers 12 --distributed_train --gpu-ids '0,1' \
 2>&1 | tee -a logs/train.log
+
+
+
+#* resume from last model  
+# python  -m torch.distributed.launch --nproc_per_node=2  --master_port 29505 main3.py \
+# train  -s 320 --batch-size 4  --epochs 300 --lr 1e-4 --momentum 0.9 \
+# --lr-mode poly --workers 12 --distributed_train --gpu-ids '4,5' \
+# --resume "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar" \
+# 2>&1 | tee -a logs/train.log
 
 
 
