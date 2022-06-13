@@ -30,3 +30,6 @@ wandb*
 
 
 
+
+networks/*
+networks/*.json

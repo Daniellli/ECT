@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2022-05-12 22:40:43
+ # @LastEditTime: 2022-06-13 15:49:53
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/install.sh
@@ -19,10 +19,17 @@
 python -c "import torch; print(torch.cuda.is_available())"
 pip install opencv-python
 pip install timm==0.4.5
+#!+=============
 pip install tensorboardX
 pip install wandb 
+#!+=============
 pip install IPython
 pip install matplotlib
+
+pip install tqdm
+pip install scipy
+pip install loguru
+pip install h5py
 
 
 

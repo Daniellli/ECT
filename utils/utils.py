@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-13 12:42:49
+LastEditTime: 2022-06-13 17:00:08
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -253,11 +253,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('cmd', choices=['train', 'test'])
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND_mine')
-    parser.add_argument('-c', '--classes', default=0, type=int)
     parser.add_argument('-s', '--crop-size', default=320, type=int)
     parser.add_argument('--step', type=int, default=200)
     parser.add_argument('--arch',type=str, default="test_arch",help='save_name dir ')
-    # parser.add_argument('--arch')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
@@ -269,10 +267,9 @@ def parse_args():
                         help='SGD momentum (default: 0.9)')
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
                         metavar='W', help='weight decay (default: 1e-4)')
-
+    #todo  : eval during train 
     parser.add_argument('-e', '--evaluate', dest='evaluate',
-                        action='store_true',
-                        help='evaluate model on validation set')
+                        action='store_true',help='evaluate model on validation set')
 
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
@@ -282,34 +279,19 @@ def parse_args():
                         help='use pre-trained model')
 
     parser.add_argument('-j', '--workers', type=int, default=8)
-    parser.add_argument('--load-release', dest='load_rel', default=None)
-    parser.add_argument('--phase', default='val')
-    # parser.add_argument('--random-scale', default=0, type=float)
-    # parser.add_argument('--random-rotate', default=0, type=int)
-    parser.add_argument('--bn-sync', action='store_true')
-    parser.add_argument('--ms', action='store_true',
-                        help='Turn on multi-scale testing')
-                        
-                    
+    parser.add_argument('--bn-sync', action='store_true')#* 暂时没用
     parser.add_argument('--gpu-ids', default='7', type=str)
     parser.add_argument('--moo', action='store_true',
                         help='Turn on multi-objective optimization')
     parser.add_argument("--local_rank", type=int)
+    parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
     parser.add_argument("--distributed_train",action='store_true')
     parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
     parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
-    # parser.add_argument("--run-id", type=int,default=None)
-            
-
+        
     args = parser.parse_args()
-
-    assert args.data_dir is not None
-    
-
-    # print(' '.join(sys.argv))
-    # print(args)
     if args.bn_sync:
         drn.BatchNorm = batchnormsync.BatchNormSync
 

@@ -56,10 +56,10 @@ cols=cols(o); if(~isempty(nms)), nms=nms(o); end
 for i=n:-1:1
   hs(i)=plot(prs{i}(:,2),prs{i}(:,3),'-','LineWidth',3,'Color',cols{i});
   fprintf('ODS=%.3f OIS=%.3f AP=%.3f R50=%.3f',res(i,[4 7:9]));
+  if(~isempty(nms)), fprintf(' - %s',nms{i}); end; fprintf('\n');
   %===========
   eval_res=res(i,[4 7:9]);
   %===========
-  if(~isempty(nms)), fprintf(' - %s',nms{i}); end; fprintf('\n');
   
 end
 
