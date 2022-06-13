@@ -1,14 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-<<<<<<< HEAD
-LastEditTime: 2022-06-13 20:48:12
-=======
-LastEditTime: 2022-06-13 20:02:09
->>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
+LastEditTime: 2022-06-13 21:18:48
 LastEditors: xushaocong
 Description:  改成5个头部
-FilePath: /cerberus/main3.py
+FilePath: /Cerberus-main/main3.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -59,8 +55,7 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-from  my_script.sweep.sweep_config import sweep_config  as scfg
-from  my_script.sweep import sweep_utils
+
 
 #*====================
 TASK =None  # 'ATTRIBUTE', 'AFFORDANCE', 'SEGMENTATION' 
@@ -420,15 +415,17 @@ param {*} config : wandb config
 param {*} run: wandb run 
 return {*}
 '''
-def train_seg_cerberus(args,config,run):
+def train_seg_cerberus(args):
 
     model_save_dir = None
     if args.local_rank == 0 or not args.distributed_train: 
-        # run = wandb.init(project="train_cerberus") 
+        run = wandb.init(project="train_cerberus") 
         project_name = run.name
-        # for k, v in args.__dict__.items():
-        #     setattr(wandb.config,k,v)
-        #     logger.info(k, ':', v)
+        info =""
+        for k, v in args.__dict__.items():
+            setattr(wandb.config,k,v)
+            info+= ( str(k)+' : '+ str(v))
+        logger.info(info)
         logger.info(' '.join(sys.argv))
 
         model_save_dir =  osp.join("networks",project_name,"checkpoints")
@@ -460,14 +457,10 @@ def train_seg_cerberus(args,config,run):
     if args.distributed_train : 
         train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
-        train_dataset,batch_size=config.batch_size, num_workers=args.workers,
+        train_dataset,batch_size=args.batch_size, num_workers=args.workers,
             pin_memory=True, drop_last=True, sampler=train_sampler
     )
 
-<<<<<<< HEAD
-=======
-
->>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
     #* load test data =====================
     test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
@@ -475,10 +468,6 @@ def train_seg_cerberus(args,config,run):
     
     #*=====================================
 
-<<<<<<< HEAD
-=======
-
->>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD([
                                 {'params':single_model.pretrained.parameters()},
@@ -525,12 +514,10 @@ def train_seg_cerberus(args,config,run):
     
 
 
-    for epoch in range(start_epoch, config.epochs):
+    for epoch in range(start_epoch, args.epochs):
 
-        lr = adjust_learning_rate(args, optimizer, epoch,config)
-
+        lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
-
         train_cerberus(train_loader, model, atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank)
         #if epoch%10==1:
@@ -548,10 +535,7 @@ def train_seg_cerberus(args,config,run):
                 'best_prec1': best_prec1,
             }, is_best, filename=checkpoint_path)
 
-<<<<<<< HEAD
-=======
         #* test in last epoch 
->>>>>>> bf5076790acb69b6d81e219aa84cf956803c138b
         if epoch +1 == args.epochs:
             wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
         # if (epoch + 1) % 5 == 0:
@@ -559,13 +543,12 @@ def train_seg_cerberus(args,config,run):
         #     shutil.copyfile(checkpoint_path, history_path)
 
 
-def adjust_learning_rate(args, optimizer, epoch,config):
+def adjust_learning_rate(args, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    
     if args.lr_mode == 'step':
-        lr = config.learning_rate * (0.1 ** (epoch // args.step))
+        lr = args.lr * (0.1 ** (epoch // args.step))
     elif args.lr_mode == 'poly':
-        lr = config.learning_rate * (1 - epoch / config.epochs) ** 0.9
+        lr = args.lr * (1 - epoch / args.epochs) ** 0.9
     else:
         raise ValueError('Unknown lr mode {}'.format(args.lr_mode))
 
@@ -586,10 +569,6 @@ param {*} args
 return {*}
 '''
 def test_edge(model_abs_path,test_loader,runid=None ):
-
-
-    
-
     tic = time.time()
     
     a = osp.split(model_abs_path)
@@ -678,22 +657,16 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     
 
 def main():
-    run, config = sweep_utils.init_agent()
     args = parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpuids
-    if config.phase == 'train':
-       train_seg_cerberus(args,config,run)
-    elif config.phase == 'test':
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
+    if args.cmd == 'train':
+       train_seg_cerberus(args)
+    elif args.cmd == 'test':
         #* load data 
         train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-        test_loade
-        r = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
+        test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
                             shuffle=False,num_workers=args.workers,pin_memory=False)
         test_edge(args.resume,test_loader,args.run_id)#! resume 给的model path需要是绝对路径
-
-    sweep_utils.clear_expr_cache(run)
-
 if __name__ == '__main__':
-    sweep_id = wandb.sweep(scfg, project=scfg["name"])
-    wandb.agent(sweep_id,function=main)
+    main()
     torch.cuda.empty_cache()

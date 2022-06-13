@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-13 20:38:15
+LastEditTime: 2022-06-13 21:03:02
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -251,7 +251,7 @@ return {*}
 def parse_args():
     # Training settings
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--cmd', choices=['train', 'test'],default="train") #* 用wandb 了, 暂时没用,但是还不能删
+    parser.add_argument('cmd', choices=['train', 'test'])
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND_mine')
     parser.add_argument('-s', '--crop-size', default=320, type=int)
     parser.add_argument('--step', type=int, default=200)
