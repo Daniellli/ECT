@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-13 17:00:08
+LastEditTime: 2022-06-13 20:38:15
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -251,18 +251,18 @@ return {*}
 def parse_args():
     # Training settings
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('cmd', choices=['train', 'test'])
+    parser.add_argument('--cmd', choices=['train', 'test'],default="train") #* 用wandb 了, 暂时没用,但是还不能删
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND_mine')
     parser.add_argument('-s', '--crop-size', default=320, type=int)
     parser.add_argument('--step', type=int, default=200)
     parser.add_argument('--arch',type=str, default="test_arch",help='save_name dir ')
-    parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+    parser.add_argument('--batch-size', type=int, default=4, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--epochs', type=int, default=10, metavar='N',
                         help='number of epochs to train (default: 10)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
-    parser.add_argument('--lr-mode', type=str, default='step')
+    parser.add_argument('--lr-mode', type=str, default='poly')
     parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                         help='SGD momentum (default: 0.9)')
     parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
@@ -278,7 +278,7 @@ def parse_args():
                         default='', type=str, metavar='PATH',
                         help='use pre-trained model')
 
-    parser.add_argument('-j', '--workers', type=int, default=8)
+    parser.add_argument('-j', '--workers', type=int, default=10)
     parser.add_argument('--bn-sync', action='store_true')#* 暂时没用
     parser.add_argument('--gpu-ids', default='7', type=str)
     parser.add_argument('--moo', action='store_true',

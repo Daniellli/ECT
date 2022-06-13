@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-06-13 17:08:25
+ # @LastEditTime: 2022-06-13 17:45:45
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -32,8 +32,8 @@
 
 #* rindnet  在测试集上测试精度, model绝对路径, 只能绝对路径
 python -u main3.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0079.pth.tar \
---batch-size 1 --workers 20 --run-id 2 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0069.pth.tar \
+--batch-size 1 --workers 40 --run-id 3 \
 2>&1 | tee -a logs/test.log
 
 
