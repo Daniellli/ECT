@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from scipy.spatial.distance import dice
+from IPython import embed
 
 def clip_by_value(t, t_min, t_max):
     result = (t >= t_min)* t + (t < t_min) * t_min
@@ -34,7 +35,6 @@ def attention_loss2(output,target):
     weight = target * alpha * (4 ** ((1.0 - p_clip) ** 0.5)) + \
              (1.0 - target) * (1.0 - alpha) * (4 ** (p_clip ** 0.5))
     weight=weight.detach()
-
     loss = F.binary_cross_entropy(output, target, weight, reduction='none')
     loss = torch.sum(loss)
     return loss

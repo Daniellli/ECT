@@ -12,15 +12,14 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             // test
-            // "args": [
-            //     "test",  "-s", "512", "--resume", "./model_best.pth.tar", 
-            //     "--phase", "train", "--batch-size", "1", "--ms", "--workers", "10",
-            //     "--classes","1","--with-gt"
-            // ]
             "args": [
-                "test",  "-s", "320", "--resume", "./model_best.pth.tar", 
-                 "--batch-size", "1", "--workers", "10",
+                "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar", 
+                "--phase", "test", "--batch-size", "1", "--workers", "10",
             ]
+            // "args": [
+            //     "test",  "-s", "320", "--resume", "./model_best.pth.tar", 
+            //      "--batch-size", "1", "--workers", "10",
+            // ]
             // train
             // "args": [
             //     "test",  "-s", "512", "--resume", "./networks/model_best.pth.tar", 
@@ -36,7 +35,7 @@
               
             //train  minimize the parameter numebr 
             // "args": [
-            //     "train",  "-s", "512", "--batch-size", "2",
+            //     "train",  "-s", "512", "--batch-size", "4",
             //      "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10"
             // ]
         }

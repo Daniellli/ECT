@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-06-08 23:34:17
+ # @LastEditTime: 2022-06-13 12:54:45
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -31,6 +31,9 @@
 
 
 #* rindnet  在测试集上测试精度
-python main3.py test  -s 320 --resume ./model_best.pth.tar \
+python main3.py test  -s 320 --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar \
 --phase test  --batch-size 1 --ms --workers 20 \
 2>&1 | tee -a logs/test.log
+
+
+
