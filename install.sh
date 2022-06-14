@@ -3,24 +3,34 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2022-06-13 15:49:53
+ # @LastEditTime: 2022-06-14 14:07:47
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/install.sh
+ # @FilePath: /cerberus/install.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
 # source /usr/local/miniconda3/bin/activate
 
+
+
+#todo :
+# conda update -n base -c defaults conda
+
 # python -V 
-# conda create -n cerberus python=3.7 -y
-source activate
-conda deactivate
-conda activate cerberus
 
+# conda create -n cerberus2 python=3.7 -y
+# source activate
+# conda deactivate
+# conda activate cerberus2
 
+echo "start install cudnn and pytroch ====================================";
 
+conda install cudnn=8.0.4 -y
 conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
+
+
+echo "start install other package ===== ====================================";
 python -c "import torch; print(torch.cuda.is_available())"
 pip install opencv-python
 pip install timm==0.4.5
@@ -35,6 +45,8 @@ pip install tqdm
 pip install scipy
 pip install loguru
 pip install h5py
+echo " install  over ======================= ====================================";
+
 
 
 # conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/

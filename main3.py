@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-LastEditTime: 2022-06-13 21:31:07
+LastEditTime: 2022-06-13 22:01:40
 LastEditors: xushaocong
 Description:  改成5个头部
 FilePath: /cerberus/main3.py
@@ -418,7 +418,8 @@ return {*}
 def train_seg_cerberus(args):
 
     model_save_dir = None
-    if args.local_rank == 0 or not args.distributed_train: 
+    print(f"os local rank = {os.environ['LOCAL_RANK']}")
+    if os.environ['LOCAL_RANK'] == 0 or not args.distributed_train: 
         run = wandb.init(project="train_cerberus") 
         project_name = run.name
         info =""
@@ -433,15 +434,15 @@ def train_seg_cerberus(args):
             os.makedirs(model_save_dir)
 
     model =single_model=  None
-    print(f"local_rank = {args.local_rank}")
+    print(f"local_rank = {os.environ['LOCAL_RANK']}")
     #* 分布式
     if args.distributed_train:
-        torch.cuda.set_device(args.local_rank) 
+        torch.cuda.set_device(os.environ['LOCAL_RANK']) 
         torch.distributed.init_process_group(backend='nccl')
         single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
         model = single_model.cuda()
-        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
-                output_device=args.local_rank) 
+        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[os.environ['LOCAL_RANK']],
+                output_device=os.environ['LOCAL_RANK']) 
         model=model.module
     else :
         single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
@@ -519,13 +520,13 @@ def train_seg_cerberus(args):
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
         train_cerberus(train_loader, model, atten_criterion,
-             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank)
+             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = os.environ['LOCAL_RANK'])
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})
         # is_best = prec1 > best_prec1
         # best_prec1 = max(prec1, best_prec1)
-        if args.local_rank == 0  or not args.distributed_train:
+        if os.environ['LOCAL_RANK'] == 0  or not args.distributed_train:
             is_best =True #* 假设每次都是最好的 
             checkpoint_path = osp.join(model_save_dir,'checkpoint_ep%04d.pth.tar'%epoch)
             save_checkpoint({
