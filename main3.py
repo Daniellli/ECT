@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-LastEditTime: 2022-06-13 21:18:48
+LastEditTime: 2022-06-13 21:31:07
 LastEditors: xushaocong
 Description:  改成5个头部
-FilePath: /Cerberus-main/main3.py
+FilePath: /cerberus/main3.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -536,8 +536,9 @@ def train_seg_cerberus(args):
             }, is_best, filename=checkpoint_path)
 
         #* test in last epoch 
-        if epoch +1 == args.epochs:
-            wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
+        #* can not be test in 10.0.0.254 
+        # if epoch +1 == args.epochs:
+        #     wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
         # if (epoch + 1) % 5 == 0:
         #     history_path =osp.join("networks/exp1",'checkpoint_{:03d}.pth.tar'.format(epoch + 1)) 
         #     shutil.copyfile(checkpoint_path, history_path)

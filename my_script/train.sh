@@ -32,8 +32,8 @@
 
 #* moo == False , 
 lrs=(1e-3 1e-4 1e-5 1e-6 1e-7 1e-8);
-batch_size=1
-gpuids="6,7"
+batch_size=4;
+gpuids="0,1";
 nodes=2
 for lr in ${lrs[@]};do 
     echo $lr;
