@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-13 21:03:02
+LastEditTime: 2022-06-14 15:27:02
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -283,9 +283,14 @@ def parse_args():
     parser.add_argument('--gpu-ids', default='7', type=str)
     parser.add_argument('--moo', action='store_true',
                         help='Turn on multi-objective optimization')
-    parser.add_argument("--local_rank", type=int)
+    parser.add_argument("--local_rank", type=int,default=-1,help="node rank for distrubuted training")
+    parser.add_argument('--cudnn_benchmark', type=bool, default=True,
+                        help='Set cudnn benchmark on (1) or off (0) (default is on).')
+
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
+
     parser.add_argument("--distributed_train",action='store_true')
+    
     parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
     parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",

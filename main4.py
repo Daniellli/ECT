@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
-Date: 2022-06-07 19:13:11
-LastEditTime: 2022-06-14 14:24:12
+Date: 2022-06-14 14:35:21
+LastEditTime: 2022-06-14 17:11:36
 LastEditors: xushaocong
-Description:  改成5个头部
-FilePath: /Cerberus-main/main3.py
+Description:  用multiprocessing  封装分布式训练
+FilePath: /Cerberus-main/main4.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -55,7 +55,8 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
 #*====================
 TASK =None  # 'ATTRIBUTE', 'AFFORDANCE', 'SEGMENTATION' 
@@ -182,7 +183,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
     losses_list = list()
     losses_array_list = list()
     scores_list = list()
-    
+
     for i in range(5):
         batch_time_list.append(AverageMeter())
         data_time_list.append(AverageMeter())
@@ -192,7 +193,6 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             losses_array.append(AverageMeter())
         losses_array_list.append(losses_array)
         scores_list.append(AverageMeter())
-
     model.train()
     end = time.time()
 
@@ -205,14 +205,14 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             task_loss_array_new=[]
             in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)#*  将channel 交换到第一维度
             for index_new, (target_new) in enumerate(in_tar_name_pair_label):
-                input_new = in_tar_name_pair[0].clone().cuda() 
+                input_new = in_tar_name_pair[0].clone().cuda(local_rank,non_blocking=True) 
                 #* target_new  : B,W,H
                 B,W,H=target_new.shape
                 target_new=  target_new.reshape([1,B,1,W,H])
                 #* image
                 input_var_new = torch.autograd.Variable(input_new)
                 
-                target_var_new= [torch.autograd.Variable(target_new[idx].cuda()) for idx in range(len(target_new))]
+                target_var_new= [torch.autograd.Variable(target_new[idx].cuda(local_rank,non_blocking=True)) for idx in range(len(target_new))]
 
                 output_new, _, _ = model(input_var_new, index_new)
                 loss_array_new = list()
@@ -247,7 +247,6 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 wandb.log(all_need_upload)
                 tmp = 'Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader))
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-
                 logger.info(tmp)
 
             optimizer.zero_grad()
@@ -256,10 +255,10 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
         
         else :
             task_loss_array = []
-            input_new = in_tar_name_pair[0].cuda() 
+            input_new = in_tar_name_pair[0].cuda(local_rank) 
             in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)#*  将channel 交换到第一维度
             for index,target in enumerate(in_tar_name_pair_label):# * 遍历一个一个任务
-                input   = in_tar_name_pair[0].clone().cuda()
+                input   = in_tar_name_pair[0].clone().cuda(local_rank)
 
                 B,W,H=target.shape
                 target=  target.reshape([1,B,1,W,H])
@@ -269,7 +268,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 #! 主要就是将数据前向推理 然后计算loss ,存储loss,  然后是反向传播,处理梯度 ?, 不是很清楚是如何处理梯度的  
                 '''
                 input_var = torch.autograd.Variable(input)#?将输入转成可导的对象 
-                target_var = [torch.autograd.Variable(target[idx].cuda()) for idx in range(len(target)) ]
+                target_var = [torch.autograd.Variable(target[idx].cuda(local_rank)) for idx in range(len(target)) ]
                 # compute output
                 output, _, _ = model(input_var, index)
                 loss_array = list()
@@ -336,7 +335,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                     #! 重新前向传播计算梯度
                     for index_new, target_new in enumerate(in_tar_name_pair_label):
                         B,W,H=target_new.shape
-                        input_new=in_tar_name_pair[0].clone().cuda()
+                        input_new=in_tar_name_pair[0].clone().cuda(local_rank)
                         target_new=  target_new.reshape([1,B,1,W,H])
                         input_var_new = torch.autograd.Variable(input_new)
                         target_var_new= [torch.autograd.Variable(target_new[idx].cuda()) for idx in range (len(target_new)) ]
@@ -408,19 +407,29 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
 
 
 
+
 '''
-description: 
-param {*} args
-param {*} config : wandb config
-param {*} run: wandb run 
+description:  
+param {*} local_rank : 分布式训练参数 , 考试当前第几个节点,第几个GPU
+param {*} nprocs:  分布式训练参数 , 表示共有几个节点用于计算每个节点的batch size
+param {*} args : 训练脚本的超参数
 return {*}
 '''
-def train_seg_cerberus(args):
+def train_seg_cerberus(local_rank,nprocs,  args):
+    logger.info(f"local_rank: {local_rank},nprocs={nprocs}")
+    args.local_rank = local_rank
+    dist.init_process_group(backend='nccl',
+                        init_method='tcp://127.0.0.1:23456',
+                        world_size=args.nprocs,
+                        rank=local_rank)
 
+    torch.cuda.set_device(args.local_rank) 
+    
     model_save_dir = None
-    if args.local_rank == 0 or not args.distributed_train: 
+    if args.local_rank == 0: 
         run = wandb.init(project="train_cerberus") 
-        project_name = run.name
+        args.project_name = run.name 
+
         info =""
         for k, v in args.__dict__.items():
             setattr(wandb.config,k,v)
@@ -428,45 +437,43 @@ def train_seg_cerberus(args):
         logger.info(info)
         logger.info(' '.join(sys.argv))
 
-        model_save_dir =  osp.join("networks",project_name,"checkpoints")
+        model_save_dir =  osp.join("networks",args.project_name,"checkpoints")
         if not osp.exists(model_save_dir):
             os.makedirs(model_save_dir)
 
-    model =single_model=  None
-    print(f"local_rank = {args.local_rank}")
-    #* 分布式
-    if args.distributed_train:
-        torch.cuda.set_device(args.local_rank) 
-        torch.distributed.init_process_group(backend='nccl')
-        single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-        model = single_model.cuda()
-        # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
-        #         output_device=args.local_rank) #*output_device 是最终将数据汇总到哪里
-        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],output_device=0)
-        model=model.module
+    
+    #* construct model 
+    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    model = single_model.cuda(local_rank)
+    
+
+    # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank]) #* 问题一大推, 
+    model = torch.nn.DataParallel(model,device_ids=[args.local_rank])
+    #* 不能整除怎么办
+    if (args.batch_size % args.nprocs) != 0 and local_rank==0 :
+        args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
     else :
-        single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-        model = single_model.cuda()
+        args.batch_size = int(args.batch_size / args.nprocs)
 
-    atten_criterion = AttentionLoss2().cuda()
+    cudnn.benchmark = args.cudnn_benchmark
+    #*=====================================
+    atten_criterion = AttentionLoss2().cuda(local_rank)
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
-    # Data loading code
-    train_dataset = Mydataset(root_path=args.train_dir, split='trainval', crop_size=args.crop_size)
 
-    #* 分布式训练
-    train_sampler = None 
-    if args.distributed_train : 
-        train_sampler = DistributedSampler(train_dataset)
+    #* Data loading code
+    logger.info(f"rank = {local_rank},batch_size == {args.batch_size}")
+    train_dataset = Mydataset(root_path=args.train_dir, split='trainval', crop_size=args.crop_size)
+    train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,batch_size=args.batch_size, num_workers=args.workers,
             pin_memory=True, drop_last=True, sampler=train_sampler
     )
 
+
     #* load test data =====================
-    test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
-                            shuffle=False,num_workers=args.workers,pin_memory=False)
-    
+    # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+    # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+    #                         shuffle=False,num_workers=args.workers,pin_memory=False)
     #*=====================================
 
     # define loss function (criterion) and pptimizer
@@ -477,7 +484,7 @@ def train_seg_cerberus(args):
                                 args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-    cudnn.benchmark = True
+    
     best_prec1 = 0
     start_epoch = 0
 
@@ -516,17 +523,20 @@ def train_seg_cerberus(args):
 
 
     for epoch in range(start_epoch, args.epochs):
-
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
+
+        #*=====================
+        train_sampler.set_epoch(epoch)
+        #*=====================
         train_cerberus(train_loader, model, atten_criterion,
-             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank)
+             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank,print_freq=2)
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})
         # is_best = prec1 > best_prec1
         # best_prec1 = max(prec1, best_prec1)
-        if args.local_rank == 0  or not args.distributed_train:
+        if args.local_rank == 0 :
             is_best =True #* 假设每次都是最好的 
             checkpoint_path = osp.join(model_save_dir,'checkpoint_ep%04d.pth.tar'%epoch)
             save_checkpoint({
@@ -540,9 +550,8 @@ def train_seg_cerberus(args):
         #* can not be test in 10.0.0.254 
         # if epoch +1 == args.epochs:
         #     wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
-        # if (epoch + 1) % 5 == 0:
-        #     history_path =osp.join("networks/exp1",'checkpoint_{:03d}.pth.tar'.format(epoch + 1)) 
-        #     shutil.copyfile(checkpoint_path, history_path)
+
+
 
 
 def adjust_learning_rate(args, optimizer, epoch):
@@ -595,7 +604,7 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     
   
 
-    cudnn.benchmark = True
+    cudnn.benchmark = args.cudnn_benchmark
     depth_output_dir = os.path.join(output_dir, 'depth/met')
     make_dir(depth_output_dir)
     
@@ -632,11 +641,9 @@ def test_edge(model_abs_path,test_loader,runid=None ):
             depth_pred = out_depth.data.cpu().numpy()
             depth_pred = depth_pred.squeeze()
             sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
-
             normal_pred = out_normal.data.cpu().numpy()
             normal_pred = normal_pred.squeeze()
             sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
-
             reflectance_pred = out_reflectance.data.cpu().numpy()
             reflectance_pred = reflectance_pred.squeeze()
             sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
@@ -654,7 +661,6 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     spend_time =  time.time() - tic
     #* 计算耗时
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-
     return eval_res
     
 
@@ -662,13 +668,17 @@ def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     if args.cmd == 'train':
-       train_seg_cerberus(args)
+        # train_seg_cerberus(args)
+        #* 分布式training
+        args.nprocs = torch.cuda.device_count()#* gpu  number 
+        mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
     elif args.cmd == 'test':
         #* load data 
         train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
         test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
                             shuffle=False,num_workers=args.workers,pin_memory=False)
         test_edge(args.resume,test_loader,args.run_id)#! resume 给的model path需要是绝对路径
+
+
 if __name__ == '__main__':
     main()
-    torch.cuda.empty_cache()
