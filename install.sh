@@ -3,7 +3,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2022-06-14 14:07:47
+ # @LastEditTime: 2022-06-14 21:58:57
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/install.sh
@@ -19,25 +19,37 @@
 
 # python -V 
 
-# conda create -n cerberus2 python=3.7 -y
+# conda create -n cerberus3 python=3.7 -y
 # source activate
 # conda deactivate
-# conda activate cerberus2
+# conda activate cerberus3
 
 echo "start install cudnn and pytroch ====================================";
 
-conda install cudnn=8.0.4 -y
-conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
+# conda install cudnn=8.0.4 -y
+# conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
+
+# #* install cudnn
+# conda install cudnn=8.2.1 -y
+# #* install pytroch and cuda 11.3 
+# conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch -y
+
+
+conda install cudnn=8.0.5 -y
+conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch -y
 
 
 echo "start install other package ===== ====================================";
-python -c "import torch; print(torch.cuda.is_available())"
+
+
 pip install opencv-python
 pip install timm==0.4.5
+
 #!+=============
 pip install tensorboardX
 pip install wandb 
 #!+=============
+
 pip install IPython
 pip install matplotlib
 
@@ -46,7 +58,7 @@ pip install scipy
 pip install loguru
 pip install h5py
 echo " install  over ======================= ====================================";
-
+python -c "import torch; print(torch.cuda.is_available(), 'cuda version : ',torch.version.cuda);"
 
 
 # conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/

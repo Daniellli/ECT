@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-14 17:10:18
+ # @LastEditTime: 2022-06-14 17:24:05
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/my_script/train.sh
+ # @FilePath: /cerberus/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -26,24 +26,27 @@
 
 
 #* 进一步封装 DPT
-python   main4.py train  -s 320 --batch-size 4  --epochs 100 --lr 1e-4 --momentum 0.9 \
---lr-mode poly --workers 12 --gpu-ids '4' \
-2>&1 | tee -a logs/train.log
+# python   main4.py train  -s 320 --batch-size 4  --epochs 100 --lr 1e-4 --momentum 0.9 \
+# --lr-mode poly --workers 12 --gpu-ids '4' \
+# 2>&1 | tee -a logs/train.log
 
 
 
 #* moo == False , 
-# lrs=(1e-3 1e-4 1e-5 1e-6 1e-7 1e-8);
-# batch_size=4;
-# gpuids="0,1";
-# nodes=2
-# for lr in ${lrs[@]};do 
-#     echo $lr;
-#     python  -m torch.distributed.launch --nproc_per_node=$nodes  --master_port 29506 main3.py \
-#     train  -s 320 --batch-size $batch_size  --epochs 300 --lr $lr --momentum 0.9 \
-#     --lr-mode poly --workers 12 --distributed_train --gpu-ids $gpuids \
-#     2>&1 | tee -a logs/train.log
-# done;
+lrs=(1e-3 1e-4 1e-5 1e-6 1e-7 1e-8);
+batch_size=64;
+gpuids="0,1,2,3";
+epoch=300;
+for lr in ${lrs[@]};do 
+    echo $lr;
+    # python  -m torch.distributed.launch --nproc_per_node=$nodes  --master_port 29506 main3.py \
+    # train  -s 320 --batch-size $batch_size  --epochs 300 --lr $lr --momentum 0.9 \
+    # --lr-mode poly --workers 12 --distributed_train --gpu-ids $gpuids \
+    # 2>&1 | tee -a logs/train.log
+    python   main4.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+    --lr-mode poly --workers 12 --gpu-ids $gpuids \
+    2>&1 | tee -a logs/train.log
+done;
 
 
 
