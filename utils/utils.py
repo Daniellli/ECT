@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-14 15:27:02
+LastEditTime: 2022-06-15 20:56:17
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -289,8 +289,6 @@ def parse_args():
 
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
 
-    parser.add_argument("--distributed_train",action='store_true')
-    
     parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
     parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",

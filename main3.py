@@ -1,11 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-<<<<<<< HEAD
-LastEditTime: 2022-06-14 14:24:12
-=======
-LastEditTime: 2022-06-13 22:01:40
->>>>>>> 13f0a1f3ebcd556d62bf6f5ad266df86d73de7b6
+LastEditTime: 2022-06-16 17:09:59
 LastEditors: xushaocong
 Description:  改成5个头部
 FilePath: /Cerberus-main/main3.py

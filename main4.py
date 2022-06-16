@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-14 17:11:36
+LastEditTime: 2022-06-14 17:21:37
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
 FilePath: /Cerberus-main/main4.py
@@ -445,20 +445,21 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     #* construct model 
     single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
     model = single_model.cuda(local_rank)
-    
-
     # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank]) #* 问题一大推, 
     model = torch.nn.DataParallel(model,device_ids=[args.local_rank])
-    #* 不能整除怎么办
-    if (args.batch_size % args.nprocs) != 0 and local_rank==0 :
-        args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
-    else :
-        args.batch_size = int(args.batch_size / args.nprocs)
 
     cudnn.benchmark = args.cudnn_benchmark
     #*=====================================
     atten_criterion = AttentionLoss2().cuda(local_rank)
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
+
+
+
+    #* 不能整除怎么办
+    if (args.batch_size % args.nprocs) != 0 and local_rank==0 :
+        args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
+    else :
+        args.batch_size = int(args.batch_size / args.nprocs)
 
     #* Data loading code
     logger.info(f"rank = {local_rank},batch_size == {args.batch_size}")

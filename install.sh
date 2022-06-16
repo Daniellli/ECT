@@ -3,10 +3,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2022-06-14 14:07:47
+ # @LastEditTime: 2022-06-14 21:19:08
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /cerberus/install.sh
+ # @FilePath: /Cerberus-main/install.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -58,3 +58,5 @@ echo " install  over ======================= ===================================
 
 # pip install pip -U
 # pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
+python -c "import sys; print(sys.path)"
