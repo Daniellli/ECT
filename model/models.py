@@ -357,7 +357,9 @@ class CerberusSegmentationModelMultiHead(Cerberus):
                 setattr(self.scratch, "output_" + it ,nn.Sequential(
                     nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
                     nn.BatchNorm2d(features),
+                    #!+=========
                     nn.ReLU(True),
+                    #!+=========
                     nn.Dropout(0.1, False),
                     nn.Conv2d(features, num_classes, kernel_size=1),
                     # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),

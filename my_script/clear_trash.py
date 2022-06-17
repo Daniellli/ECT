@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-LastEditTime: 2022-06-16 17:45:02
+LastEditTime: 2022-06-17 16:39:56
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/my_script/clear_trash.py
+FilePath: /Cerberus-main/my_script/clear_trash.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -24,9 +24,12 @@ param {*} target
 return {*}
 '''
 def clear_trash(target = "networks"):
-    for p in [x for x in os.listdir(path=target) if osp.isdir(x)]:
+    
+    all_dir = [x for x in os.listdir(path=target)  if not osp.isfile(osp.join(target,x))]
+
+    for p in all_dir:
         ckpg_dir = osp.join(target,p,"checkpoints")
-        if  not osp.exists(ckpg_dir) or  0 == len(os.listdir(ckpg_dir)):
+        if  not osp.exists(ckpg_dir) or  6 > len(os.listdir(ckpg_dir)) :
             # logger.info(f"{ckpg_dir} empty")
             tmp = osp.join(target,p)
             shutil.rmtree(tmp, ignore_errors=False, onerror=None)
@@ -39,4 +42,4 @@ def clear_trash(target = "networks"):
 
     
 if __name__ == "__main__":
-    clear_trash()
+    clear_trash()   

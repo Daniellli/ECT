@@ -28,9 +28,10 @@
             // ]
             // train
             "args": [
-                "train",  "-s", "320", "--batch-size", "4","--epochs","200","--lr","0.007",
-                "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","4,5"
+                "train",  "-s", "320", "--batch-size", "16","--epochs","1","--lr","0.0001",
+                "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","2,3,4,5"
             ]
+            
             //train  minimize the parameter numebr 
             // "args": [
             //     "train",  "-s", "320", "--batch-size", "4",
