@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-20 20:38:19
+LastEditTime: 2022-06-20 20:51:18
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
 FilePath: /Cerberus-main/main4.py
@@ -788,6 +788,7 @@ def main():
     
  
 if __name__ == '__main__':
+    logger.info("hello  git")
     
     main()
 
