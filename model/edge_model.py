@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-20 22:18:14
+LastEditTime: 2022-06-20 23:53:19
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -23,8 +23,9 @@ from .blocks import (
 )
 
 from .decoder import *
+from loguru import logger
 
-
+from IPython import embed
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
         features,
@@ -86,15 +87,15 @@ class EdgeCerberus(BaseModel):
         #* decoder 
         #* four task 
         #!===============================================================
-        self.edge_query_embed = nn.Embedding(4, features)
+        self.edge_query_embed = nn.Embedding(4, 768)#* 最后一个channel 是768
 
         d_model  = features  #* 假设输入维度是这个 , detr== 256
-        nhead = 8
+        nhead = 1 #* detr ==8
         dim_feedforward  =2048
         dropout = 0.1 
         activation="relu" #*   detr , by default == relu, 
         normalize_before =False   #* detr , by default  == False
-        num_decoder_layers= 6 #* detr == 6
+        num_decoder_layers= 1 #* detr == 6
         return_intermediate_dec =  False #* detr , by default  == False
 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -174,6 +175,7 @@ class EdgeCerberus(BaseModel):
     return {*}
     '''
     def forward(self, x ,index):
+        B,C,H,W=x.shape
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
 
@@ -181,12 +183,16 @@ class EdgeCerberus(BaseModel):
         #* 1 . concat layer_1, layer_2, layer_3, layer_4    ,name as encoder_output
         #* 2.  s
 
-        encoder_out = torch.cat([layer_1, layer_2, layer_3, layer_4],axis = 0 )#todo : specify the axis 
-
+        # encoder_out = torch.cat([layer_1, layer_2, layer_3, layer_4],axis = 0 )#todo : specify the axis 
         
-        decoder_out = self.decoder(encoder_out,self.edge_query_embed) #* (KV,Q)   
-
-    
+        #? 为什么 
+        B,C,W,H=layer_4.shape
+        Q=  layer_4.permute([2,3,0,1]).reshape([-1,B,C])    #*(B,C,W,H)  to (WH, B,C),也就是 (HW,B,768),(100,B,768)
+        KV = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (4,B,C )
+        logger.info("ready to decode")
+        decoder_out = self.decoder(Q,KV) #* (Q,KV)   
+        logger.info("get decoder feature")
+        embed()
 
         #*  reassemble operatoion ?  将sequence 重新reassemble 成一张patch 
         layer_1_rn = self.scratch.layer1_rn(layer_1)

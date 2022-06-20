@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-20 23:02:43
+LastEditTime: 2022-06-20 23:10:31
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/train.py
@@ -20,6 +20,7 @@ from min_norm_solvers import MinNormSolver
 
 
 from model.models import  CerberusSegmentationModelMultiHead
+from model.edge_model import EdgeCerberus
 import os.path as osp
 
 import wandb
@@ -128,14 +129,14 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 tmp = 'Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader))
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
-            # else :
-            #     all_need_upload= {}
-            #     loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-            #     all_need_upload.update(loss_old)
-            #     all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
-            #     tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
-            #     tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-            #     logger.info(tmp)
+            else :
+                all_need_upload= {}
+                loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
+                all_need_upload.update(loss_old)
+                all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
+                tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
+                tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
+                logger.info(tmp)
             
             
             optimizer.zero_grad()
@@ -389,7 +390,10 @@ def train_seg_cerberus(local_rank,nprocs,  args):
 
     
     #* construct model 
-    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    single_model = EdgeCerberus(backbone="vitb_rn50_384")
+
+    
     model = single_model.cuda(local_rank)
     # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank]) #* 问题一大推, 
     # model = torch.nn.parallel.DistributedDataParallel(model) #* 还是会出错, default setting 不行
@@ -549,8 +553,6 @@ def main():
     logger.info(f"node number == {args.nprocs}")
     mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
     # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
-    
-  
     
  
 if __name__ == '__main__':
