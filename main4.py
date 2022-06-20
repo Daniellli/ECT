@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-17 20:19:38
+LastEditTime: 2022-06-20 10:06:43
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
 FilePath: /cerberus/main4.py
@@ -494,8 +494,11 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     model_save_dir = None
     if args.local_rank == 0: 
         run = wandb.init(project="train_cerberus") 
-        args.project_name = run.name 
+        
 
+        run.name+= "_lr@%s_ep@%s"%(args.lr,args.epochs,)#* 改名
+
+        args.project_name = run.name 
         info =""
         for k, v in args.__dict__.items():
             setattr(wandb.config,k,v)
