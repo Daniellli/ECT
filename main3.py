@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:13:11
-LastEditTime: 2022-06-16 17:09:59
+LastEditTime: 2022-06-17 19:27:06
 LastEditors: xushaocong
 Description:  改成5个头部
-FilePath: /Cerberus-main/main3.py
+FilePath: /cerberus/main3.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -441,14 +441,9 @@ def train_seg_cerberus(args):
         torch.distributed.init_process_group(backend='nccl')
         single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
         model = single_model.cuda()
-<<<<<<< HEAD
         # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
         #         output_device=args.local_rank) #*output_device 是最终将数据汇总到哪里
         model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],output_device=0)
-=======
-        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[os.environ['LOCAL_RANK']],
-                output_device=os.environ['LOCAL_RANK']) 
->>>>>>> 13f0a1f3ebcd556d62bf6f5ad266df86d73de7b6
         model=model.module
     else :
         single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")

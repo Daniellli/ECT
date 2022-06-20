@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-19 16:27:53
+LastEditTime: 2022-06-20 20:38:19
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
 FilePath: /Cerberus-main/main4.py
@@ -11,7 +11,6 @@ email: xushaocong@stu.xmu.edu.cn
 # -*- coding: utf-8 -*-
 
 import os
-from threading import local
 # from IPython import embed #for terminal debug 
 # import pdb
 import time
@@ -56,16 +55,9 @@ warnings.filterwarnings('ignore')
 
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import torch.multiprocessing.queue as que
-
 import json
-
 import signal
-
-
 ddp_file = "ddp.json"
-
-
 
 #*====================
 TASK =None  # 'ATTRIBUTE', 'AFFORDANCE', 'SEGMENTATION' 
@@ -435,7 +427,14 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
 
 
 
+'''
+description:  修改 lock 的互斥信号量
+'''
 lock = False
+'''
+description:  读取节点数,这个数据
+return {*}
+'''
 def read_ddp():
     global lock
     while lock:
@@ -446,6 +445,11 @@ def read_ddp():
     
     return data
 
+''' 
+description:  写入节点数, 互斥, 一次只能一个进程写入
+param {*} data
+return {*}
+'''
 def write_ddp(data):
     global lock
     while lock:
@@ -455,6 +459,10 @@ def write_ddp(data):
         json.dump(data,f)
     lock = False
         
+'''
+description: 平行节点数-1的操作, 
+return {*}
+'''
 def minus_process():
     data = read_ddp()
     data["node"] -=1
@@ -490,9 +498,11 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     model_save_dir = None
     if args.local_rank == 0: 
         run = wandb.init(project="train_cerberus") 
-        run.name+= "_%s@%s"%(args.lr)#* 改名
-        args.project_name = run.name 
+        
 
+        run.name+= "_lr@%s_ep@%s"%(args.lr,args.epochs,)#* 改名
+
+        args.project_name = run.name 
         info =""
         for k, v in args.__dict__.items():
             setattr(wandb.config,k,v)
@@ -618,14 +628,7 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         # if epoch +1 == args.epochs:
         #     wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
     logger.info("train finish!!!! ")
-    logger.info(f"{os.getpid()} exit !!! ")
-    #* method 2 
-    # if local_rank == 0:
-    #     logger.info(f"ready to kill ")
-    #     os.kill(os.getpid(),signal.SIGKILL) #*  did not work 
-        # os.kill(os.getppid(),signal.SIGKILL)
-
-    #* method 1 
+    logger.info(f"{os.getppid()} exit !!! ")
     surplus_process = minus_process()
     if surplus_process == 0 :
         logger.info(f"ready to kill ")
@@ -633,7 +636,6 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         wandb.finish(0)
         os.kill(os.getppid(),signal.SIGKILL)
         
-        sys.exit(0)
     
     
 
@@ -760,7 +762,7 @@ def test_edge(model_abs_path,test_loader,runid=None ):
 def main():
     
     args = parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
+    # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     if args.cmd == 'train':
         port = int(1e4+np.random.randint(1,10000,1)[0])
         logger.info(f"port == {port}")
@@ -773,9 +775,10 @@ def main():
         args.nprocs = torch.cuda.device_count()#* gpu  number 
 
         write_ddp({"node": args.nprocs})
-        # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
-        mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
-
+        logger.info(f"node number == {args.nprocs}")
+        mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
+        # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
+    
     elif args.cmd == 'test':
         #* load data 
         train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
