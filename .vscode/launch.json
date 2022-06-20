@@ -16,10 +16,10 @@
             //     "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar", 
             //     "--phase", "test", "--batch-size", "1", "--workers", "10",
             // ]
-            // "args": [
-            //     "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar", 
-            //     "--phase", "test", "--batch-size", "1", "--workers", "10",
-            // ]
+            "args": [
+                "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/le-5/checkpoints/edge_cerberus_le-5.pth.tar", 
+                 "--batch-size", "1", "--workers", "10",
+            ]
             // train
             // "args": [
             //     "test",  "-s", "512", "--resume", "./networks/model_best.pth.tar", 
@@ -27,10 +27,10 @@
             //     "--classes","1"
             // ]
             // train
-            "args": [
-                "train",  "-s", "320", "--batch-size", "16","--epochs","1","--lr","0.0001",
-                "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","2,3,4,5"
-            ]
+            // "args": [
+            //     "train",  "-s", "320", "--batch-size", "16","--epochs","1","--lr","0.0001",
+            //     "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","2,3,4,5"
+            // ]
             
             //train  minimize the parameter numebr 
             // "args": [

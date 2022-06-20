@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-17 20:25:05
+LastEditTime: 2022-06-19 16:27:53
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
 FilePath: /Cerberus-main/main4.py
@@ -245,9 +245,13 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
 
             assert len(task_loss_array_new) == 5
 
-            b_loss = 0.9 * task_loss_array_new[0]
-            rind_loss = 0.1*task_loss_array_new[1]+0.1*task_loss_array_new[2] +\
-                 0.1*task_loss_array_new[3]+ 0.1*task_loss_array_new[4] 
+            b_weight = 0.9
+            rind_weight = 0.1
+            
+            b_loss = b_weight * task_loss_array_new[0]
+            rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
+                 rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
+
             loss_new =  b_loss+ rind_loss
 
             if  i % print_freq == 0 and local_rank ==0:
@@ -259,14 +263,14 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 tmp = 'Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader))
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
-            else :
-                all_need_upload= {}
-                loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-                all_need_upload.update(loss_old)
-                all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
-                tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
-                tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                logger.info(tmp)
+            # else :
+            #     all_need_upload= {}
+            #     loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
+            #     all_need_upload.update(loss_old)
+            #     all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
+            #     tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
+            #     tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
+            #     logger.info(tmp)
             
             
             optimizer.zero_grad()
@@ -670,6 +674,8 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     else:
         output_dir  = osp.join(a[0],"..","model_res_%d"%runid)
 
+
+    
     # output_dir = osp.join("/".join(args.resume.split("/")[:-2]),"model_res")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -680,10 +686,13 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
     for name, param in checkpoint['state_dict'].items():
+        name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
         single_model.state_dict()[name].copy_(param)
+
+    logger.info("load model done ")
     model = single_model.cuda()
     model.eval()
-    
+      
   
     cudnn.benchmark = True
     depth_output_dir = os.path.join(output_dir, 'depth/met')
@@ -697,7 +706,8 @@ def test_edge(model_abs_path,test_loader,runid=None ):
 
     illumination_output_dir = os.path.join(output_dir, 'illumination/met')
     make_dir(illumination_output_dir)
-
+    
+    logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
@@ -733,9 +743,11 @@ def test_edge(model_abs_path,test_loader,runid=None ):
             illumination_pred = illumination_pred.squeeze()
             sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                         {'result': illumination_pred})
+    logger.info("reference done , start to eval ")
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
     os.system("./eval_tools/test.sh %s"%output_dir)
     #* 读取评估的结果
+    logger.info("eval done  ")
     with open (osp.join(output_dir,"eval_res.json"),'r')as f :
         eval_res = json.load(f)
 
@@ -746,13 +758,16 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     
 
 def main():
-    port = int(1e4+np.random.randint(1,10000,1)[0])
-    logger.info(f"port == {port}")
-    os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = str(port)
+    
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     if args.cmd == 'train':
+        port = int(1e4+np.random.randint(1,10000,1)[0])
+        logger.info(f"port == {port}")
+        os.environ['MASTER_ADDR'] = 'localhost'
+        os.environ['MASTER_PORT'] = str(port)
+
+
         # train_seg_cerberus(args)
         #* 分布式training
         args.nprocs = torch.cuda.device_count()#* gpu  number 
@@ -760,10 +775,6 @@ def main():
         write_ddp({"node": args.nprocs})
         # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
         mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
-        
-
-
-    
 
     elif args.cmd == 'test':
         #* load data 
