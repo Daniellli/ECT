@@ -1,18 +1,15 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-LastEditTime: 2022-06-19 16:02:47
+LastEditTime: 2022-06-21 20:39:17
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/my_script/clear_trash.py
+FilePath: /cerberus/my_script/clear_trash.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
-
-
 import os 
 import os.path as osp 
-
 from loguru import logger 
 
 import shutil

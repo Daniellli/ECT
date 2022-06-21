@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-21 17:52:27
+ # @LastEditTime: 2022-06-21 20:45:22
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/my_script/train.sh
+ # @FilePath: /cerberus/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -34,27 +34,19 @@
 
 #* moo == False , 
 lr=1e-5;
-batch_size=4;
-gpuids="3";
+batch_size=128;
+gpuids="0,1,2,3";
 epoch=300;
-# bg_weights=$(seq 0.9 0.02 0.99);
+bg_weights=$(seq 0.93 0.02 1);
 # for bg_weight in ${bg_weights[@]};do 
-# echo $bg_weight;
-# done;
-
-
-# for lr in ${lrs[@]};do 
-#     echo $lr;
+#     echo $bg_weight;
 #     python   main4.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-#     --lr-mode poly --workers 12 --gpu-ids $gpuids \
+#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight $bg_weight \
 #     2>&1 | tee -a logs/train.log
 # done;
+
 
 #* new arch test 
-# python   main4.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-#     --lr-mode poly --workers 12 --gpu-ids $gpuids \
-#     2>&1 | tee -a logs/train.log
-
 python   train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
     --lr-mode poly --workers 12 --gpu-ids $gpuids \
     2>&1 | tee -a logs/train.log

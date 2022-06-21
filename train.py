@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-21 17:45:18
+LastEditTime: 2022-06-21 20:43:53
 LastEditors: xushaocong
 Description:  加入decoder
-FilePath: /Cerberus-main/train.py
+FilePath: /cerberus/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -19,7 +19,7 @@ from torch.autograd import Variable
 from min_norm_solvers import MinNormSolver
 
 
-from model.models import  CerberusSegmentationModelMultiHead
+# from model.models import  CerberusSegmentationModelMultiHead
 from model.edge_model import EdgeCerberus
 import os.path as osp
 
@@ -502,7 +502,6 @@ def main():
     logger.info(f"port == {port}")
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = str(port)
-    # train_seg_cerberus(args)
     #* 分布式training
     args.nprocs = torch.cuda.device_count()#* gpu  number 
 
