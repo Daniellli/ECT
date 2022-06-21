@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-21 17:38:46
+LastEditTime: 2022-06-21 19:46:25
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -193,24 +193,35 @@ class EdgeCerberus(BaseModel):
         edge_path_2 = self.scratch.refinenet02(edge_path_3, layer_2_rn)#* fusion to  (B,256,80,80), 
         edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
 
+        model_out = []
+
+        #* background 
+        edge_it = full_output_task_list[0][1]
+        fun = eval("self.scratch.output_" + edge_it)#* 全连接
+        out = fun(edge_path_1)
+        fun = eval("self.scratch.output_" + edge_it + '_upsample')#* 上采样
+        out = fun(out)
+        fun =  eval("self.scratch.output_" + edge_it + '_sigmoid')
+        model_out.append(fun(out))
+
+
         B,C,W,H=edge_path_3.shape
         backbone_out=  edge_path_3.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
-        
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         decoder_out = self.decoder(backbone_out,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
         decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
-        
-        model_out = []
-        for  x in self.full_output_task_list  :
+
+
+        #* rind 
+        for  x in self.full_output_task_list[1:]:
             it = x[1][0]#* 每个任务只有一类 
             fun = eval("self.scratch.output_" + it)#* 全连接
             out = fun(decoder_out)
             fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
             out = fun(out)
-            if it != "background":
-                fun =  eval("self.scratch.output_" + it + '_sigmoid')
-                out = fun(out)
+            fun =  eval("self.scratch.output_" + it + '_sigmoid')
+            out = fun(out)
             model_out.append(out)
         return model_out
 
