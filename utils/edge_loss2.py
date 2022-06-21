@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 22:24:07
-LastEditTime: 2022-06-07 22:54:53
+LastEditTime: 2022-06-21 17:15:28
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/edge_loss2.py
@@ -65,12 +65,10 @@ class AttentionLoss2(nn.Module):
         # label = label.reshape([len(output),height,width])
         #!+===========
         for i in range(len(output)):
-            #!+==============
-            o = output[i]#* [1,H,W]
-            # o = output[i].reshape(height,width) #* [1,H,W]
-            l = label[i] #*[C,H,W]
-            #!+==============
+            o = output[i].reshape(batch_size,height,width) #* [B,H,W]
+            l = label[:,i,:,:] #*[C,H,W]
             loss_focal = attention_loss2(o, l)#? 
+            # attention_loss2(label[:,i,:,:],output[i].reshape(batch_size,height,width))
             total_loss = total_loss + loss_focal
         total_loss = total_loss / batch_size
         return total_loss

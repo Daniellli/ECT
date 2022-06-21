@@ -3,14 +3,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
-<<<<<<< HEAD
- # @LastEditTime: 2022-06-14 21:19:08
-=======
- # @LastEditTime: 2022-06-14 21:58:57
->>>>>>> cb0a9a0a22cf34a879158bc461854d18fe6035a3
+ # @LastEditTime: 2022-06-21 18:06:08
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/install.sh
+ # @FilePath: /cerberus/install.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 

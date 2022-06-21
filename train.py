@@ -1,55 +1,37 @@
 '''
 Author: xushaocong
-Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-21 20:39:23
+Date: 2022-06-20 22:50:51
+LastEditTime: 2022-06-21 17:45:18
 LastEditors: xushaocong
-Description:  用multiprocessing  封装分布式训练
-FilePath: /cerberus/main4.py
+Description:  加入decoder
+FilePath: /Cerberus-main/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+
 
 import os
-# from IPython import embed #for terminal debug 
-# import pdb
 import time
 import numpy as np
 import sys
 import torch
 import torch.backends.cudnn as cudnn
-from torchvision import  transforms
 from torch.autograd import Variable
-# from tensorboardX import SummaryWriter
 from min_norm_solvers import MinNormSolver
 
-import data_transforms as transforms
-from model.models import DPTSegmentationModel, DPTSegmentationModelMultiHead, TransferNet, CerberusSegmentationModelMultiHead
-# from model.transforms import PrepareForNet
-import os.path as osp
-from tqdm import tqdm
-import scipy.io as sio
-import torchvision.transforms as transforms
-# from torchcam.methods import SmoothGradCAMpp
-# import torch.nn.functional as F
 
-#*===================
-import glob
+from model.models import  CerberusSegmentationModelMultiHead
+from model.edge_model import EdgeCerberus
+import os.path as osp
+
 import wandb
 from loguru import logger
 from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
 from torch.utils.data.distributed import DistributedSampler
-from utils import accuracy,downsampling,fill_up_weights,\
-    save_colorful_images,resize_4d_tensor,make_dir,fast_hist,\
-        save_checkpoint,AverageMeter,parse_args
+from utils import save_checkpoint,AverageMeter,parse_args
 import json
 
-# sys.path.append(osp.join(osp.dirname(__file__),"eval_tools")) #* 加这行无效!
-# sys.path.append(osp.join(osp.dirname(__file__),"eval_tools","edges")) #* 加这行无效!
-# sys.path.append(osp.join(osp.dirname(__file__),"eval_tools","edges","private2")) #* 加这行无效!
-# from eval_tools.test import test_by_matlab
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -66,7 +48,7 @@ criterion2 :
 return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
-          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=0.9): # transfer_model=None, transfer_optim=None):
+          eval_score=None, print_freq=1,_moo=False,local_rank=0): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -97,69 +79,33 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             grads = {}
         
         if not moo:
-            task_loss_array_new=[]
-            in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)#*  将channel 交换到第一维度
-            for index_new, (target_new) in enumerate(in_tar_name_pair_label):
-                input_new = in_tar_name_pair[0].clone().cuda(local_rank) 
-                #* target_new  : B,W,H
-                B,W,H=target_new.shape
-                target_new=  target_new.reshape([1,B,1,W,H])
-                #* image
-                input_var_new = torch.autograd.Variable(input_new)
-                
-                target_var_new= [torch.autograd.Variable(target_new[idx].cuda(local_rank)) for idx in range(len(target_new))]
+            input = torch.autograd.Variable(in_tar_name_pair[0].cuda(local_rank) )
+            target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
+            output = model(input)
+            b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            
+            if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
+                print("nan")
+                logger.info('b_loss is: {0}'.format(b_loss))
+                logger.info('rind_loss is: {0}'.format(rind_loss)) 
+                exit(0)
 
-                output_new, _, _ = model(input_var_new, index_new)
-                loss_array_new = list()
-                for idx in range(len(output_new)):
-                    if index_new == 0:
-                        loss_=focal_criterion(output_new[idx],target_var_new[idx][:,0,:,:])#* (B,N,W,H),(B,N,W,H)
-                    else:
-                        loss_=atten_criterion(output_new[idx],target_var_new[idx][:,0:1,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-                    loss_enhance = loss_
-                    if torch.isnan(loss_enhance):
-                        print("nan")
-                        logger.info('loss_raw is: {0}'.format(loss_))
-                        logger.info('loss_enhance is: {0}'.format(loss_enhance)) 
-                        exit(0)
-                    else:
-                        loss_array_new.append(loss_enhance)
-
-                task_loss_array_new.append(sum(loss_array_new))#* 只需要对一个类别计算loss , 没有其他类别不需要求和
-
-            assert len(task_loss_array_new) == 5
-
-            rind_weight  = 1-bg_weight
-            b_loss = bg_weight * task_loss_array_new[0]
-            rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
-                 rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
-            loss_new =  b_loss+ rind_loss
-
+            b_weight = 0.9
+            rind_weight = 0.1
+            # b_loss = b_weight * task_loss_array_new[0]
+            # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
+            #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
+            loss =  b_weight*b_loss+ rind_weight*rind_loss
             if  i % print_freq == 0 and local_rank ==0:
-                all_need_upload= {}
-                loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-                all_need_upload.update(loss_old)
-                all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})
+                all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
                 wandb.log(all_need_upload)
                 tmp = 'Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader))
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
-            # else :
-            #     all_need_upload= {}
-            #     loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-            #     all_need_upload.update(loss_old)
-            #     all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
-            #     tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
-            #     tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-            #     logger.info(tmp)
-            
             
             optimizer.zero_grad()
-            #!===========  为了解决DDP,但是解决一个问题又出现另一个问题
-            # torch.autograd.set_detect_anomaly(True)
-            #!=========== 
-            
-            loss_new.backward()
+            loss.backward()
             optimizer.step()
         
         else :
@@ -387,9 +333,10 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     model_save_dir = None
     if args.local_rank == 0: 
         run = wandb.init(project="train_cerberus") 
-        run.name+= "_lr@%s_ep@%s_bgw@%s"%(args.lr,args.epochs,args.bg_weight)#* 改名
-        logger.info(f"bg weight : {args.bg_weight}")
         
+
+        run.name+= "_lr@%s_ep@%s"%(args.lr,args.epochs,)#* 改名
+
         args.project_name = run.name 
         info =""
         for k, v in args.__dict__.items():
@@ -404,7 +351,10 @@ def train_seg_cerberus(local_rank,nprocs,  args):
 
     
     #* construct model 
-    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    single_model = EdgeCerberus(backbone="vitb_rn50_384")
+
+    
     model = single_model.cuda(local_rank)
     # model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank]) #* 问题一大推, 
     # model = torch.nn.parallel.DistributedDataParallel(model) #* 还是会出错, default setting 不行
@@ -495,8 +445,7 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         train_sampler.set_epoch(epoch)
         #*=====================
         train_cerberus(train_loader, model, atten_criterion,
-             focal_criterion,optimizer, epoch,_moo = args.moo,
-             local_rank = args.local_rank,print_freq=1,bg_weight= args.bg_weight)
+             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank,print_freq=1)
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})
@@ -526,10 +475,6 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         os.kill(os.getppid(),signal.SIGKILL)
         
     
-    
-
-
-
 
 def adjust_learning_rate(args, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -550,132 +495,22 @@ def adjust_learning_rate(args, optimizer, epoch):
 
 
 
-
-'''
-description: 
-param {*} args
-return {*}
-'''
-def test_edge(model_abs_path,test_loader,runid=None ):
-    tic = time.time()
-    
-    a = osp.split(model_abs_path)
-    if runid is  None:
-        output_dir  = osp.join(a[0],"..","model_res")
-    else:
-        output_dir  = osp.join(a[0],"..","model_res_%d"%runid)
-
-
-    
-    # output_dir = osp.join("/".join(args.resume.split("/")[:-2]),"model_res")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    # logger.info(output_dir)
-    
-    
-    #* 加载模型
-    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-    checkpoint = torch.load(model_abs_path,map_location='cuda:0')
-    for name, param in checkpoint['state_dict'].items():
-        name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
-        single_model.state_dict()[name].copy_(param)
-
-    logger.info("load model done ")
-    model = single_model.cuda()
-    model.eval()
-      
-  
-    cudnn.benchmark = True
-    depth_output_dir = os.path.join(output_dir, 'depth/met')
-    make_dir(depth_output_dir)
-    
-    normal_output_dir = os.path.join(output_dir, 'normal/met')
-    make_dir(normal_output_dir)
-
-    reflectance_output_dir = os.path.join(output_dir, 'reflectance/met')
-    make_dir(reflectance_output_dir)
-
-    illumination_output_dir = os.path.join(output_dir, 'illumination/met')
-    make_dir(illumination_output_dir)
-    
-    logger.info("dir prepare done ,start to reference  ")
-    #* 判断一些是否测试过了 , 测试过就不重复测试了
-    if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
-        model.eval()
-        tbar = tqdm(test_loader, desc='\r')
-        for i, image in enumerate(tbar):#*  B,C,H,W
-            name = test_loader.dataset.images_name[i]
-            image = Variable(image, requires_grad=False)
-            image = image.cuda()
-            B,C,H,W = image.shape 
-            trans1 = transforms.Compose([transforms.Resize(size=(320, 480))])
-            trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
-            image = trans1(image)#* debug
-
-            with torch.no_grad():
-                res = list()#* out_depth, out_normal, out_reflectance, out_illumination
-                for idx in range(0,5,1):#* 第0个分支不用推理, 
-                    tmp,_,_ = model(image,idx)
-                    res.append(trans2(tmp[0])) #* debug
-
-
-            out_depth, out_normal, out_reflectance, out_illumination = res[1],res[2],res[3],res[4]
-            depth_pred = out_depth.data.cpu().numpy()
-            depth_pred = depth_pred.squeeze()
-            sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
-            normal_pred = out_normal.data.cpu().numpy()
-            normal_pred = normal_pred.squeeze()
-            sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
-            reflectance_pred = out_reflectance.data.cpu().numpy()
-            reflectance_pred = reflectance_pred.squeeze()
-            sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
-
-            illumination_pred = out_illumination.data.cpu().numpy()
-            illumination_pred = illumination_pred.squeeze()
-            sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
-                        {'result': illumination_pred})
-    logger.info("reference done , start to eval ")
-    #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
-    os.system("./eval_tools/test.sh %s"%output_dir)
-    #* 读取评估的结果
-    logger.info("eval done  ")
-    with open (osp.join(output_dir,"eval_res.json"),'r')as f :
-        eval_res = json.load(f)
-
-    spend_time =  time.time() - tic
-    #* 计算耗时
-    logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-    return eval_res
-    
-
 def main():
-    
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
-    if args.cmd == 'train':
-        port = int(1e4+np.random.randint(1,10000,1)[0])
-        logger.info(f"port == {port}")
-        os.environ['MASTER_ADDR'] = 'localhost'
-        os.environ['MASTER_PORT'] = str(port)
+    port = int(1e4+np.random.randint(1,10000,1)[0])
+    logger.info(f"port == {port}")
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = str(port)
+    # train_seg_cerberus(args)
+    #* 分布式training
+    args.nprocs = torch.cuda.device_count()#* gpu  number 
 
-
-        # train_seg_cerberus(args)
-        #* 分布式training
-        args.nprocs = torch.cuda.device_count()#* gpu  number 
-
-        write_ddp({"node": args.nprocs})
-        logger.info(f"node number == {args.nprocs}")
-        mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
-        # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
+    write_ddp({"node": args.nprocs})
+    logger.info(f"node number == {args.nprocs}")
+    mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
+    # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
     
-    elif args.cmd == 'test':
-        #* load data 
-        train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-        test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
-                            shuffle=False,num_workers=args.workers,pin_memory=False)
-        test_edge(args.resume,test_loader,args.run_id)#! resume 给的model path需要是绝对路径
-    
- 
 if __name__ == '__main__':
     main()
 
