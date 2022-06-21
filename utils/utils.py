@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-15 20:56:17
+LastEditTime: 2022-06-20 10:07:40
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/utils/utils.py
+FilePath: /cerberus/utils/utils.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
@@ -288,6 +288,7 @@ def parse_args():
                         help='Set cudnn benchmark on (1) or off (0) (default is on).')
 
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
+    parser.add_argument("--bg-weight", type=float,default=0.9,help=" background weight  ")
 
     parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
