@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-21 19:46:25
+LastEditTime: 2022-06-21 19:59:26
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/edge_model.py
+FilePath: /cerberus/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -145,12 +145,19 @@ class EdgeCerberus(BaseModel):
                     # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
                 ))
 
-                setattr(self.scratch, "output_" + it + '_upsample', 
-                    Interpolate(scale_factor=8, mode="bilinear", align_corners=True)
-                )
-                setattr(self.scratch, "output_" + it + '_sigmoid', 
-                    nn.Sigmoid()
-                )
+                if it == "background":
+                    setattr(self.scratch, "output_" + it + '_upsample', 
+                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
+                    )
+                else :
+                    setattr(self.scratch, "output_" + it + '_upsample', 
+                        Interpolate(scale_factor=8, mode="bilinear", align_corners=True)
+                    )
+                    
+                    setattr(self.scratch, "output_" + it + '_sigmoid', 
+                        nn.Sigmoid()
+                    )
+
     
     '''
     description:  这个好像也没调用?
@@ -194,14 +201,11 @@ class EdgeCerberus(BaseModel):
         edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
 
         model_out = []
-
         #* background 
-        edge_it = full_output_task_list[0][1]
+        edge_it = self.full_output_task_list[0][1][0]
         fun = eval("self.scratch.output_" + edge_it)#* 全连接
         out = fun(edge_path_1)
         fun = eval("self.scratch.output_" + edge_it + '_upsample')#* 上采样
-        out = fun(out)
-        fun =  eval("self.scratch.output_" + edge_it + '_sigmoid')
         model_out.append(fun(out))
 
 
@@ -211,7 +215,6 @@ class EdgeCerberus(BaseModel):
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         decoder_out = self.decoder(backbone_out,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
         decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
-
 
         #* rind 
         for  x in self.full_output_task_list[1:]:
