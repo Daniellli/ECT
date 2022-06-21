@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-20 23:05:10
+ # @LastEditTime: 2022-06-21 17:52:27
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train.sh
@@ -35,8 +35,8 @@
 #* moo == False , 
 lr=1e-5;
 batch_size=4;
-gpuids="5";
-epoch=5;
+gpuids="3";
+epoch=300;
 # bg_weights=$(seq 0.9 0.02 0.99);
 # for bg_weight in ${bg_weights[@]};do 
 # echo $bg_weight;

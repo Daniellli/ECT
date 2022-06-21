@@ -409,21 +409,21 @@ class CerberusSegmentationModelMultiHead(Cerberus):
     def forward(self, x ,index):
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
-
+        #*( B,256,80,80), ( B,512,40,40),( B,768,20,20),( B,768,10,10)
         layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
 
-        #*  reassemble operatoion ? 
-        layer_1_rn = self.scratch.layer1_rn(layer_1)
-        layer_2_rn = self.scratch.layer2_rn(layer_2)
-        layer_3_rn = self.scratch.layer3_rn(layer_3)
-        layer_4_rn = self.scratch.layer4_rn(layer_4)
+        #*  reassemble operatoion ?   统一channel
+        layer_1_rn = self.scratch.layer1_rn(layer_1) #* ( B,256,80,80)
+        layer_2_rn = self.scratch.layer2_rn(layer_2)#* ( B,256,40,40)
+        layer_3_rn = self.scratch.layer3_rn(layer_3)#* ( B,256,20,20)
+        layer_4_rn = self.scratch.layer4_rn(layer_4)#* ( B,256,10,10)
 
-
+        #* 不断将  小batch 变大和大patch 进行融合
         if (index == 0):
-            path_4 = self.scratch.refinenet04(layer_4_rn)
-            path_3 = self.scratch.refinenet03(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet02(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet01(path_2, layer_1_rn)
+            path_4 = self.scratch.refinenet04(layer_4_rn)#* ( B,256,20,20)
+            path_3 = self.scratch.refinenet03(path_4, layer_3_rn)#* ( B,256,40,40)
+            path_2 = self.scratch.refinenet02(path_3, layer_2_rn)#* ( B,256,80,80)
+            path_1 = self.scratch.refinenet01(path_2, layer_1_rn)#* ( B,256,160,160)
         elif (index == 1):
             path_4 = self.scratch.refinenet08(layer_4_rn)
             path_3 = self.scratch.refinenet07(path_4, layer_3_rn)

@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-06-20 21:06:09
+LastEditTime: 2022-06-21 14:19:35
 LastEditors: xushaocong
 Description: 
 
@@ -88,7 +88,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
         return tensor if pos is None else tensor + pos
-
+    #* tgt 是Q , memory : KV
     def forward_post(self, tgt, memory,
                      tgt_mask: Optional[Tensor] = None,
                      memory_mask: Optional[Tensor] = None,
@@ -96,7 +96,8 @@ class TransformerDecoderLayer(nn.Module):
                      memory_key_padding_mask: Optional[Tensor] = None,
                      pos: Optional[Tensor] = None,
                      query_pos: Optional[Tensor] = None):
-        q = k = self.with_pos_embed(tgt, query_pos)
+        #* Q feature shape 不能是768 
+        q = k = self.with_pos_embed(tgt, query_pos)#?  decoder 这个query position  从哪里生成? 
         tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)

@@ -1,9 +1,9 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-20 23:10:31
+LastEditTime: 2022-06-21 17:45:18
 LastEditors: xushaocong
-Description: 
+Description:  加入decoder
 FilePath: /Cerberus-main/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
@@ -79,72 +79,33 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             grads = {}
         
         if not moo:
-            task_loss_array_new=[]
-            in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)#*  将channel 交换到第一维度
-            for index_new, (target_new) in enumerate(in_tar_name_pair_label):
-                input_new = in_tar_name_pair[0].clone().cuda(local_rank) 
-                #* target_new  : B,W,H
-                B,W,H=target_new.shape
-                target_new=  target_new.reshape([1,B,1,W,H])
-                #* image
-                input_var_new = torch.autograd.Variable(input_new)
-                
-                target_var_new= [torch.autograd.Variable(target_new[idx].cuda(local_rank)) for idx in range(len(target_new))]
-
-                output_new, _, _ = model(input_var_new, index_new)
-                loss_array_new = list()
-                for idx in range(len(output_new)):
-                    if index_new == 0:
-                        loss_=focal_criterion(output_new[idx],target_var_new[idx][:,0,:,:])#* (B,N,W,H),(B,N,W,H)
-                    else:
-                        loss_=atten_criterion(output_new[idx],target_var_new[idx][:,0:1,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-                    loss_enhance = loss_
-                    if torch.isnan(loss_enhance):
-                        print("nan")
-                        logger.info('loss_raw is: {0}'.format(loss_))
-                        logger.info('loss_enhance is: {0}'.format(loss_enhance)) 
-                        exit(0)
-                    else:
-                        loss_array_new.append(loss_enhance)
-
-                task_loss_array_new.append(sum(loss_array_new))#* 只需要对一个类别计算loss , 没有其他类别不需要求和
-
-            assert len(task_loss_array_new) == 5
+            input = torch.autograd.Variable(in_tar_name_pair[0].cuda(local_rank) )
+            target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
+            output = model(input)
+            b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            
+            if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
+                print("nan")
+                logger.info('b_loss is: {0}'.format(b_loss))
+                logger.info('rind_loss is: {0}'.format(rind_loss)) 
+                exit(0)
 
             b_weight = 0.9
             rind_weight = 0.1
-            
-            b_loss = b_weight * task_loss_array_new[0]
-            rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
-                 rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
-
-            loss_new =  b_loss+ rind_loss
-
+            # b_loss = b_weight * task_loss_array_new[0]
+            # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
+            #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
+            loss =  b_weight*b_loss+ rind_weight*rind_loss
             if  i % print_freq == 0 and local_rank ==0:
-                all_need_upload= {}
-                loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-                all_need_upload.update(loss_old)
-                all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})
+                all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
                 wandb.log(all_need_upload)
                 tmp = 'Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader))
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
-            else :
-                all_need_upload= {}
-                loss_old ={ "loss_"+k:v  for k,v  in  zip(root_task_list_array,task_loss_array_new)}
-                all_need_upload.update(loss_old)
-                all_need_upload.update({"total_loss":loss_new, "rind_loss":rind_loss})                
-                tmp = '{3} | Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(train_loader),local_rank)
-                tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                logger.info(tmp)
-            
             
             optimizer.zero_grad()
-            #!===========  为了解决DDP,但是解决一个问题又出现另一个问题
-            # torch.autograd.set_detect_anomaly(True)
-            #!=========== 
-            
-            loss_new.backward()
+            loss.backward()
             optimizer.step()
         
         else :
@@ -514,10 +475,6 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         os.kill(os.getppid(),signal.SIGKILL)
         
     
-    
-
-
-
 
 def adjust_learning_rate(args, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -554,7 +511,6 @@ def main():
     mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))
     # mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args),join=True)#* 加了这个join ,进程之间就会相互等待
     
- 
 if __name__ == '__main__':
     main()
 

@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-20 23:53:19
+LastEditTime: 2022-06-21 17:38:46
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -22,6 +22,7 @@ from .blocks import (
     forward_vit,
 )
 
+import time
 from .decoder import *
 from loguru import logger
 
@@ -59,7 +60,7 @@ class EdgeCerberus(BaseModel):
             (1, ['reflectance']),\
             (1, ['illumination'])
         )
-
+        
         self.channels_last = channels_last
 
         hooks = {
@@ -82,28 +83,25 @@ class EdgeCerberus(BaseModel):
             use_readout=readout,
             enable_attention_hooks=enable_attention_hooks,
         )
-
-
         #* decoder 
-        #* four task 
         #!===============================================================
-        self.edge_query_embed = nn.Embedding(4, 768)#* 最后一个channel 是768
+        input_dim =  features #* 256 
 
-        d_model  = features  #* 假设输入维度是这个 , detr== 256
-        nhead = 1 #* detr ==8
+        self.edge_query_embed = nn.Embedding(4, input_dim)
+        d_model  = input_dim 
+        nhead = 8 #* detr ==8
         dim_feedforward  =2048
         dropout = 0.1 
         activation="relu" #*   detr , by default == relu, 
         normalize_before =False   #* detr , by default  == False
-        num_decoder_layers= 1 #* detr == 6
-        return_intermediate_dec =  False #* detr , by default  == False
+        num_decoder_layers= 6 #* detr == 6
+        return_intermediate_dec =  False #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before)
         decoder_norm = nn.LayerNorm(d_model)
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
                                           return_intermediate=return_intermediate_dec)
-
         #!===============================================================
 
 
@@ -115,25 +113,25 @@ class EdgeCerberus(BaseModel):
         self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet04 = _make_fusion_block(features, use_bn)
 
-        self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
 
-        self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
 
-        self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet14 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet15 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet16 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet14 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet15 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet16 = _make_fusion_block(features, use_bn)
 
-        self.scratch.refinenet17 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet18 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet19 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet20 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet17 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet18 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet19 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet20 = _make_fusion_block(features, use_bn)
 
         #* final head 
         for (num_classes, output_task_list) in self.full_output_task_list:
@@ -148,7 +146,7 @@ class EdgeCerberus(BaseModel):
                 ))
 
                 setattr(self.scratch, "output_" + it + '_upsample', 
-                    Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
+                    Interpolate(scale_factor=8, mode="bilinear", align_corners=True)
                 )
                 setattr(self.scratch, "output_" + it + '_sigmoid', 
                     nn.Sigmoid()
@@ -174,76 +172,50 @@ class EdgeCerberus(BaseModel):
     param {*} index : 对应当前前向传播的是哪个子任务 
     return {*}
     '''
-    def forward(self, x ,index):
+    def forward(self, x ):
         B,C,H,W=x.shape
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
-
+        #* layer1 : (B,256,80,80)
+        #* layer2 : (B,512,40,40)
+        #* layer3 : (B,768,20,20)
+        #* layer4 : (B,768,10,10)
         layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
-        #* 1 . concat layer_1, layer_2, layer_3, layer_4    ,name as encoder_output
-        #* 2.  s
-
-        # encoder_out = torch.cat([layer_1, layer_2, layer_3, layer_4],axis = 0 )#todo : specify the axis 
         
-        #? 为什么 
-        B,C,W,H=layer_4.shape
-        Q=  layer_4.permute([2,3,0,1]).reshape([-1,B,C])    #*(B,C,W,H)  to (WH, B,C),也就是 (HW,B,768),(100,B,768)
-        KV = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (4,B,C )
-        logger.info("ready to decode")
-        decoder_out = self.decoder(Q,KV) #* (Q,KV)   
-        logger.info("get decoder feature")
-        embed()
-
         #*  reassemble operatoion ?  将sequence 重新reassemble 成一张patch 
-        layer_1_rn = self.scratch.layer1_rn(layer_1)
-        layer_2_rn = self.scratch.layer2_rn(layer_2)
-        layer_3_rn = self.scratch.layer3_rn(layer_3)
-        layer_4_rn = self.scratch.layer4_rn(layer_4)
+        layer_1_rn = self.scratch.layer1_rn(layer_1)#*  : (B,256,80,80)
+        layer_2_rn = self.scratch.layer2_rn(layer_2)#*  : (B,256,40,40)
+        layer_3_rn = self.scratch.layer3_rn(layer_3)#*  : (B,256,20,20)
+        layer_4_rn = self.scratch.layer4_rn(layer_4)#*  : (B,256,10,10)
 
-        if (index == 0):
-            path_4 = self.scratch.refinenet04(layer_4_rn)
-            path_3 = self.scratch.refinenet03(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet02(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet01(path_2, layer_1_rn)
-        elif (index == 1):
-            path_4 = self.scratch.refinenet08(layer_4_rn)
-            path_3 = self.scratch.refinenet07(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet06(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet05(path_2, layer_1_rn)
-        elif(index == 2): #?'Module' object has no attribute 'refinenet16'
-            path_4 = self.scratch.refinenet12(layer_4_rn)
-            path_3 = self.scratch.refinenet11(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet10(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet09(path_2, layer_1_rn)
-        
-        elif(index==3):
-            path_4 = self.scratch.refinenet16(layer_4_rn)
-            path_3 = self.scratch.refinenet15(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet14(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet13(path_2, layer_1_rn)
-        elif(index==4):
-            path_4 = self.scratch.refinenet20(layer_4_rn)
-            path_3 = self.scratch.refinenet19(path_4, layer_3_rn)
-            path_2 = self.scratch.refinenet18(path_3, layer_2_rn)
-            path_1 = self.scratch.refinenet17(path_2, layer_1_rn)
-        else:
-            raise RuntimeError('model index error , index must  between 0-4')
-        
-        output_task_list = self.full_output_task_list[index][1]
-        outs = list()
+        edge_path_4 = self.scratch.refinenet04(layer_4_rn)#* enlarge to  (B,256,20,20)
+        edge_path_3 = self.scratch.refinenet03(edge_path_4, layer_3_rn)#* fusion to  (B,256,40,40) ,  spend  0s  to pass decoder 
+        edge_path_2 = self.scratch.refinenet02(edge_path_3, layer_2_rn)#* fusion to  (B,256,80,80), 
+        edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
 
-        for it in output_task_list:
+        B,C,W,H=edge_path_3.shape
+        backbone_out=  edge_path_3.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
+        
+        learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
+        #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
+        decoder_out = self.decoder(backbone_out,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+        decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
+        
+        model_out = []
+        for  x in self.full_output_task_list  :
+            it = x[1][0]#* 每个任务只有一类 
             fun = eval("self.scratch.output_" + it)#* 全连接
-            out = fun(path_1)
+            out = fun(decoder_out)
             fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
             out = fun(out)
             if it != "background":
                 fun =  eval("self.scratch.output_" + it + '_sigmoid')
                 out = fun(out)
-            outs.append(out)
+            model_out.append(out)
+        return model_out
 
-        return outs
 
+      
 
 
     
