@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-06-20 22:59:32
+LastEditTime: 2022-06-22 07:55:30
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -23,6 +23,8 @@ from torch.autograd import Variable
 
 import data_transforms as transforms
 from model.models import  CerberusSegmentationModelMultiHead
+from model.edge_model import  EdgeCerberus
+
 import os.path as osp
 from tqdm import tqdm
 import scipy.io as sio
@@ -69,7 +71,7 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     
     
     #* 加载模型
-    single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
+    single_model = EdgeCerberus(backbone="vitb_rn50_384")
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
     for name, param in checkpoint['state_dict'].items():
         name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
@@ -103,18 +105,17 @@ def test_edge(model_abs_path,test_loader,runid=None ):
             image = Variable(image, requires_grad=False)
             image = image.cuda()
             B,C,H,W = image.shape 
-            trans1 = transforms.Compose([transforms.Resize(size=(320, 480))])
+            trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)#* debug
 
             with torch.no_grad():
-                res = list()#* out_depth, out_normal, out_reflectance, out_illumination
-                for idx in range(0,5,1):#* 第0个分支不用推理, 
-                    tmp,_,_ = model(image,idx)
-                    res.append(trans2(tmp[0])) #* debug
+                res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
 
 
-            out_depth, out_normal, out_reflectance, out_illumination = res[1],res[2],res[3],res[4]
+            out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
+
+
             depth_pred = out_depth.data.cpu().numpy()
             depth_pred = depth_pred.squeeze()
             sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
