@@ -34,8 +34,8 @@
 
 #* moo == False , 
 lr=1e-5;
-batch_size=128;
-gpuids="0,1,2,3";
+batch_size=20;
+gpuids="1,3,4,5,6";
 epoch=300;
 bg_weights=$(seq 0.93 0.02 1);
 # for bg_weight in ${bg_weights[@]};do 

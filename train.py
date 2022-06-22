@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-21 20:43:53
+LastEditTime: 2022-06-22 18:39:55
 LastEditors: xushaocong
 Description:  加入decoder
-FilePath: /cerberus/train.py
+FilePath: /Cerberus-main/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -91,12 +91,14 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 logger.info('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
 
-            b_weight = 0.9
-            rind_weight = 0.1
+            b_weight = 1
+            rind_weight = 1
             # b_loss = b_weight * task_loss_array_new[0]
             # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
             #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
             loss =  b_weight*b_loss+ rind_weight*rind_loss
+            
+            
             if  i % print_freq == 0 and local_rank ==0:
                 all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
                 wandb.log(all_need_upload)

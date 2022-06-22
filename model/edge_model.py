@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-21 19:59:26
+LastEditTime: 2022-06-22 18:36:13
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -158,6 +158,10 @@ class EdgeCerberus(BaseModel):
                         nn.Sigmoid()
                     )
 
+        setattr(self.scratch, "output_downsample",
+         Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))
+
+
     
     '''
     description:  这个好像也没调用?
@@ -200,6 +204,7 @@ class EdgeCerberus(BaseModel):
         edge_path_2 = self.scratch.refinenet02(edge_path_3, layer_2_rn)#* fusion to  (B,256,80,80), 
         edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
 
+
         model_out = []
         #* background 
         edge_it = self.full_output_task_list[0][1][0]
@@ -207,13 +212,18 @@ class EdgeCerberus(BaseModel):
         out = fun(edge_path_1)
         fun = eval("self.scratch.output_" + edge_it + '_upsample')#* 上采样
         model_out.append(fun(out))
+        
+
+        #*==============================
+        decoder_input=self.scratch.output_downsample(edge_path_1)#* downsample from  (B,256,160,160) to   (B,256,40,40)
+        #*==============================
 
 
-        B,C,W,H=edge_path_3.shape
-        backbone_out=  edge_path_3.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
+        B,C,W,H=decoder_input.shape
+        decoder_input=  decoder_input.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
-        decoder_out = self.decoder(backbone_out,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+        decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
         decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
 
         #* rind 

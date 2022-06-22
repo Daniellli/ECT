@@ -13,6 +13,5 @@
 
 for d in *7* ; do 
 echo $d;
-
 # rm -rf $d;
 done ; 
