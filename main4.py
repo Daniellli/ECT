@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-14 14:35:21
-LastEditTime: 2022-06-21 20:39:23
+LastEditTime: 2022-06-22 07:49:55
 LastEditors: xushaocong
 Description:  用multiprocessing  封装分布式训练
-FilePath: /cerberus/main4.py
+FilePath: /Cerberus-main/main4.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 #!/usr/bin/env python
@@ -641,7 +641,8 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     logger.info("eval done  ")
     with open (osp.join(output_dir,"eval_res.json"),'r')as f :
         eval_res = json.load(f)
-
+    
+    
     spend_time =  time.time() - tic
     #* 计算耗时
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
