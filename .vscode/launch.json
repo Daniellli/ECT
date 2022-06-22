@@ -12,20 +12,20 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             // test
-            "args": [
-                "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model/checkpoints/edge_cerberus_new_ep300.pth.tar", 
-                 "--batch-size", "1", "--workers", "40", "--gpu-ids", "2"
-            ]
+            // "args": [
+            //     "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model/checkpoints/edge_cerberus_new_ep300.pth.tar", 
+            //      "--batch-size", "1", "--workers", "40", "--gpu-ids", "2"
+            // ]
             // "args": [
             //     "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/le-5/checkpoints/edge_cerberus_le-5.pth.tar", 
             //      "--batch-size", "1", "--workers", "10",
             // ]
 
             // train
-            // "args": [
-            //     "train",  "-s", "320", "--batch-size", "2","--epochs","5","--lr","0.0001",
-            //     "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","4"
-            // ]
+            "args": [
+                "train",  "-s", "320", "--batch-size", "2","--epochs","5","--lr","0.0001",
+                "--momentum","0.9","--lr-mode","poly","--workers", "10","--gpu-ids","3"
+            ]
             
             //train  minimize the parameter numebr 
             // "args": [
