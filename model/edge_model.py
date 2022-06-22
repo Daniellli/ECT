@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-06-21 19:59:26
+LastEditTime: 2022-06-22 18:08:21
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -200,6 +200,7 @@ class EdgeCerberus(BaseModel):
         edge_path_2 = self.scratch.refinenet02(edge_path_3, layer_2_rn)#* fusion to  (B,256,80,80), 
         edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
 
+
         model_out = []
         #* background 
         edge_it = self.full_output_task_list[0][1][0]
@@ -207,6 +208,7 @@ class EdgeCerberus(BaseModel):
         out = fun(edge_path_1)
         fun = eval("self.scratch.output_" + edge_it + '_upsample')#* 上采样
         model_out.append(fun(out))
+        
 
 
         B,C,W,H=edge_path_3.shape
