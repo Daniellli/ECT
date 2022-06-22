@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-22 18:11:05
+LastEditTime: 2022-06-22 18:39:55
 LastEditors: xushaocong
 Description:  加入decoder
-FilePath: /cerberus/train.py
+FilePath: /Cerberus-main/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -92,7 +92,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 exit(0)
 
             b_weight = 1
-            rind_weight = 2
+            rind_weight = 1
             # b_loss = b_weight * task_loss_array_new[0]
             # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
             #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
