@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-21 20:43:53
+LastEditTime: 2022-06-22 18:11:05
 LastEditors: xushaocong
 Description:  加入decoder
 FilePath: /cerberus/train.py
@@ -97,6 +97,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
             #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
             loss =  b_weight*b_loss+ rind_weight*rind_loss
+            
             
             if  i % print_freq == 0 and local_rank ==0:
                 all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}

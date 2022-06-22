@@ -1,11 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
-<<<<<<< HEAD
- # @LastEditTime: 2022-06-22 08:26:20
-=======
- # @LastEditTime: 2022-06-21 20:45:22
->>>>>>> 0899f4d6c5da6f1d4761719f3224375f58b7634d
+ # @LastEditTime: 2022-06-22 18:17:56
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -38,17 +34,10 @@
 
 #* moo == False , 
 lr=1e-5;
-<<<<<<< HEAD
 batch_size=20;
 gpuids="1,3,4,5,6";
 epoch=300;
-bg_weights=$(seq 0.9 0.02 0.99);
-=======
-batch_size=128;
-gpuids="0,1,2,3";
-epoch=300;
 bg_weights=$(seq 0.93 0.02 1);
->>>>>>> 0899f4d6c5da6f1d4761719f3224375f58b7634d
 # for bg_weight in ${bg_weights[@]};do 
 #     echo $bg_weight;
 #     python   main4.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
