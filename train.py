@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-22 18:39:55
+LastEditTime: 2022-06-22 18:59:47
 LastEditors: xushaocong
 Description:  加入decoder
-FilePath: /Cerberus-main/train.py
+FilePath: /cerberus/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -48,7 +48,7 @@ criterion2 :
 return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
-          eval_score=None, print_freq=1,_moo=False,local_rank=0): # transfer_model=None, transfer_optim=None):
+          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -91,12 +91,10 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 logger.info('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
 
-            b_weight = 1
-            rind_weight = 1
             # b_loss = b_weight * task_loss_array_new[0]
             # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
             #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
-            loss =  b_weight*b_loss+ rind_weight*rind_loss
+            loss =  bg_weight*b_loss+ rind_weight*rind_loss
             
             
             if  i % print_freq == 0 and local_rank ==0:
@@ -335,9 +333,8 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     model_save_dir = None
     if args.local_rank == 0: 
         run = wandb.init(project="train_cerberus") 
-        
-
-        run.name+= "_lr@%s_ep@%s"%(args.lr,args.epochs,)#* 改名
+        logger.info(f"bg_weight = {args.bg_weight},rind_weight = {args.rind_weight} ")
+        run.name+= "_lr@%s_ep@%s_bgw@%s_rindw@%s"%(args.lr,args.epochs,args.bg_weight,args.rind_weight)#* 改名
 
         args.project_name = run.name 
         info =""
@@ -447,7 +444,9 @@ def train_seg_cerberus(local_rank,nprocs,  args):
         train_sampler.set_epoch(epoch)
         #*=====================
         train_cerberus(train_loader, model, atten_criterion,
-             focal_criterion,optimizer, epoch,_moo = args.moo,local_rank = args.local_rank,print_freq=1)
+             focal_criterion,optimizer, epoch,_moo = args.moo,
+             local_rank = args.local_rank,print_freq=1,
+             bg_weight=args.bg_weight,rind_weight=args.rind_weight)
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})
@@ -506,7 +505,6 @@ def main():
     os.environ['MASTER_PORT'] = str(port)
     #* 分布式training
     args.nprocs = torch.cuda.device_count()#* gpu  number 
-
     write_ddp({"node": args.nprocs})
     logger.info(f"node number == {args.nprocs}")
     mp.spawn(train_seg_cerberus,nprocs=args.nprocs, args=(args.nprocs, args))

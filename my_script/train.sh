@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-22 18:46:24
+ # @LastEditTime: 2022-06-22 19:07:44
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -34,22 +34,18 @@
 
 #* moo == False , 
 lr=1e-5;
-batch_size=20;
-gpuids="1,3,4,5,6";
+batch_size=48;
+gpuids="0,1,2";
 epoch=300;
-bg_weights=$(seq 0.93 0.02 1);
-# for bg_weight in ${bg_weights[@]};do 
-#     echo $bg_weight;
-#     python   main4.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight $bg_weight \
-#     2>&1 | tee -a logs/train.log
-# done;
+bg_weights=(1 0.5);
+rind_weights=(2 0.5);
 
-
-#* new arch test 
+for idx in $(seq 0 1);do 
+echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
 python   train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-    --lr-mode poly --workers 12 --gpu-ids $gpuids \
+    --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
     2>&1 | tee -a logs/train.log
+done
 
 
 #* resume from last model  
