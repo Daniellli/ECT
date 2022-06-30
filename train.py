@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:50:51
-LastEditTime: 2022-06-22 18:59:47
+LastEditTime: 2022-06-30 18:34:24
 LastEditors: xushaocong
 Description:  加入decoder
-FilePath: /cerberus/train.py
+FilePath: /Cerberus-main/train.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -366,7 +366,6 @@ def train_seg_cerberus(local_rank,nprocs,  args):
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
 
 
-
     #* 不能整除怎么办
     if (args.batch_size % args.nprocs) != 0 and local_rank==0 :
         args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
@@ -491,7 +490,6 @@ def adjust_learning_rate(args, optimizer, epoch):
 
     #adjust the learning rate of sigma
     optimizer.param_groups[-1]['lr'] = lr * 0.01
-    
     return lr
 
 
