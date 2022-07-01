@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-22 18:51:54
+LastEditTime: 2022-06-30 23:01:24
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/utils/utils.py
@@ -295,7 +295,9 @@ def parse_args():
                 help="训练数据集的文件夹root")
     parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
-        
+    parser.add_argument("--save-dir",type=str,default=None,
+                help="save path")
+    
     args = parser.parse_args()
     if args.bn_sync:
         drn.BatchNorm = batchnormsync.BatchNormSync

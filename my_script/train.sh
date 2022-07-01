@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-22 19:07:44
+ # @LastEditTime: 2022-06-30 23:46:24
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -17,14 +17,6 @@
 
 
 
-#* 成功在moo == False ,成功训练5个epoch
-# python  -m torch.distributed.launch --nproc_per_node=2  --master_port 29504 main3.py \
-# train  -s 320 --batch-size 4  --epochs 100 --lr 1e-4 --momentum 0.9 \
-# --lr-mode poly --workers 12 --distributed_train --gpu-ids '4,5' \
-# 2>&1 | tee -a logs/train.log
-
-
-
 #* 进一步封装 DPT
 # python   main4.py train  -s 320 --batch-size 12  --epochs 1 --lr 1e-4 --momentum 0.9 \
 # --lr-mode poly --workers 12 --gpu-ids '2,4,5' \
@@ -32,38 +24,48 @@
 
 
 
-#* moo == False , 
+#* 炼丹代码
 lr=1e-5;
-batch_size=48;
-gpuids="0,1,2";
+batch_size=16;
+gpuids="2,3";
+gpu_number=2;
 epoch=300;
-bg_weights=(1 0.5);
-rind_weights=(2 0.5);
+bg_weights=(1);
+rind_weights=(1);
 
-for idx in $(seq 0 1);do 
+for idx in $(seq 0 1 0);do 
 echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
-python   train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+# python   train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+#     2>&1 | tee -a logs/train.log
+
+#*========================================================================================
+# python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
+#     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+#     2>&1 | tee -a logs/train.log
+#*========================================================================================
+
+#*========================================================================================resume 
+#* --resume 绝对路径和 相对路径都可以 
+python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
+    train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+    --resume "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints/ckpt_rank000_ep0020.pth.tar" \
     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+    --save-dir "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints" \
     2>&1 | tee -a logs/train.log
+#*========================================================================================
+
 done
 
 
-#* resume from last model  
-# python  -m torch.distributed.launch --nproc_per_node=2  --master_port 29505 main3.py \
-# train  -s 320 --batch-size 4  --epochs 300 --lr 1e-4 --momentum 0.9 \
-# --lr-mode poly --workers 12 --distributed_train --gpu-ids '4,5' \
-# --resume "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/checkpoints/checkpoint_ep0099.pth.tar" \
+
+#* torch.distributed.launch 实现分布式
+# python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
+# train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+# --lr-mode poly --workers 12 --gpu-ids $gpuids \
 # 2>&1 | tee -a logs/train.log
 
-
-
-#* single gpu mode 
-# CUDA_LAUNCH_BLOCKING=1 
-# python   -u  main3.py \
-# train   -s 512 --batch-size 2  --epochs 5 \
-#  --lr 1e-5 --momentum 0.9 \
-# --lr-mode poly --workers 12 \
-# 2>&1 | tee -a logs/train.log
 
 
 
