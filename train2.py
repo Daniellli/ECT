@@ -21,7 +21,7 @@ from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
 from torch.utils.data.distributed import DistributedSampler
-from utils import save_checkpoint,AverageMeter,parse_args
+from utils import save_checkpoint,AverageMeter,parse_args,calculate_param_num
 import json
 
 import warnings
@@ -342,6 +342,14 @@ def train_seg_cerberus(args):
     #* construct model 
     # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
     single_model = EdgeCerberus(backbone="vitb_rn50_384")
+
+    #*========================================================
+    #* calc parameter numbers 
+    total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
+    logger.info(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
+    
+    #*========================================================
+
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(args.local_rank))
     model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
                         find_unused_parameters=True,broadcast_buffers = True) 

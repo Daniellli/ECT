@@ -20,6 +20,10 @@ wandb*
 *.pyc
 *pycache*
 
+.vscode/launch.json
+
+
+
 
 
 
