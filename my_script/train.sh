@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-06-30 23:46:24
+ # @LastEditTime: 2022-07-11 17:43:44
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -27,8 +27,8 @@
 #* 炼丹代码
 lr=1e-5;
 batch_size=16;
-gpuids="2,3";
-gpu_number=2;
+gpuids="0,1,2,3";
+gpu_number=4;
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
@@ -40,20 +40,20 @@ echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
 #     2>&1 | tee -a logs/train.log
 
 #*========================================================================================
-# python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
-#     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-#     2>&1 | tee -a logs/train.log
+python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
+    train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+    --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+    2>&1 | tee -a logs/train.log
 #*========================================================================================
 
 #*========================================================================================resume 
 #* --resume 绝对路径和 相对路径都可以 
-python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
-    train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-    --resume "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints/ckpt_rank000_ep0020.pth.tar" \
-    --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-    --save-dir "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints" \
-    2>&1 | tee -a logs/train.log
+# python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
+#     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+#     --resume "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints/ckpt_rank000_ep0295.pth.tar" \
+#     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+#     --save-dir "/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1656634538/checkpoints" \
+#     2>&1 | tee -a logs/train.log
 #*========================================================================================
 
 done

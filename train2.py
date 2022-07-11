@@ -437,7 +437,6 @@ def train_seg_cerberus(args):
         #     logger.info(f"is consistent: {is_consistent}")
         #     wandb.log({"is_consistent":1 if is_consistent else 0 })
         #!===============
-
         train_cerberus(train_loader, model, atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,
              local_rank = args.local_rank,print_freq=1,
@@ -448,7 +447,7 @@ def train_seg_cerberus(args):
         # is_best = prec1 > best_prec1
         # best_prec1 = max(prec1, best_prec1)
         #* save model every 5 epoch
-        if (epoch % 5 ==0  or epoch == args.epochs  ) and  args.local_rank == 0 : 
+        if (epoch % 5 ==0  or epoch+1 == args.epochs  ) and  args.local_rank == 0 : 
             is_best =True #* 假设每次都是最好的 
             checkpoint_path = osp.join(model_save_dir,\
                 'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))
