@@ -26,8 +26,8 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=4;
-gpuids="0,1,2,3";
+batch_size=8;
+gpuids="0,1,2,7";
 gpu_number=4;
 epoch=300;
 bg_weights=(1);
