@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-11 17:48:24
+LastEditTime: 2022-07-11 18:03:25
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -151,7 +151,7 @@ class EdgeCerberus(BaseModel):
                     )
                 else :
                     setattr(self.scratch, "output_" + it + '_upsample', 
-                        Interpolate(scale_factor=8, mode="bilinear", align_corners=True)
+                        Interpolate(scale_factor=4, mode="bilinear", align_corners=True)
                     )
                     
                     setattr(self.scratch, "output_" + it + '_sigmoid', 
@@ -159,7 +159,7 @@ class EdgeCerberus(BaseModel):
                     )
 
         setattr(self.scratch, "output_downsample",
-         Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))
+         Interpolate(scale_factor=0.5, mode="bilinear", align_corners=True))
 
 
     
