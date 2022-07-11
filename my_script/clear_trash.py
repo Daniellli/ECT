@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-LastEditTime: 2022-06-30 23:55:15
+LastEditTime: 2022-07-11 21:48:34
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/my_script/clear_trash.py
@@ -48,6 +48,6 @@ def delete_subplus_model(path ="/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@30
 
     
 if __name__ == "__main__":
-    # clear_trash()   
-    delete_subplus_model()
+    clear_trash()   
+    # delete_subplus_model()
 

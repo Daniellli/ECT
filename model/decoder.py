@@ -50,10 +50,10 @@ class TransformerDecoder(nn.Module):
             if self.return_intermediate:
                 intermediate.append(self.norm(output))
 
-        if self.norm is not None:
-            output = self.norm(output)
-            if self.return_intermediate:
-                intermediate.pop()
+        if self.norm is not None:#* 是否对最后一个layer的输出做 normalization 
+            output = self.norm(output)  
+            if self.return_intermediate: 
+                intermediate.pop() #* replace last output
                 intermediate.append(output)
 
         if self.return_intermediate:

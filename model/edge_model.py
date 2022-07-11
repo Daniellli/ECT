@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-11 18:03:25
+LastEditTime: 2022-07-11 22:17:56
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -47,9 +47,7 @@ class EdgeCerberus(BaseModel):
         channels_last=False,
         use_bn=False,
         enable_attention_hooks=False,
-        decoder_head_num = 8,
-        
-        
+        decoder_head_num = 8, 
     ):
         super(EdgeCerberus, self).__init__()
 
@@ -95,13 +93,14 @@ class EdgeCerberus(BaseModel):
         activation="relu" #*   detr , by default == relu, 
         normalize_before =False   #* detr , by default  == False
         num_decoder_layers= 6 #* detr == 6
-        return_intermediate_dec =  False #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
+        self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
+        
 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before)
         decoder_norm = nn.LayerNorm(d_model)
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
-                                          return_intermediate=return_intermediate_dec)
+                                          return_intermediate=self.return_intermediate_dec)
         #!===============================================================
 
 
@@ -113,10 +112,11 @@ class EdgeCerberus(BaseModel):
         self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet04 = _make_fusion_block(features, use_bn)
 
+        #* fusion for different decoder layer 
         # self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
 
         # self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
         # self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
@@ -150,8 +150,9 @@ class EdgeCerberus(BaseModel):
                         Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
                     )
                 else :
+                    #*  用refine net 将 decoder layer1 and layer 6 进行fusion得到 了size 为[160,160] 所以只需要upsample 2 倍 
                     setattr(self.scratch, "output_" + it + '_upsample', 
-                        Interpolate(scale_factor=4, mode="bilinear", align_corners=True)
+                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
                     )
                     
                     setattr(self.scratch, "output_" + it + '_sigmoid', 
@@ -159,7 +160,7 @@ class EdgeCerberus(BaseModel):
                     )
 
         setattr(self.scratch, "output_downsample",
-         Interpolate(scale_factor=0.5, mode="bilinear", align_corners=True))
+            Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))
 
 
     
@@ -224,7 +225,19 @@ class EdgeCerberus(BaseModel):
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
-        decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
+        if self.return_intermediate_dec : 
+            #* 返回的是多个decoder layer , 需要另外处理 
+            #* [6,WH,B,256] == 
+            decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
+            #* pick up layer 1 and layer6
+            decoder_layer1 =decoder_out[0]
+            decoder_layer6 =decoder_out[-1]
+            a = self.scratch.refinenet08(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
+            b= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out  = self.scratch.refinenet06(a,b)#* from [B,C,80,80] to  [B,C,160,160]
+        else:
+            decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
+            
 
         #* rind 
         for  x in self.full_output_task_list[1:]:
