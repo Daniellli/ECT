@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-07-13 19:36:28
+LastEditTime: 2022-07-13 23:25:01
 LastEditors: xushaocong
 Description: 
 
@@ -71,8 +71,21 @@ class TransformerDecoderLayer(nn.Module):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         #!======================================================================================================
-        self.self_attn_learnable_embedding  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        
+        self.self_attn_learnable_embedding1  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        # self.self_attn_learnable_embedding2  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        # self.self_attn_learnable_embedding3  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        # self.self_attn_learnable_embedding4  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+
+        #* for learnable embedding 
+        self.norm4 = nn.LayerNorm(d_model)
+        # self.norm5 = nn.LayerNorm(d_model)
+        # self.norm6 = nn.LayerNorm(d_model)
+        # self.norm7 = nn.LayerNorm(d_model)
+        self.dropout4 = nn.Dropout(dropout)
+        # self.dropout5 = nn.Dropout(dropout)
+        # self.dropout6 = nn.Dropout(dropout)
+        # self.dropout7 = nn.Dropout(dropout)
+
         #!======================================================================================================
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
@@ -83,11 +96,12 @@ class TransformerDecoderLayer(nn.Module):
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
-        self.norm4 = nn.LayerNorm(d_model)#* for learnable embedding 
+        
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         self.dropout3 = nn.Dropout(dropout)
-        self.dropout4 = nn.Dropout(dropout)#* for learnable embedding 
+
+   
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
@@ -114,8 +128,10 @@ class TransformerDecoderLayer(nn.Module):
         #! 所以 我要做的就是 memory 也进行self attention 
         #* memory: learnable embedding 
         #*==============================================================================
-        memory = memory + self.dropout4(self.self_attn(memory, memory, value=memory)[0])
+        
+        memory = memory + self.dropout4(self.self_attn_learnable_embedding1(memory, memory, value=memory)[0])
         memory = self.norm4(memory)
+        
         #*==============================================================================
         
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),

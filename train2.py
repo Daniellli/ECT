@@ -473,14 +473,13 @@ def train_seg_cerberus(args):
         # if epoch +1 == args.epochs:
         #     wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
     logger.info("train finish!!!! ")
-    logger.info(f"{os.getppid()} exit !!! ")
-
-    surplus_process = minus_process()
-    if surplus_process == 0 :
-        logger.info(f"ready to kill ")
-        # os.kill(os.getpid(),signal.SIGKILL) #*  did not work 
-        wandb.finish(0)
-        os.kill(os.getppid(),signal.SIGKILL)
+    # logger.info(f"{os.getppid()} exit !!! ")
+    # surplus_process = minus_process()
+    # if surplus_process == 0 :
+    #     logger.info(f"ready to kill ")
+    #     # os.kill(os.getpid(),signal.SIGKILL) #*  did not work 
+    #     wandb.finish(0)
+    #     os.kill(os.getppid(),signal.SIGKILL)
         
     
 
