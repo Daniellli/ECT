@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-07-13 23:25:01
+LastEditTime: 2022-07-14 00:06:04
 LastEditors: xushaocong
 Description: 
 
@@ -72,19 +72,19 @@ class TransformerDecoderLayer(nn.Module):
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         #!======================================================================================================
         self.self_attn_learnable_embedding1  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding2  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding3  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding4  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding2  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding3  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding4  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
 
         #* for learnable embedding 
         self.norm4 = nn.LayerNorm(d_model)
-        # self.norm5 = nn.LayerNorm(d_model)
-        # self.norm6 = nn.LayerNorm(d_model)
-        # self.norm7 = nn.LayerNorm(d_model)
+        self.norm5 = nn.LayerNorm(d_model)
+        self.norm6 = nn.LayerNorm(d_model)
+        self.norm7 = nn.LayerNorm(d_model)
         self.dropout4 = nn.Dropout(dropout)
-        # self.dropout5 = nn.Dropout(dropout)
-        # self.dropout6 = nn.Dropout(dropout)
-        # self.dropout7 = nn.Dropout(dropout)
+        self.dropout5 = nn.Dropout(dropout)
+        self.dropout6 = nn.Dropout(dropout)
+        self.dropout7 = nn.Dropout(dropout)
 
         #!======================================================================================================
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
@@ -128,10 +128,33 @@ class TransformerDecoderLayer(nn.Module):
         #! 所以 我要做的就是 memory 也进行self attention 
         #* memory: learnable embedding 
         #*==============================================================================
-        
-        memory = memory + self.dropout4(self.self_attn_learnable_embedding1(memory, memory, value=memory)[0])
-        memory = self.norm4(memory)
-        
+        # memory = memory + self.dropout4(self.self_attn_learnable_embedding1(memory, memory, value=memory)[0])
+        # memory = self.norm4(memory)
+        #*============================================================================== learnable embedding interaction version 2 
+        depth_query = memory[0].unsqueeze(0)
+        normal_query = memory[1].unsqueeze(0)
+        reflectance_query = memory[2].unsqueeze(0)
+        illumination_query = memory[3].unsqueeze(0)
+
+        depth_query = depth_query + \
+            self.dropout4(self.self_attn_learnable_embedding1(depth_query, depth_query, value=depth_query)[0])
+        depth_query = self.norm4(depth_query)
+
+        normal_query = normal_query + \
+            self.dropout5(self.self_attn_learnable_embedding2(normal_query, normal_query, value=normal_query)[0])
+        normal_query = self.norm5(normal_query)
+
+
+        reflectance_query = reflectance_query + \
+            self.dropout6(self.self_attn_learnable_embedding3(reflectance_query, reflectance_query, value=reflectance_query)[0])
+        reflectance_query = self.norm6(reflectance_query)
+
+        illumination_query = illumination_query + \
+            self.dropout7(self.self_attn_learnable_embedding4(illumination_query, illumination_query, value=illumination_query)[0])
+        illumination_query = self.norm7(illumination_query)
+
+        memory = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
+
         #*==============================================================================
         
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
