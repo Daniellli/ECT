@@ -1,19 +1,21 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-LastEditTime: 2022-07-11 21:48:34
+LastEditTime: 2022-07-13 20:31:17
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/my_script/clear_trash.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
+import imp
 import os 
 import os.path as osp 
 from loguru import logger 
 
 import shutil
 
+import time 
 
 
 '''
@@ -49,5 +51,9 @@ def delete_subplus_model(path ="/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@30
     
 if __name__ == "__main__":
     clear_trash()   
+    # tmp =1657549231
+    # tmp2=1656634538
+    # logger.info(time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(tmp)))
+    
     # delete_subplus_model()
 

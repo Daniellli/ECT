@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-11 22:17:56
+LastEditTime: 2022-07-13 10:29:27
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -26,7 +26,6 @@ import time
 from .decoder import *
 from loguru import logger
 
-from IPython import embed
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
         features,
@@ -113,14 +112,14 @@ class EdgeCerberus(BaseModel):
         self.scratch.refinenet04 = _make_fusion_block(features, use_bn)
 
         #* fusion for different decoder layer 
-        # self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
 
-        # self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
         # self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
 
         # self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
@@ -151,9 +150,10 @@ class EdgeCerberus(BaseModel):
                     )
                 else :
                     #*  用refine net 将 decoder layer1 and layer 6 进行fusion得到 了size 为[160,160] 所以只需要upsample 2 倍 
-                    setattr(self.scratch, "output_" + it + '_upsample', 
-                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
-                    )
+                    #* refine net 已经恢复原来的size了 , 不需要进一步操作了
+                    # setattr(self.scratch, "output_" + it + '_upsample', 
+                    #     Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
+                    # )
                     
                     setattr(self.scratch, "output_" + it + '_sigmoid', 
                         nn.Sigmoid()
@@ -231,10 +231,22 @@ class EdgeCerberus(BaseModel):
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
             decoder_layer1 =decoder_out[0]
-            decoder_layer6 =decoder_out[-1]
-            a = self.scratch.refinenet08(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
-            b= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
-            decoder_out  = self.scratch.refinenet06(a,b)#* from [B,C,80,80] to  [B,C,160,160]
+            decoder_layer3 =decoder_out[2]
+            decoder_layer4 =decoder_out[3]
+            decoder_layer6 =decoder_out[5]
+            
+            #* refinenet05-09
+            a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
+            b= self.scratch.refinenet10(decoder_layer3)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out1  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
+            
+            c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
+            d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
+
+            decoder_out = self.scratch.refinenet05(decoder_out1,decoder_out2)
+            
+
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
@@ -244,8 +256,9 @@ class EdgeCerberus(BaseModel):
             it = x[1][0]#* 每个任务只有一类 
             fun = eval("self.scratch.output_" + it)#* 全连接
             out = fun(decoder_out)
-            fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
-            out = fun(out)
+            #* refine net 已经恢复了原来的大小了, 不需要进一步操作
+            # fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
+            # out = fun(out)
             fun =  eval("self.scratch.output_" + it + '_sigmoid')
             out = fun(out)
             model_out.append(out)

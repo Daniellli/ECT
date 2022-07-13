@@ -36,3 +36,4 @@ networks/*.json
 
 
 *.pyc
+logs/*

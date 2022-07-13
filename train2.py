@@ -34,7 +34,6 @@ import signal
 
 from utils.global_var import *
 
-from IPython import embed
 
 from utils.check_model_consistent import is_model_consistent
 '''
@@ -342,6 +341,7 @@ def train_seg_cerberus(args):
     #* construct model 
     # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
     single_model = EdgeCerberus(backbone="vitb_rn50_384")
+
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(args.local_rank))
     model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
                         find_unused_parameters=True,broadcast_buffers = True) 
@@ -349,6 +349,8 @@ def train_seg_cerberus(args):
     # model = torch.nn.DataParallel(model,device_ids=[args.local_rank])
     
     logger.info("construct model done ")
+    logger.info(single_model)
+
     cudnn.benchmark = args.cudnn_benchmark
     #*=====================================
     atten_criterion = AttentionLoss2().cuda(args.local_rank)

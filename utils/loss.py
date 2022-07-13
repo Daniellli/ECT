@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:26:49
-LastEditTime: 2022-06-07 19:26:50
+LastEditTime: 2022-07-13 10:29:50
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/utils/loss.py
+FilePath: /cerberus/utils/loss.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -20,6 +20,9 @@ email: xushaocong@stu.xmu.edu.cn
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from IPython import embed
+
+
 def clip_by_value(t, t_min, t_max):
     """
     clip_by_tensor
@@ -75,6 +78,7 @@ class SegmentationLosses(object):
         if self.cuda:
             criterion = criterion.cuda()
 
+        
         logpt = -criterion(logit, target.long())#* 两个维度不一样的数据如何做交叉熵? 
         pt = torch.exp(logpt)  
         if alpha is not None:
