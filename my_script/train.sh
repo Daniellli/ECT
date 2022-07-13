@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-11 18:01:13
+ # @LastEditTime: 2022-07-13 19:37:48
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -26,9 +26,9 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=8;
-gpuids="0,1,2,7";
-gpu_number=4;
+batch_size=32;
+gpuids="0,1,2,3,4,5,6,7";
+gpu_number=8;
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
@@ -44,7 +44,7 @@ python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port
     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
     2>&1 | tee -a logs/train.log
-#*========================================================================================
+#*=======================================================git a=================================
 
 #*========================================================================================resume 
 #* --resume 绝对路径和 相对路径都可以 

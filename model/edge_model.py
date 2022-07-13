@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-12 00:13:48
+LastEditTime: 2022-07-13 19:33:00
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -54,7 +54,6 @@ def _get_activation_fn(activation):
 
 
 
-
 '''
 description:  before decoder, embed the interaction between the different learnable embedding 
 return {*}
@@ -99,13 +98,9 @@ class QueryAttention(nn.Module):
         return src
 
 
-    
-
-
-
-
 
 class EdgeCerberus(BaseModel):
+
     def __init__(
         self,
         features=256,
@@ -115,8 +110,6 @@ class EdgeCerberus(BaseModel):
         use_bn=False,
         enable_attention_hooks=False,
         decoder_head_num = 8,
-        
-        
     ):
         super(EdgeCerberus, self).__init__()
 
@@ -177,10 +170,10 @@ class EdgeCerberus(BaseModel):
 
         #! before decoder, embed the interaction between the different learnable embedding 
         #!===============================================================  
-        self.quer1=QueryAttention(nhead=8)
-        self.quer2=QueryAttention(nhead=8)
-        self.quer3=QueryAttention(nhead=8)
-        self.quer4=QueryAttention(nhead=8)
+        # self.quer1=QueryAttention(nhead=8)
+        # self.quer2=QueryAttention(nhead=8)
+        # self.quer3=QueryAttention(nhead=8)
+        # self.quer4=QueryAttention(nhead=8)
 
         # self.quer1=QueryAttention(nhead=1)
         # self.quer2=QueryAttention(nhead=1)
@@ -309,15 +302,18 @@ class EdgeCerberus(BaseModel):
         
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
         #*================================= add interaction between the   different queries 
-        depth_query = self.quer1(learnable_embedding[0].unsqueeze(0))
-        normal_query = self.quer2(learnable_embedding[1].unsqueeze(0))
-        reflectance_query = self.quer3(learnable_embedding[2].unsqueeze(0))
-        illumination_query = self.quer4(learnable_embedding[3].unsqueeze(0))
-        learnable_embedding = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
+        # depth_query = self.quer1(learnable_embedding[0].unsqueeze(0))
+        # normal_query = self.quer2(learnable_embedding[1].unsqueeze(0))
+        # reflectance_query = self.quer3(learnable_embedding[2].unsqueeze(0))
+        # illumination_query = self.quer4(learnable_embedding[3].unsqueeze(0))
+        # learnable_embedding = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
         #*=================================
 
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+
+
+
         decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
 
         #* rind 

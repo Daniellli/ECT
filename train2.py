@@ -455,7 +455,7 @@ def train_seg_cerberus(args):
         # is_best = prec1 > best_prec1
         # best_prec1 = max(prec1, best_prec1)
         #* save model every 5 epoch
-        if (epoch % 5 ==0  or epoch+1 == args.epochs  ) and  args.local_rank == 0 : 
+        if (epoch % 20 ==0  or epoch+1 == args.epochs  ) and  args.local_rank == 0 : 
             is_best =True #* 假设每次都是最好的 
             checkpoint_path = osp.join(model_save_dir,\
                 'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))

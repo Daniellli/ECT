@@ -1,11 +1,11 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-06-21 14:19:35
+LastEditTime: 2022-07-13 19:36:28
 LastEditors: xushaocong
 Description: 
 
-FilePath: /Cerberus-main/model/decoder.py
+FilePath: /cerberus/model/decoder.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -70,6 +70,10 @@ class TransformerDecoderLayer(nn.Module):
                  activation="relu", normalize_before=False):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        #!======================================================================================================
+        self.self_attn_learnable_embedding  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        
+        #!======================================================================================================
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
@@ -79,9 +83,11 @@ class TransformerDecoderLayer(nn.Module):
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
+        self.norm4 = nn.LayerNorm(d_model)#* for learnable embedding 
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         self.dropout3 = nn.Dropout(dropout)
+        self.dropout4 = nn.Dropout(dropout)#* for learnable embedding 
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
@@ -97,15 +103,26 @@ class TransformerDecoderLayer(nn.Module):
                      pos: Optional[Tensor] = None,
                      query_pos: Optional[Tensor] = None):
         #* Q feature shape 不能是768 
+
         q = k = self.with_pos_embed(tgt, query_pos)#?  decoder 这个query position  从哪里生成? 
+
         tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
+        #todo : memory 就是cross attention 的key , value.   
+        #! 所以 我要做的就是 memory 也进行self attention 
+        #* memory: learnable embedding 
+        #*==============================================================================
+        memory = memory + self.dropout4(self.self_attn(memory, memory, value=memory)[0])
+        memory = self.norm4(memory)
+        #*==============================================================================
+        
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
+                                   
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
@@ -146,6 +163,8 @@ class TransformerDecoderLayer(nn.Module):
         if self.normalize_before:
             return self.forward_pre(tgt, memory, tgt_mask, memory_mask,
                                     tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
+
+
         return self.forward_post(tgt, memory, tgt_mask, memory_mask,
                                  tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
 
