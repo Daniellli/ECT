@@ -1,11 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-<<<<<<< HEAD
-LastEditTime: 2022-07-13 20:31:17
-=======
-LastEditTime: 2022-07-13 09:50:31
->>>>>>> selfatt_before_decoder
+LastEditTime: 2022-07-14 09:09:50
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/my_script/clear_trash.py
@@ -55,12 +51,9 @@ def delete_subplus_model(path ="/DATA2/xusc/exp/cerberus/networks/lr@1e-05_ep@30
     
 if __name__ == "__main__":
     clear_trash()   
-<<<<<<< HEAD
     # tmp =1657549231
     # tmp2=1656634538
     # logger.info(time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(tmp)))
     
-=======
->>>>>>> selfatt_before_decoder
     # delete_subplus_model()
 
