@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-06-30 23:01:24
+LastEditTime: 2022-07-12 00:10:06
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/utils/utils.py
@@ -241,6 +241,30 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
     #* 在save 一份
     if is_best:
         shutil.copyfile(filename, join(split(filename)[-2] ,'model_best.pth.tar'))
+
+
+
+
+'''
+description:  计算可以学习的模型参数
+param {*} model : 需要计算的模型
+return {*}
+'''
+
+def calculate_param_num(model):
+    total_params = 0
+    Trainable_params = 0
+    NonTrainable_params = 0
+    for param in model.parameters():
+        multvalue = np.prod(param.size())
+        total_params += multvalue
+        if param.requires_grad:
+            Trainable_params += multvalue  # 可训练参数量
+        else:
+            NonTrainable_params += multvalue  # 非可训练参数量
+    
+    
+    return total_params,Trainable_params,NonTrainable_params
 
 
 

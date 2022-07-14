@@ -1,11 +1,11 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-06-21 14:19:35
+LastEditTime: 2022-07-14 00:06:04
 LastEditors: xushaocong
 Description: 
 
-FilePath: /Cerberus-main/model/decoder.py
+FilePath: /cerberus/model/decoder.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -70,6 +70,23 @@ class TransformerDecoderLayer(nn.Module):
                  activation="relu", normalize_before=False):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        #!======================================================================================================
+        self.self_attn_learnable_embedding1  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding2  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding3  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.self_attn_learnable_embedding4  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+
+        #* for learnable embedding 
+        self.norm4 = nn.LayerNorm(d_model)
+        self.norm5 = nn.LayerNorm(d_model)
+        self.norm6 = nn.LayerNorm(d_model)
+        self.norm7 = nn.LayerNorm(d_model)
+        self.dropout4 = nn.Dropout(dropout)
+        self.dropout5 = nn.Dropout(dropout)
+        self.dropout6 = nn.Dropout(dropout)
+        self.dropout7 = nn.Dropout(dropout)
+
+        #!======================================================================================================
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
@@ -79,9 +96,12 @@ class TransformerDecoderLayer(nn.Module):
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
+        
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         self.dropout3 = nn.Dropout(dropout)
+
+   
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
@@ -97,15 +117,51 @@ class TransformerDecoderLayer(nn.Module):
                      pos: Optional[Tensor] = None,
                      query_pos: Optional[Tensor] = None):
         #* Q feature shape 不能是768 
+
         q = k = self.with_pos_embed(tgt, query_pos)#?  decoder 这个query position  从哪里生成? 
+
         tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
+        #todo : memory 就是cross attention 的key , value.   
+        #! 所以 我要做的就是 memory 也进行self attention 
+        #* memory: learnable embedding 
+        #*==============================================================================
+        # memory = memory + self.dropout4(self.self_attn_learnable_embedding1(memory, memory, value=memory)[0])
+        # memory = self.norm4(memory)
+        #*============================================================================== learnable embedding interaction version 2 
+        depth_query = memory[0].unsqueeze(0)
+        normal_query = memory[1].unsqueeze(0)
+        reflectance_query = memory[2].unsqueeze(0)
+        illumination_query = memory[3].unsqueeze(0)
+
+        depth_query = depth_query + \
+            self.dropout4(self.self_attn_learnable_embedding1(depth_query, depth_query, value=depth_query)[0])
+        depth_query = self.norm4(depth_query)
+
+        normal_query = normal_query + \
+            self.dropout5(self.self_attn_learnable_embedding2(normal_query, normal_query, value=normal_query)[0])
+        normal_query = self.norm5(normal_query)
+
+
+        reflectance_query = reflectance_query + \
+            self.dropout6(self.self_attn_learnable_embedding3(reflectance_query, reflectance_query, value=reflectance_query)[0])
+        reflectance_query = self.norm6(reflectance_query)
+
+        illumination_query = illumination_query + \
+            self.dropout7(self.self_attn_learnable_embedding4(illumination_query, illumination_query, value=illumination_query)[0])
+        illumination_query = self.norm7(illumination_query)
+
+        memory = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
+
+        #*==============================================================================
+        
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
+                                   
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
@@ -146,6 +202,8 @@ class TransformerDecoderLayer(nn.Module):
         if self.normalize_before:
             return self.forward_pre(tgt, memory, tgt_mask, memory_mask,
                                     tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
+
+
         return self.forward_post(tgt, memory, tgt_mask, memory_mask,
                                  tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
 
