@@ -356,7 +356,7 @@ def train_seg_cerberus(args):
     # model = torch.nn.DataParallel(model,device_ids=[args.local_rank])
     
     logger.info("construct model done ")
-    logger.info(single_model)
+    # logger.info(single_model)
 
     cudnn.benchmark = args.cudnn_benchmark
     #*=====================================
@@ -400,7 +400,7 @@ def train_seg_cerberus(args):
     if args.resume:
         if os.path.isfile(args.resume):
             logger.info("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume)
+            checkpoint = torch.load(args.resume,map_location=torch.device(args.local_rank))
             start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
             

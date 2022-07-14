@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-16 17:33:26
-LastEditTime: 2022-07-14 09:09:50
+LastEditTime: 2022-07-14 13:14:23
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/my_script/clear_trash.py
@@ -30,7 +30,7 @@ def clear_trash(target = "networks"):
     for p in all_dir:
         ckpg_dir = osp.join(target,p,"checkpoints")
         #* 如果  只有少于2个model 说明是测试 并且  没有测试结果,没有测试结果是 就只有一个checkpoints文件夹, 这个时候才可以删除
-        if ( not osp.exists(ckpg_dir) or  10> len(os.listdir(ckpg_dir)) ) and  len(os.listdir(osp.join(target,p))) ==1:
+        if ( not osp.exists(ckpg_dir) or  2> len(os.listdir(ckpg_dir)) ) and  len(os.listdir(osp.join(target,p))) ==1:
             # logger.info(f"{ckpg_dir} empty")
             tmp = osp.join(target,p)
             
