@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-14 09:04:36
+LastEditTime: 2022-07-14 21:34:14
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -316,9 +316,9 @@ class EdgeCerberus(BaseModel):
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
             decoder_layer1 =decoder_out[0]
-            decoder_layer3 =decoder_out[2]
+            decoder_layer3 =decoder_out[-1]
             decoder_layer4 =decoder_out[3]
-            decoder_layer6 =decoder_out[5]
+            decoder_layer6 =decoder_out[2]
             
             #* refinenet05-09
             a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
