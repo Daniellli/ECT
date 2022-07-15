@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-15 14:04:44
+LastEditTime: 2022-07-15 15:11:00
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -145,6 +145,24 @@ class EdgeCerberus(BaseModel):
         )
        
 
+
+        
+        #*  sequenceial  fusion blocks 
+        #?  reassemble operation 呢?  
+        #? 是不是 self.scratch 的卷积部分就是对应 网络的reassemble operation ? 
+        self.scratch.refinenet01 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet02 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet04 = _make_fusion_block(features, use_bn)#* output [160,160]
+        
+
+        #* 下采样作为decoder 的输入 
+        #? 这里是否要替换成  卷积操作? 
+        setattr(self.scratch, "output_downsample",
+            Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
+
+
+
         #* decoder 
         #!===============================================================
         input_dim =  features #* 256 
@@ -161,40 +179,28 @@ class EdgeCerberus(BaseModel):
 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before)
+
+
+
         decoder_norm = nn.LayerNorm(d_model)
+
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
                                           return_intermediate=self.return_intermediate_dec)
-        #!===============================================================
 
-        #! before decoder, embed the interaction between the different learnable embedding 
-        #!===============================================================  
-        # self.quer1=QueryAttention(nhead=8)
-        # self.quer2=QueryAttention(nhead=8)
-        # self.quer3=QueryAttention(nhead=8)
-        # self.quer4=QueryAttention(nhead=8)
+       #!===============================================================
+       #* [40,40] ,
+       
 
-        # self.quer1=QueryAttention(nhead=1)
-        # self.quer2=QueryAttention(nhead=1)
-        # self.quer3=QueryAttention(nhead=1)
-        # self.quer4=QueryAttention(nhead=1)
-        #!=============================================================== 
-
-        #*  sequenceial  fusion blocks 
-        #?  reassemble operation 呢?  
-        #? 是不是 self.scratch 的卷积部分就是对应 网络的reassemble operation ? 
-        self.scratch.refinenet01 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet02 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet04 = _make_fusion_block(features, use_bn)
 
         #* fusion for different decoder layer 
-        self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
+        #*  pick 2 layer  to upsampling to [160,160 ] by refine net 
+        # self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
+        # self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
 
         self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
-        self.scratch.refinenet10 = _make_fusion_block(features, use_bn)
+        self.scratch.refinenet10 = _make_fusion_block(features, use_bn) 
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
         # self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
 
@@ -209,6 +215,7 @@ class EdgeCerberus(BaseModel):
         # self.scratch.refinenet20 = _make_fusion_block(features, use_bn)
 
         #* final head 
+        #* conv and ConvTranspose2d to [320,320] and classify
         for (num_classes, output_task_list) in self.full_output_task_list:
             for it in output_task_list:
                 setattr(self.scratch, "output_" + it ,nn.Sequential(
@@ -224,28 +231,29 @@ class EdgeCerberus(BaseModel):
                     #* 需要 batch normalization 吗? 
                     setattr(self.scratch, "output_" + it + '_upsample', 
                         nn.Sequential(
-                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-                        # nn.BatchNorm2d(features),
+                        # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+                        #!+===============
+                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                        nn.BatchNorm2d(num_classes),
+                        #!+===============
                         nn.ReLU(inplace=True)
                         )
                     )
 
 
-
                 else :
                     #*  用refine net 将 decoder layer1 and layer 6 进行fusion得到 了size 为[160,160] 所以只需要upsample 2 倍 
                     #* refine net 已经恢复原来的size了 , 不需要进一步操作了
-                    # setattr(self.scratch, "output_" + it + '_upsample', 
-                    #     Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
-                    # )
-                    
-                    setattr(self.scratch, "output_" + it + '_sigmoid', 
+                    setattr(self.scratch, "output_" + it + '_upsample', 
+                        nn.Sequential(
+                        # Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
+                        nn.ConvTranspose2d(1, 1, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                        nn.BatchNorm2d(1),
                         nn.Sigmoid()
+                        )
                     )
 
 
-        setattr(self.scratch, "output_downsample",
-            Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))
 
 
     
@@ -257,6 +265,7 @@ class EdgeCerberus(BaseModel):
     return {*}
     '''
     def get_attention(self, x ,name):
+        
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
         x = forward_flex(self.pretrained.model, x, True, name)
@@ -309,13 +318,6 @@ class EdgeCerberus(BaseModel):
         decoder_input=  decoder_input.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
         
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
-        #*================================= add interaction between the   different queries 
-        # depth_query = self.quer1(learnable_embedding[0].unsqueeze(0))
-        # normal_query = self.quer2(learnable_embedding[1].unsqueeze(0))
-        # reflectance_query = self.quer3(learnable_embedding[2].unsqueeze(0))
-        # illumination_query = self.quer4(learnable_embedding[3].unsqueeze(0))
-        # learnable_embedding = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
-        #*=================================
 
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
@@ -325,19 +327,20 @@ class EdgeCerberus(BaseModel):
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
             decoder_layer1 =decoder_out[0]
-            decoder_layer3 =decoder_out[-1]
-            decoder_layer4 =decoder_out[3]
-            decoder_layer6 =decoder_out[2]
+            decoder_layer6 =decoder_out[-1]
+            # decoder_layer3 =decoder_out[2]
+            # decoder_layer4 =decoder_out[3]
+            
             
             #* refinenet05-09
             a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
-            b= self.scratch.refinenet10(decoder_layer3)#* from [B,C,40,40] to  [B,C,80,80]
-            decoder_out1  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
+            b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
             
-            c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
-            d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
-            decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
-            decoder_out = self.scratch.refinenet05(decoder_out1,decoder_out2)
+            # c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
+            # d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            # decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
+            # decoder_out = self.scratch.refinenet05(decoder_out1,decoder_out2)
             
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
@@ -349,9 +352,7 @@ class EdgeCerberus(BaseModel):
             fun = eval("self.scratch.output_" + it)#* 全连接
             out = fun(decoder_out)
             #* refine net 已经恢复了原来的大小了, 不需要进一步操作
-            # fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
-            # out = fun(out)
-            fun =  eval("self.scratch.output_" + it + '_sigmoid')
+            fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
             out = fun(out)
             model_out.append(out)
         return model_out
