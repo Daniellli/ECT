@@ -9,7 +9,7 @@ clc
 % 下面这行会导致传入的变量eval_data_dir也清空, 所以需要注释掉
 %clear  
 
-test_list={'depth','normal','reflectance','illumination'};
+test_list={'depth','normal','reflectance','illumination',"edge"};
 % data_root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/model_res'; 
 disp(eval_data_dir)
 data_root=eval_data_dir;

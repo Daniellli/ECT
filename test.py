@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-06-22 07:55:30
+LastEditTime: 2022-07-16 00:28:51
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -9,6 +9,7 @@ email: xushaocong@stu.xmu.edu.cn
 '''
 
 
+import cv2
 
 import os
 # from IPython import embed #for terminal debug 
@@ -24,7 +25,7 @@ from torch.autograd import Variable
 import data_transforms as transforms
 from model.models import  CerberusSegmentationModelMultiHead
 from model.edge_model import  EdgeCerberus
-
+import torch 
 import os.path as osp
 from tqdm import tqdm
 import scipy.io as sio
@@ -83,6 +84,10 @@ def test_edge(model_abs_path,test_loader,runid=None ):
       
   
     cudnn.benchmark = True
+
+    edge_output_dir = os.path.join(output_dir, 'edge/met')
+    make_dir(edge_output_dir)
+
     depth_output_dir = os.path.join(output_dir, 'depth/met')
     make_dir(depth_output_dir)
     
@@ -97,7 +102,7 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     
     logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
-    if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
+    if True or  not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
         for i, image in enumerate(tbar):#*  B,C,H,W
@@ -112,16 +117,29 @@ def test_edge(model_abs_path,test_loader,runid=None ):
             with torch.no_grad():
                 res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
 
-
+            out_edge = trans2(res[0])
             out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
+
+
+            # edge_pred = out_edge.data.cpu().numpy()
+            # edge_pred = edge_pred.squeeze()
+            # sio.savemat(os.path.join(edge_output_dir, '{}.mat'.format(name)), {'result': edge_pred})
+            #!+============
+            vis_data = out_edge.squeeze(0).max(0)[1].cpu().numpy()
+            test_visul_label(vis_data,os.path.join(edge_output_dir, '{}.png'.format(name)))
+            #!+============
+            
 
 
             depth_pred = out_depth.data.cpu().numpy()
             depth_pred = depth_pred.squeeze()
             sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
+
+
             normal_pred = out_normal.data.cpu().numpy()
             normal_pred = normal_pred.squeeze()
             sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
+
             reflectance_pred = out_reflectance.data.cpu().numpy()
             reflectance_pred = reflectance_pred.squeeze()
             sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
@@ -142,7 +160,37 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     #* 计算耗时
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     return eval_res
+
+
+def test_visul_label(label ,output_name):
     
+    # print(label.shape)
+    # print(type(label))
+    # label =label[:, :, 0]
+
+    cmap = np.array([[0, 0, 0],
+    [128, 0, 0],
+    [128, 128, 0],
+    [0, 128, 0],
+    [0, 0, 128]]
+    )
+    y = label
+    r = y.copy()
+    g = y.copy()
+    b = y.copy()
+    # print('r=',r)
+    for l in range(0, len(cmap)):
+        r[y == l] = cmap[l, 0]
+        g[y == l] = cmap[l, 1]
+        b[y == l] = cmap[l, 2]
+    label=np.concatenate((np.expand_dims(b,axis=-1),np.expand_dims(g,axis=-1),
+                            np.expand_dims(r,axis=-1)),axis=-1)
+
+    cv2.imwrite(output_name,label)
+
+
+
+
 def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
