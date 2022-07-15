@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 19:26:49
-LastEditTime: 2022-07-13 10:29:50
+LastEditTime: 2022-07-15 10:40:08
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/utils/loss.py
@@ -73,7 +73,8 @@ class SegmentationLosses(object):
     '''
     def FocalLoss(self, logit, target, gamma=2, alpha=0.5):
         n, c, h, w = logit.size()
-        criterion = nn.CrossEntropyLoss(weight=self.weight, ignore_index=self.ignore_index,
+        #! ignore_index=self.ignore_index 忽略了gt label == 255的数据
+        criterion = nn.CrossEntropyLoss(weight=self.weight, ignore_index=self.ignore_index, 
                                         reduction='sum')
         if self.cuda:
             criterion = criterion.cuda()

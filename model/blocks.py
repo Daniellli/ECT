@@ -21,6 +21,7 @@ def _make_encoder(
     use_readout="ignore",
     enable_attention_hooks=False,
 ):
+
     if backbone == "vitl16_384":
         pretrained = _make_pretrained_vitl16_384(
             use_pretrained,

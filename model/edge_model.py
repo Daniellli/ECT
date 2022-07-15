@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-14 21:34:14
+LastEditTime: 2022-07-15 14:04:44
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -221,9 +221,17 @@ class EdgeCerberus(BaseModel):
                 ))
 
                 if it == "background":
+                    #* 需要 batch normalization 吗? 
                     setattr(self.scratch, "output_" + it + '_upsample', 
-                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
+                        nn.Sequential(
+                        Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+                        # nn.BatchNorm2d(features),
+                        nn.ReLU(inplace=True)
+                        )
                     )
+
+
+
                 else :
                     #*  用refine net 将 decoder layer1 and layer 6 进行fusion得到 了size 为[160,160] 所以只需要upsample 2 倍 
                     #* refine net 已经恢复原来的size了 , 不需要进一步操作了
@@ -234,6 +242,7 @@ class EdgeCerberus(BaseModel):
                     setattr(self.scratch, "output_" + it + '_sigmoid', 
                         nn.Sigmoid()
                     )
+
 
         setattr(self.scratch, "output_downsample",
             Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))
@@ -328,10 +337,8 @@ class EdgeCerberus(BaseModel):
             c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
             d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
             decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
-
             decoder_out = self.scratch.refinenet05(decoder_out1,decoder_out2)
             
-
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
