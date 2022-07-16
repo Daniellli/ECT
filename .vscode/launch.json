@@ -9,18 +9,21 @@
             "type": "python",
             "request": "launch",
             // "program": "${file}",
-            "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
+            
             
             
             
             "console": "integratedTerminal",
             "justMyCode": true,
             // test
-            // "args": [
-            //     "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model/checkpoints/edge_cerberus_new_ep300.pth.tar", 
-            //      "--batch-size", "1", "--workers", "40", "--gpu-ids", "2"
-            // ]
+            "args": [
+                "test",  "-s", "320", "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v6/checkpoints/edge_cerberus_v6.pth.tar", 
+                 "--batch-size", "1", "--workers", "40", "--gpu-ids", "2"
+            ]
 
    
             

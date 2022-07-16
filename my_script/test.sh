@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-06-28 16:24:40
+ # @LastEditTime: 2022-07-16 13:58:50
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -43,22 +43,22 @@
 
 
 
-# python -u test.py test  -s 320 \
-# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model/checkpoints/edge_cerberus_v2_ep300_b05_rind05.pth.tar \
-# --batch-size 1 --workers 40 --run-id 3 --gpu-ids "2" \
-# 2>&1 | tee -a logs/test.log
+python -u test.py test  -s 320 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v6/checkpoints/edge_cerberus_v6.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "1" --run-id 1 \
+2>&1 | tee -a logs/test.log
 
 
-path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model2/checkpoints/"
-idx=1;
-for model in $(ls $path); do 
+# path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/new_model2/checkpoints/"
+# idx=1;
+# for model in $(ls $path); do 
     
-    echo $path$model, $idx;
+#     echo $path$model, $idx;
 
-    python -u test.py test  -s 320 \
-    --resume $path$model \
-    --batch-size 1 --workers 40 --run-id $idx \
-    2>&1 | tee -a logs/test.log
-    idx=` expr $idx + 1 `;
-done;
-echo $idx;
+#     python -u test.py test  -s 320 \
+#     --resume $path$model \
+#     --batch-size 1 --workers 40 --run-id $idx \
+#     2>&1 | tee -a logs/test.log
+#     idx=` expr $idx + 1 `;
+# done;
+# echo $idx;
