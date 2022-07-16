@@ -73,10 +73,20 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             grads = {}
         
         if not moo:
+
             input = torch.autograd.Variable(in_tar_name_pair[0].cuda(local_rank) )
             target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
             output = model(input)
-            b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+
+            # background_data  = target[:,0,:,:][1][target[:,0,:,:][1]==0].shape[0] 
+            # edge_data = target[:,0,:,:][1][target[:,0,:,:][1]==1].shape[0] + \
+            #             target[:,0,:,:][1][target[:,0,:,:][1]==2].shape[0] + \
+            #             target[:,0,:,:][1][target[:,0,:,:][1]==3].shape[0]+\
+            #             target[:,0,:,:][1][target[:,0,:,:][1]==4].shape[0]+\
+            #             target[:,0,:,:][1][target[:,0,:,:][1]==255].shape[0]+\
+
+            # b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
             rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
             
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
@@ -98,11 +108,6 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(train_loader),local_rank)
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
-            # else :
-                # all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
-                # tmp = 'Epoch: [{0}][{1}/{2},rank:{3}]'.format(epoch, i, len(train_loader),local_rank)
-                # tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                # logger.info(tmp)
 
                 
             optimizer.zero_grad()

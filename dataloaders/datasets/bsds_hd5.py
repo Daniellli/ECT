@@ -135,6 +135,11 @@ class Mydataset(data.Dataset):
             h = h5py.File(edge_path, 'r')
             edge = np.squeeze(h['label'][...])
             label = edge.astype(np.float32) 
+            #!+===================================================
+
+            label[0][label[0]!=0] =  1
+
+            #!+===================================================
 
             ##random crop 320x320
             offset_x, offset_y = 0, 0

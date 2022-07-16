@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-15 15:11:00
+LastEditTime: 2022-07-16 14:30:14
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/model/edge_model.py
@@ -114,7 +114,7 @@ class EdgeCerberus(BaseModel):
         super(EdgeCerberus, self).__init__()
 
         self.full_output_task_list = ( \
-            (5, ['background']), \
+            (1, ['background']), \
             (1, ['depth']), \
             (1, ['normal']) , \
             (1, ['reflectance']),\
@@ -236,7 +236,8 @@ class EdgeCerberus(BaseModel):
                         nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
                         nn.BatchNorm2d(num_classes),
                         #!+===============
-                        nn.ReLU(inplace=True)
+                        # nn.ReLU(inplace=True)
+                        nn.Sigmoid()
                         )
                     )
 
@@ -247,8 +248,8 @@ class EdgeCerberus(BaseModel):
                     setattr(self.scratch, "output_" + it + '_upsample', 
                         nn.Sequential(
                         # Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
-                        nn.ConvTranspose2d(1, 1, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
-                        nn.BatchNorm2d(1),
+                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                        nn.BatchNorm2d(num_classes),
                         nn.Sigmoid()
                         )
                     )

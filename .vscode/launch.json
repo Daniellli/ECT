@@ -35,7 +35,6 @@
             "train","-s","320","--batch-size","8","--epochs","300","--lr","1e-5",
             "--momentum","0.9","--lr-mode","poly","--workers", "12","--gpu-ids","0,1,2,3",
             // "--resume","/data3/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1657761722/checkpoints/ckpt_rank000_ep0100.pth.tar"
-
             ],
 
 
