@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-07-16 13:58:50
+ # @LastEditTime: 2022-07-17 16:52:33
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -44,8 +44,8 @@
 
 
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v6/checkpoints/edge_cerberus_v6.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "1" --run-id 1 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v8/checkpoints/edge_cerberus_v81.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "2" --run-id 2 \
 2>&1 | tee -a logs/test.log
 
 
