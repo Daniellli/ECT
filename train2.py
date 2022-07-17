@@ -3,6 +3,7 @@
 
 import os
 import time
+from cv2 import threshold
 import numpy as np
 import sys
 import torch
@@ -10,7 +11,7 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from min_norm_solvers import MinNormSolver
 
-
+import copy
 # from model.models import  CerberusSegmentationModelMultiHead
 from model.edge_model import EdgeCerberus
 import os.path as osp
@@ -73,7 +74,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             grads = {}
         
         if not moo:
-
+        
             input = torch.autograd.Variable(in_tar_name_pair[0].cuda(local_rank) )
             target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
             output = model(input)
@@ -86,8 +87,32 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             #             target[:,0,:,:][1][target[:,0,:,:][1]==255].shape[0]+\
 
             # b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            rind_threshold =0.5
+            
+            
             b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
             rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+
+
+            #!+======================================================
+            background_out= output[0].clone().detach()
+
+            rind_out = output[1:]
+            #* can not  use it to constrain four subtask if not  using threshold to map 
+            # background_out[background_out >=rind_threshold ] = 1
+            # background_out[background_out <rind_threshold ] = 0
+            
+            tmp = torch.zeros(rind_out[0].shape).bool().to(rind_out[0].device)
+            for t in rind_out:
+                t = t.clone()#* will lead to gradient error if not clone,  
+                #* can not combine four map  if not  using threshold to map 
+                t[t >=rind_threshold ] = 1
+                t[t <rind_threshold ] = 0
+                tmp =  tmp | t.bool()
+                
+            extra_loss = atten_criterion([background_out] ,tmp.float())
+            # extra_loss = atten_criterion([tmp.float()] ,background_out)
+            #!+======================================================
             
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
                 print("nan")
@@ -95,15 +120,13 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 logger.info('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
 
-            # b_loss = b_weight * task_loss_array_new[0]
-            # rind_loss = rind_weight*task_loss_array_new[1]+rind_weight*task_loss_array_new[2] +\
-            #      rind_weight*task_loss_array_new[3]+ rind_weight*task_loss_array_new[4] 
-            loss =  bg_weight*b_loss+ rind_weight*rind_loss
             
-            
+            loss =  bg_weight*b_loss+ rind_weight*rind_loss   + 0.001 * extra_loss
+
+
             # if  i % print_freq == 0 and local_rank ==0:
             if  i % print_freq == 0 and local_rank == 0:#* for debug 
-                all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
+                all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss,"extra_loss":extra_loss}
                 wandb.log(all_need_upload)
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(train_loader),local_rank)
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
@@ -527,6 +550,9 @@ def main():
     # os.environ['MASTER_PORT'] = str(port)
     # logger.info(f"node number == {args.nprocs}")
     args.nprocs = torch.cuda.device_count()#* gpu  number 
+
+    torch.autograd.set_detect_anomaly(True) 
+
     train_seg_cerberus(args)
     
     
