@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-17 10:52:38
+ # @LastEditTime: 2022-07-17 21:38:02
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /cerberus/my_script/train.sh
@@ -27,12 +27,13 @@
 #* 炼丹代码
 lr=1e-5;
 batch_size=32;
-gpuids="0,1,2,3,4,5,6,7";
-# gpuids="0,1,2,3";
-gpu_number=8;
+# gpuids="0,1,2,3,4,5,6,7";
+gpuids="0,1,2,3";
+gpu_number=4;
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
+extra_loss_weight=0.1
 
 for idx in $(seq 0 1 0);do 
     echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
@@ -44,7 +45,7 @@ for idx in $(seq 0 1 0);do
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
         train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
         --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-        2>&1 | tee -a logs/train.log
+        --extra-loss-weight $extra_loss_weight 2>&1 | tee -a logs/train.log
     #*=======================================================git a=================================
 
     #*========================================================================================resume 
