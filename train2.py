@@ -43,7 +43,7 @@ criterion2 :
 return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
-          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1): # transfer_model=None, transfer_optim=None):
+          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,extra_loss_weight=0.1): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -121,7 +121,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 exit(0)
 
             
-            loss =  bg_weight*b_loss+ rind_weight*rind_loss   + 0.001 * extra_loss
+            loss =  bg_weight*b_loss+ rind_weight*rind_loss   + extra_loss_weight * extra_loss
 
 
             # if  i % print_freq == 0 and local_rank ==0:
@@ -356,12 +356,12 @@ def train_seg_cerberus(args):
         wandb.init(project="train_cerberus") 
         model_save_dir = args.save_dir
         logger.info(f"bg_weight = {args.bg_weight},rind_weight = {args.rind_weight} ")
-
+        
         info =""
         for k, v in args.__dict__.items():
             setattr(wandb.config,k,v)
             info+= ( str(k)+' : '+ str(v))
-
+        setattr(wandb.config,"extra_loss_weight",args.extra_loss_weight)
         if not osp.exists(model_save_dir):
             os.makedirs(model_save_dir)
 
@@ -457,7 +457,8 @@ def train_seg_cerberus(args):
             logger.info("=> no checkpoint found at '{}'".format(args.resume))
     
 
-
+     
+    
     for epoch in range(start_epoch, args.epochs):
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
@@ -477,7 +478,9 @@ def train_seg_cerberus(args):
         train_cerberus(train_loader, model, atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,
              local_rank = args.local_rank,print_freq=1,
-             bg_weight=args.bg_weight,rind_weight=args.rind_weight)
+             bg_weight=args.bg_weight,rind_weight=args.rind_weight,
+             extra_loss_weight = args.extra_loss_weight
+             )
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
         # wandb.log({"prec":prec1})

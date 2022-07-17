@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-07-12 00:10:06
+LastEditTime: 2022-07-17 20:53:33
 LastEditors: xushaocong
 Description: 
 FilePath: /cerberus/utils/utils.py
@@ -312,6 +312,13 @@ def parse_args():
                         help='Set cudnn benchmark on (1) or off (0) (default is on).')
 
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
+
+    parser.add_argument("--extra-loss-weight", type=float,default=0.1,help="for evaluation ")
+
+
+
+
+    
     parser.add_argument("--bg-weight", type=float,default=1,help=" background weight  ")
     parser.add_argument("--rind-weight", type=float,default=1,help=" rind weight  ")
 
