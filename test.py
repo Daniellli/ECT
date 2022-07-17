@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-07-16 00:28:51
+LastEditTime: 2022-07-17 16:52:19
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -121,12 +121,12 @@ def test_edge(model_abs_path,test_loader,runid=None ):
             out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
 
 
-            # edge_pred = out_edge.data.cpu().numpy()
-            # edge_pred = edge_pred.squeeze()
-            # sio.savemat(os.path.join(edge_output_dir, '{}.mat'.format(name)), {'result': edge_pred})
+            edge_pred = out_edge.data.cpu().numpy()
+            edge_pred = edge_pred.squeeze()
+            sio.savemat(os.path.join(edge_output_dir, '{}.mat'.format(name)), {'result': edge_pred})
             #!+============
-            vis_data = out_edge.squeeze(0).max(0)[1].cpu().numpy()
-            test_visul_label(vis_data,os.path.join(edge_output_dir, '{}.png'.format(name)))
+            # vis_data = out_edge.squeeze(0).max(0)[1].cpu().numpy()
+            # test_visul_label(vis_data,os.path.join(edge_output_dir, '{}.png'.format(name)))
             #!+============
             
 
