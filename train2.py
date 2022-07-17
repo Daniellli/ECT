@@ -99,8 +99,8 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
 
             rind_out = output[1:]
             #* can not  use it to constrain four subtask if not  using threshold to map 
-            background_out[background_out >=rind_threshold ] = 1
-            background_out[background_out <rind_threshold ] = 0
+            # background_out[background_out >=rind_threshold ] = 1
+            # background_out[background_out <rind_threshold ] = 0
             
             tmp = torch.zeros(rind_out[0].shape).bool().to(rind_out[0].device)
             for t in rind_out:
@@ -110,8 +110,8 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 t[t <rind_threshold ] = 0
                 tmp =  tmp | t.bool()
                 
-            # extra_loss = atten_criterion([background_out] ,tmp.float())
-            extra_loss = atten_criterion([tmp.float()] ,background_out)
+            extra_loss = atten_criterion([background_out] ,tmp.float())
+            # extra_loss = atten_criterion([tmp.float()] ,background_out)
             
             #!+======================================================
             
