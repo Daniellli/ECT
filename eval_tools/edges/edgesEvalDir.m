@@ -96,6 +96,9 @@ end
 % compute ODS R/P/F and OIS R/P/F
 [R,P,F] = computeRPF(cntR,sumR,cntP,sumP);
 [odsR,odsP,odsF,odsT] = findBestRPF(T,R,P);
+%============================
+disp("ODS threshold == "+odsT);
+%============================
 [oisR,oisP,oisF] = computeRPF(oisCntR,oisSumR,oisCntP,oisSumP);
 
 % compute AP/R50 (interpolating 100 values, has minor bug: should be /101)
