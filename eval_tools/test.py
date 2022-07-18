@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-06-21 21:00:07
+LastEditTime: 2022-07-18 11:21:23
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -39,24 +39,28 @@ return {*}
 def test_by_matlab(eval_data_dir):
     logger.info(eval_data_dir)
     eng = matlab.engine.start_matlab()
-    eval_res = eng.eval_edge(eval_data_dir) #* 评估完会返回一串 string 
-    keys=['depth','normal','reflectance','illumination']
+    # keys=['depth','normal','reflectance','illumination']
+    keys=['depth','normal','reflectance','illumination','edge']
+    eval_res = eng.eval_edge(eval_data_dir,keys) #* 评估完会返回一串 string 
     res = {}
     sum_ODS = sum_OIS = sum_AP =sum_R50 = 0
     
     for idx, eval_value in enumerate(eval_res):#* ODS, OIS, AP, R50        
         res[keys[idx]] = {"ODS": "%.3f"%(eval_value[0]),"OIS":  "%.3f"%(eval_value[1]),
             "AP": "%.3f"%(eval_value[2]),"R50":"%.3f"%(eval_value[3])}
-        sum_ODS+= eval_value[0]
-        sum_OIS+= eval_value[1]
-        sum_AP+= eval_value[2]
-        sum_R50+= eval_value[3] if  eval_value[3]  is not None else 0 
+        
+        if idx !=4:
+            sum_ODS+= eval_value[0]
+            sum_OIS+= eval_value[1]
+            sum_AP+= eval_value[2]
+            sum_R50+= eval_value[3] if  eval_value[3]  is not None else 0 
 
+    num_sub_task = 4
     res["Average"]= {
-        "ODS": sum_ODS/len(keys),
-        "OIS":sum_OIS/len(keys),
-        "AP":sum_AP/len(keys),
-        "R50":sum_R50/len(keys) 
+        "ODS": sum_ODS/num_sub_task,
+        "OIS":sum_OIS/num_sub_task,
+        "AP":sum_AP/num_sub_task,
+        "R50":sum_R50/num_sub_task 
     }
     #* calc average 
 

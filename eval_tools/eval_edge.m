@@ -1,6 +1,6 @@
 
 
-function  eval_results = eval_edge(eval_data_dir)
+function  eval_results = eval_edge(eval_data_dir,test_list)
 
 % Command to run.
 % (echo "data_dir = '../output/epoch-x-test'"; cat eval_edge.m)|matlab -nodisplay -nodesktop -nosplash
@@ -8,8 +8,8 @@ function  eval_results = eval_edge(eval_data_dir)
 clc
 % 下面这行会导致传入的变量eval_data_dir也清空, 所以需要注释掉
 %clear  
-
-test_list={'depth','normal','reflectance','illumination',"edge"};
+%test_list={'depth','normal','reflectance','illumination'};
+disp(test_list);
 % data_root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/model_res'; 
 disp(eval_data_dir)
 data_root=eval_data_dir;
@@ -18,7 +18,7 @@ addpath(genpath("/home/DISCOVER_summer2022/xusc/matlab/pdollar_toolbox"));savepa
 %============
 eval_results=rand(length(test_list),4); % 每行4个value
 
-for test_index=1:4
+for test_index=1:size(test_list,2)
     test_type=test_list{test_index};
     data_dir = [data_root,'/',test_type];
     fprintf('Data dir: %s\n', data_dir);
