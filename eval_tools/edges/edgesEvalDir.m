@@ -141,8 +141,8 @@ function writeRes( alg, fNm, vals )
 k=size(vals,2); fNm=fullfile(alg,fNm); fid=fopen(fNm,'w');
 if(fid==-1), error('Could not open file %s for writing.',fNm); end
 frmt=repmat('%10g ',[1 k]); frmt=[frmt(1:end-1) '\n'];
-fprintf(fid,frmt,vals'); fclose(fid);
+fprintf(fid,frmt,vals); fclose(fid);
 %==============
-disp(vals);
+%disp(vals);
 %==============
 end
