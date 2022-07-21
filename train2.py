@@ -37,13 +37,18 @@ from utils.global_var import *
 
 
 from utils.check_model_consistent import is_model_consistent
+
+from model.loss.inverse_loss import InverseTransform2D
+
+
 '''
 description: 
 criterion2 : 
 return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
-          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,extra_loss_weight=0.1): # transfer_model=None, transfer_optim=None):
+          eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,
+          extra_loss_weight=0.1,inverse_form_criterion  = None): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -87,7 +92,7 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             #             target[:,0,:,:][1][target[:,0,:,:][1]==255].shape[0]+\
 
             # b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
-            rind_threshold =0.5
+            
             
             
             b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
@@ -95,17 +100,21 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
 
 
             #!+======================================================
+            # rind_threshold =0.5
+            #?  background_out 是否需要clone? 
             background_out= output[0].clone().detach()
-
             rind_out = output[1:]
+
+            rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+            extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
+            
             #* can not  use it to constrain four subtask if not  using threshold to map 
             #todo: use  different threshold to map edge detection output 
-            background_out[background_out >=rind_threshold ] = 1
-            background_out[background_out <rind_threshold ] = 0
+            # background_out[background_out >=rind_threshold ] = 1
+            # background_out[background_out <rind_threshold ] = 0
             
-            tmp = torch.stack(rind_out).max(0)
-            rind_out_stack_max_value = tmp[0]
-            rind_out_stack_max_indices = tmp[1]
+            # rind_out_stack_max_value = tmp[0]
+            # rind_out_stack_max_indices = tmp[1]
             
             # tmp = torch.zeros(rind_out[0].shape).bool().to(rind_out[0].device)
             # for t in rind_out:
@@ -114,12 +123,9 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             #     t[t >=rind_threshold ] = 1
             #     t[t <rind_threshold ] = 0
             #     tmp =  tmp | t.bool()
-            
-            
             # extra_loss = atten_criterion([background_out] ,tmp.float())
             # extra_loss = atten_criterion([tmp.float()] ,background_out)
-            extra_loss = atten_criterion([rind_out_stack_max_value] ,background_out)
-            
+            # extra_loss = atten_criterion([rind_out_stack_max_value] ,background_out)
             #!+======================================================
             
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
@@ -399,6 +405,11 @@ def train_seg_cerberus(args):
     atten_criterion = AttentionLoss2().cuda(args.local_rank)
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
 
+    inverse_form_criterion = InverseTransform2D()
+
+
+
+
 
     #* 不能整除怎么办
     if (args.batch_size % args.nprocs) != 0 and args.local_rank==0 :
@@ -487,7 +498,8 @@ def train_seg_cerberus(args):
              focal_criterion,optimizer, epoch,_moo = args.moo,
              local_rank = args.local_rank,print_freq=1,
              bg_weight=args.bg_weight,rind_weight=args.rind_weight,
-             extra_loss_weight = args.extra_loss_weight
+             extra_loss_weight = args.extra_loss_weight,
+             inverse_form_criterion=inverse_form_criterion
              )
         #if epoch%10==1:
         # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)

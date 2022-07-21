@@ -1,6 +1,8 @@
 
 
 *.tar
+*.pth
+*.tar.pth
 *.rar
 *.zip
 *.jpg

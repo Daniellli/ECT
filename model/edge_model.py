@@ -337,7 +337,7 @@ class EdgeCerberus(BaseModel):
             a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
             b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
             decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
-            
+
             # c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
             # d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
             # decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
