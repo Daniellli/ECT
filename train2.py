@@ -103,8 +103,8 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             # rind_threshold =0.5
             #?  background_out 是否需要clone? 
             background_out= output[0].clone().detach()
+            # background_out= output[0]
             rind_out = output[1:]
-
             rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
             extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
             

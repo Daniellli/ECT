@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-18 10:26:21
+ # @LastEditTime: 2022-07-21 13:42:19
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /cerberus/my_script/train.sh
+ # @FilePath: /Cerberus-main/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -26,14 +26,14 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=32;
+batch_size=24;
 # gpuids="0,1,2,3,4,5,6,7";
-gpuids="0,1,2,3";
-gpu_number=4;
+gpuids="1,2,4,5,6,7";
+gpu_number=6;
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
-extra_loss_weight=0.001
+extra_loss_weight=100
 
 for idx in $(seq 0 1 0);do 
     echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
