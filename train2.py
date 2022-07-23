@@ -41,6 +41,8 @@ from utils.check_model_consistent import is_model_consistent
 from model.loss.inverse_loss import InverseTransform2D
 
 
+from test import edge_validation
+
 '''
 description: 
 criterion2 : 
@@ -102,8 +104,8 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             #!+======================================================
             # rind_threshold =0.5
             #?  background_out 是否需要clone? 
+            #*  after detach , performance is better.
             background_out= output[0].clone().detach()
-            # background_out= output[0]
             rind_out = output[1:]
             rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
             extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
@@ -366,7 +368,7 @@ def train_seg_cerberus(args):
     
     model_save_dir = None
 
-    if args.local_rank == 0 : 
+    if args.local_rank == 0: 
         wandb.init(project="train_cerberus") 
         model_save_dir = args.save_dir
         logger.info(f"bg_weight = {args.bg_weight},rind_weight = {args.rind_weight} ")
@@ -409,8 +411,6 @@ def train_seg_cerberus(args):
 
 
 
-
-
     #* 不能整除怎么办
     if (args.batch_size % args.nprocs) != 0 and args.local_rank==0 :
         args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
@@ -429,19 +429,21 @@ def train_seg_cerberus(args):
 
     logger.info("Dataloader  init  done ")
 
-    #* load test data =====================
-    # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-    # test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
-    #                         shuffle=False,num_workers=args.workers,pin_memory=False)
-    #*=====================================
 
+    #* load test data =====================
+    test_loader= None
+    if args.validation:
+        test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+        test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
+                                shuffle=False,num_workers=args.workers,pin_memory=False)
+    #*=====================================
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD(model.parameters(),
                                 args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
-    best_prec1 = 0
+    
     start_epoch = 0
     # optionally resume from a checkpoint
     if args.resume:
@@ -475,13 +477,10 @@ def train_seg_cerberus(args):
         else:
             logger.info("=> no checkpoint found at '{}'".format(args.resume))
     
-
-     
-    
+    best_ods = best_ois= best_ap = 0
     for epoch in range(start_epoch, args.epochs):
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
-
         train_sampler.set_epoch(epoch)        
 
         #!=============== 检查model的一致性
@@ -501,14 +500,33 @@ def train_seg_cerberus(args):
              extra_loss_weight = args.extra_loss_weight,
              inverse_form_criterion=inverse_form_criterion
              )
-        #if epoch%10==1:
-        # prec1 = validate_cerberus(val_loader, model, criterion, eval_score=mIoU, epoch=epoch)
-        # wandb.log({"prec":prec1})
-        # is_best = prec1 > best_prec1
-        # best_prec1 = max(prec1, best_prec1)
-        #* save model every 5 epoch
-        if (epoch % 20 ==0  or epoch+1 == args.epochs  ) and  args.local_rank == 0 : 
-            is_best =True #* 假设每次都是最好的 
+
+
+        #* save model every 20 epoch
+        #* 要么 要验证  那就在250epoch之后每5个epoch 验证一次 ,  
+        if (args.validation  and (epoch%5==0 or  epoch+1 == args.epochs )and epoch >=260  and  args.local_rank == 0 ): 
+            val_dir = osp.join(model_save_dir,'..','ckpt_ep%04d'%epoch)
+            os.makedirs(val_dir)
+            val_res = edge_validation(model,test_loader,val_dir)
+            wandb.log(val_res["Average"])
+            logger.info(val_res["Average"])
+            save_flag = False 
+            if best_ods <val_res["Average"]["ODS"]:
+                best_ods=  val_res["Average"]["ODS"]
+                save_flag  = True
+                logger.info(f" ODS achieve best : {val_res['Average']['ODS']}")
+                
+            if best_ois <val_res["Average"]["OIS"]:
+                best_ois= val_res["Average"]["OIS"]
+                save_flag  = True
+                logger.info(f" OIS achieve best : {val_res['Average']['OIS']}")
+                
+                
+            if best_ap < val_res["Average"]["AP"]:
+                best_ap =  val_res["Average"]["AP"]
+                save_flag  = True
+                logger.info(f" AP achieve best : {val_res['Average']['AP']}")
+
             checkpoint_path = osp.join(model_save_dir,\
                 'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))
             
@@ -516,23 +534,23 @@ def train_seg_cerberus(args):
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
-                'best_prec1': best_prec1,
-            }, is_best, filename=checkpoint_path)
-
-
-        #* test in last epoch 
-        #* can not be test in 10.0.0.254 
-        # if epoch +1 == args.epochs:
-        #     wandb.log(test_edge(osp.abspath(checkpoint_path),test_loader))
-    logger.info("train finish!!!! ")
-    # logger.info(f"{os.getppid()} exit !!! ")
-    # surplus_process = minus_process()
-    # if surplus_process == 0 :
-    #     logger.info(f"ready to kill ")
-    #     # os.kill(os.getpid(),signal.SIGKILL) #*  did not work 
-    #     wandb.finish(0)
-    #     os.kill(os.getppid(),signal.SIGKILL)
+                'best_prec1': val_res["Average"]["AP"],
+            }, save_flag, filename=checkpoint_path)
+        #* 要么就每30epoch 保存一次 
+        # elif((epoch%30==0 or  epoch+1 == args.epochs )and args.local_rank == 0):
+        elif(args.local_rank == 0):#* 每个epoch都保存
+            checkpoint_path = osp.join(model_save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'best_prec1': None,
+            }, True, filename=checkpoint_path)
+        else:
+            pass
         
+    logger.info("train finish!!!! ")
+
     
 
 def adjust_learning_rate(args, optimizer, epoch):
@@ -554,17 +572,13 @@ def adjust_learning_rate(args, optimizer, epoch):
 
 
 def main():
-    
     args = parse_args()
-    
-
     if args.save_dir is None :
         args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
                 "lr@%s_ep@%s_bgw@%s_rindw@%s_%s"%(args.lr,args.epochs,args.bg_weight,args.rind_weight,int(time.time())),\
                 "checkpoints")
 
     logger.info(args.save_dir)
-
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     
     # port = int(1e4+np.random.randint(1,10000,1)[0])

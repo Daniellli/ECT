@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-07-18 11:21:23
+LastEditTime: 2022-07-22 19:16:30
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -39,8 +39,8 @@ return {*}
 def test_by_matlab(eval_data_dir):
     logger.info(eval_data_dir)
     eng = matlab.engine.start_matlab()
-    # keys=['depth','normal','reflectance','illumination']
-    keys=['depth','normal','reflectance','illumination','edge']
+    keys=['depth','normal','reflectance','illumination']
+    # keys=['depth','normal','reflectance','illumination','edge']
     eval_res = eng.eval_edge(eval_data_dir,keys) #* 评估完会返回一串 string 
     res = {}
     sum_ODS = sum_OIS = sum_AP =sum_R50 = 0
@@ -57,29 +57,21 @@ def test_by_matlab(eval_data_dir):
 
     num_sub_task = 4
     res["Average"]= {
-        "ODS": sum_ODS/num_sub_task,
-        "OIS":sum_OIS/num_sub_task,
-        "AP":sum_AP/num_sub_task,
-        "R50":sum_R50/num_sub_task 
+        "ODS":round(sum_ODS/num_sub_task,3),
+        "OIS":round(sum_OIS/num_sub_task,3),
+        "AP":round(sum_AP/num_sub_task,3),
+        "R50":round(sum_R50/num_sub_task,3) 
     }
     #* calc average 
-
-    
-    
     with open (osp.join(eval_data_dir,"eval_res.json"),'w')as f :
         json.dump(res,f)
+
     return res
 
 
 if __name__ =="__main__":
     test_by_matlab(args.eval_data_dir)
+    
     # test_by_matlab("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/model_res")
     # test_by_matlab("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/model_res")
     
-
-    
-
-
-
-
-

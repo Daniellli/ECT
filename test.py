@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-07-18 10:43:18
+LastEditTime: 2022-07-22 17:13:37
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -161,6 +161,70 @@ def test_edge(model_abs_path,test_loader,runid=None ):
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     return eval_res
 
+
+def edge_validation(model,test_loader,output_dir):    
+
+    #* 加载模型
+    edge_output_dir = os.path.join(output_dir, 'edge/met')
+    make_dir(edge_output_dir)
+
+    depth_output_dir = os.path.join(output_dir, 'depth/met')
+    make_dir(depth_output_dir)
+    
+    normal_output_dir = os.path.join(output_dir, 'normal/met')
+    make_dir(normal_output_dir)
+
+    reflectance_output_dir = os.path.join(output_dir, 'reflectance/met')
+    make_dir(reflectance_output_dir)
+
+    illumination_output_dir = os.path.join(output_dir, 'illumination/met')
+    make_dir(illumination_output_dir)
+    
+    model.eval()
+    for i, image in enumerate(tqdm(test_loader, desc='\r')):#*  B,C,H,W
+        name = test_loader.dataset.images_name[i]
+        image = Variable(image, requires_grad=False)
+        image = image.cuda()
+        B,C,H,W = image.shape 
+        trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
+        trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
+        image = trans1(image)#* debug
+
+        with torch.no_grad():
+            res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
+
+        # out_edge = trans2(res[0])
+        out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
+
+        depth_pred = out_depth.data.cpu().numpy()
+        depth_pred = depth_pred.squeeze()
+        sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
+
+
+        normal_pred = out_normal.data.cpu().numpy()
+        normal_pred = normal_pred.squeeze()
+        sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
+
+        reflectance_pred = out_reflectance.data.cpu().numpy()
+        reflectance_pred = reflectance_pred.squeeze()
+        sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
+
+        illumination_pred = out_illumination.data.cpu().numpy()
+        illumination_pred = illumination_pred.squeeze()
+        sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
+                    {'result': illumination_pred})
+    
+    #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
+    tic = time.time()
+    os.system("./eval_tools/test.sh %s"%output_dir)
+    spend_time =  time.time() - tic
+    logger.info("validation spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
+    #* 读取评估的结果
+    with open (osp.join(output_dir,"eval_res.json"),'r')as f :
+        eval_res = json.load(f)
+
+    return eval_res
+    
 
 def test_visul_label(label ,output_name):
     

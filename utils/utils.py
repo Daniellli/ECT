@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-07-17 20:53:33
+LastEditTime: 2022-07-22 16:46:35
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/utils/utils.py
+FilePath: /Cerberus-main/utils/utils.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
@@ -316,9 +316,9 @@ def parse_args():
     parser.add_argument("--extra-loss-weight", type=float,default=0.1,help="for evaluation ")
 
 
+    parser.add_argument('--validation', action='store_true',help='validate model during training ')
 
 
-    
     parser.add_argument("--bg-weight", type=float,default=1,help=" background weight  ")
     parser.add_argument("--rind-weight", type=float,default=1,help=" rind weight  ")
 
