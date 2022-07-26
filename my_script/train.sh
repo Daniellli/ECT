@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-22 20:09:17
+ # @LastEditTime: 2022-07-25 16:48:58
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train.sh
@@ -26,13 +26,20 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=24;
-gpuids="2,3,4,5,6,7";
-gpu_number=6;
+
+# batch_size=20;
+# gpuids="2,3,4,5,7";
+# gpu_number=5;
+
+
+batch_size=8;
+gpuids="6,7";
+gpu_number=2;
+
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
-extra_loss_weight=1000
+extra_loss_weight=1
 
 for idx in $(seq 0 1 0);do 
     echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
@@ -41,10 +48,14 @@ for idx in $(seq 0 1 0);do
     #     2>&1 | tee -a logs/train.log
 
     #*========================================================================================
+    # python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
+    #     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+    #     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
+    #     --extra-loss-weight $extra_loss_weight --validation  2>&1 | tee -a logs/train.log
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
         train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
         --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-        --extra-loss-weight $extra_loss_weight --validation  2>&1 | tee -a logs/train.log
+        --extra-loss-weight $extra_loss_weight  2>&1 | tee -a logs/train.log
     #*=======================================================git a=================================
 
     #*========================================================================================resume 

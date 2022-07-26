@@ -16,6 +16,8 @@ import copy
 from model.edge_model import EdgeCerberus
 import os.path as osp
 
+
+import random
 import wandb
 from loguru import logger
 from utils.loss import SegmentationLosses
@@ -107,8 +109,11 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             #*  after detach , performance is better.
             background_out= output[0].clone().detach()
             rind_out = output[1:]
-            rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-            extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
+            # rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+            # extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
+            rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
+            extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
+            
             
             #* can not  use it to constrain four subtask if not  using threshold to map 
             #todo: use  different threshold to map edge detection output 
@@ -368,7 +373,7 @@ def train_seg_cerberus(args):
     
     model_save_dir = None
 
-    if args.local_rank == 0: 
+    if args.local_rank == 0 : 
         wandb.init(project="train_cerberus") 
         model_save_dir = args.save_dir
         logger.info(f"bg_weight = {args.bg_weight},rind_weight = {args.rind_weight} ")
@@ -592,8 +597,21 @@ def main():
 
     train_seg_cerberus(args)
     
+
+
+def setup_seed(seed):
+     torch.manual_seed(seed)
+     #*===================
+     torch.cuda.manual_seed_all(seed)
+     #*===================
+     np.random.seed(seed)
+     random.seed(seed)
+     torch.backends.cudnn.deterministic = True
+
     
 if __name__ == '__main__':
+    # 设置随机数种子
+    setup_seed(20)
     main()
 
     

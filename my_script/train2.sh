@@ -2,7 +2,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-07-21 22:57:50
- # @LastEditTime: 2022-07-22 20:10:27
+ # @LastEditTime: 2022-07-23 11:50:44
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train2.sh
@@ -20,7 +20,7 @@ bg_weights=1;
 rind_weights=1;
 extra_loss_weight=(200 300 500);
 
-for idx in $(seq 1 1 2);do 
+for idx in $(seq 0 1 2);do 
     echo ${extra_loss_weight[$idx]};
     #*========================================================================================
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \

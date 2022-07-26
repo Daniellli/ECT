@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-07-22 21:18:58
+ # @LastEditTime: 2022-07-25 16:48:31
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -43,19 +43,16 @@
 
 
 
-#
-
-for i in $(seq 240 20 280); do 
+for i in $(seq 260 5 299); do 
     a=$(printf "%04d" $i);
     
-    model_path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658460203/checkpoints/ckpt_rank000_ep$a.pth.tar
-    # model_path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v9/checkpoints/ckpt_rank000_ep$a.pth.tar
+    model_path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658548858/checkpoints/ckpt_rank000_ep$a.pth.tar
 
     echo $model_path,$i;
 
     python -u test.py test  -s 320 \
     --resume $model_path \
-    --batch-size 1 --workers 40 --gpu-ids "1" --run-id $i \
+    --batch-size 1 --workers 40 --gpu-ids "6" --run-id $i \
     2>&1 | tee -a logs/test.log
 
 done;
@@ -63,8 +60,8 @@ done;
 
 #* test one model 
 # python -u test.py test  -s 320 \
-# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658460203/checkpoints/ckpt_rank000_ep0299.pth.tar \
-# --batch-size 1 --workers 40 --gpu-ids "1" --run-id 2 \
+# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658548858/checkpoints/ckpt_rank000_ep0299.pth.tar \
+# --batch-size 1 --workers 40 --gpu-ids "2" --run-id 2 \
 # 2>&1 | tee -a logs/test.log
 
 
