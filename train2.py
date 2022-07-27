@@ -52,7 +52,7 @@ return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
           eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,
-          extra_loss_weight=0.1,inverse_form_criterion  = None): # transfer_model=None, transfer_optim=None):
+          extra_loss_weight=0.1,inverse_form_criterion  = None,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -84,70 +84,55 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
         
         if not moo:
         
+            
             input = torch.autograd.Variable(in_tar_name_pair[0].cuda(local_rank) )
             target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
             output = model(input)
-
-            # background_data  = target[:,0,:,:][1][target[:,0,:,:][1]==0].shape[0] 
-            # edge_data = target[:,0,:,:][1][target[:,0,:,:][1]==1].shape[0] + \
-            #             target[:,0,:,:][1][target[:,0,:,:][1]==2].shape[0] + \
-            #             target[:,0,:,:][1][target[:,0,:,:][1]==3].shape[0]+\
-            #             target[:,0,:,:][1][target[:,0,:,:][1]==4].shape[0]+\
-            #             target[:,0,:,:][1][target[:,0,:,:][1]==255].shape[0]+\
-
-            # b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
             
+            '''
+            description:  edge detection branch output 共两类 , 
+            1.  一类 01map也就是 0,1  , header 最后接的是sigmoid   , 输出就是每个像素点是边缘的概率
+            2. 一类就是unet ,header 最后是ReLU, 并且需要改成5类,  求最后结果的时候对对第一维求最大值, 就得到model 对5个类别的分类结果
+            return {*}
+            '''
+            b_loss=None
+            if edge_branch_out == "edge":
+                b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+            elif edge_branch_out == "unet" :
+                b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            else :
+                raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
             
-            
-            b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
             rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
 
-
-            #!+======================================================
-            # rind_threshold =0.5
-            #?  background_out 是否需要clone? 
-            #*  after detach , performance is better.
-            background_out= output[0].clone().detach()
-            rind_out = output[1:]
-            # rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-            # extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
-            rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
-            extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
-            
-            
-            #* can not  use it to constrain four subtask if not  using threshold to map 
-            #todo: use  different threshold to map edge detection output 
-            # background_out[background_out >=rind_threshold ] = 1
-            # background_out[background_out <rind_threshold ] = 0
-            
-            # rind_out_stack_max_value = tmp[0]
-            # rind_out_stack_max_indices = tmp[1]
-            
-            # tmp = torch.zeros(rind_out[0].shape).bool().to(rind_out[0].device)
-            # for t in rind_out:
-            #     t = t.clone()#* will lead to gradient error if not clone,  
-            #     #* can not combine four map  if not  using threshold to map 
-            #     t[t >=rind_threshold ] = 1
-            #     t[t <rind_threshold ] = 0
-            #     tmp =  tmp | t.bool()
-            # extra_loss = atten_criterion([background_out] ,tmp.float())
-            # extra_loss = atten_criterion([tmp.float()] ,background_out)
-            # extra_loss = atten_criterion([rind_out_stack_max_value] ,background_out)
-            #!+======================================================
-            
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
                 print("nan")
                 logger.info('b_loss is: {0}'.format(b_loss))
                 logger.info('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
 
-            
-            loss =  bg_weight*b_loss+ rind_weight*rind_loss   + extra_loss_weight * extra_loss
+            loss = None
+            if inverse_form_criterion is not None: 
+                #?  background_out 是否需要clone? 
+                #*  after detach , performance is better.
+                background_out= output[0].clone().detach()
+                rind_out = output[1:]
+                rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+                extra_loss = inverse_form_criterion(rind_out_stack_max_value,background_out)
+                # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
+                # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
+                
+                loss =  bg_weight*b_loss+ rind_weight*rind_loss  
+            else :
+                loss =  bg_weight*b_loss+ rind_weight*rind_loss   + extra_loss_weight * extra_loss
 
 
-            # if  i % print_freq == 0 and local_rank ==0:
             if  i % print_freq == 0 and local_rank == 0:#* for debug 
-                all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss,"extra_loss":extra_loss}
+                if inverse_form_criterion is not None: 
+                    all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss,"extra_loss":extra_loss}
+                else :
+                    all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
+                    
                 wandb.log(all_need_upload)
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(train_loader),local_rank)
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
@@ -401,8 +386,6 @@ def train_seg_cerberus(args):
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(args.local_rank))
     model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
                         find_unused_parameters=True,broadcast_buffers = True) 
-    # model = torch.nn.parallel.DistributedDataParallel(model) #* 还是会出错, default setting 不行
-    # model = torch.nn.DataParallel(model,device_ids=[args.local_rank])
     
     logger.info("construct model done ")
     # logger.info(single_model)
@@ -411,7 +394,6 @@ def train_seg_cerberus(args):
     #*=====================================
     atten_criterion = AttentionLoss2().cuda(args.local_rank)
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
-
     inverse_form_criterion = InverseTransform2D()
 
 
@@ -441,6 +423,8 @@ def train_seg_cerberus(args):
         test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
         test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
                                 shuffle=False,num_workers=args.workers,pin_memory=False)
+        best_ods = best_ois= best_ap = 0
+
     #*=====================================
     # define loss function (criterion) and pptimizer
     optimizer = torch.optim.SGD(model.parameters(),
@@ -482,7 +466,9 @@ def train_seg_cerberus(args):
         else:
             logger.info("=> no checkpoint found at '{}'".format(args.resume))
     
-    best_ods = best_ois= best_ap = 0
+    
+
+
     for epoch in range(start_epoch, args.epochs):
         lr = adjust_learning_rate(args, optimizer, epoch)
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
@@ -542,8 +528,8 @@ def train_seg_cerberus(args):
                 'best_prec1': val_res["Average"]["AP"],
             }, save_flag, filename=checkpoint_path)
         #* 要么就每30epoch 保存一次 
-        # elif((epoch%30==0 or  epoch+1 == args.epochs )and args.local_rank == 0):
-        elif(args.local_rank == 0):#* 每个epoch都保存
+        elif((epoch%5==0 or  epoch+1 == args.epochs )and args.local_rank == 0):
+        # elif(args.local_rank == 0):#* 每个epoch都保存
             checkpoint_path = osp.join(model_save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))
             save_checkpoint({
                 'epoch': epoch + 1,
