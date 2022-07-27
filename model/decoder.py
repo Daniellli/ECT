@@ -72,19 +72,10 @@ class TransformerDecoderLayer(nn.Module):
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         #!======================================================================================================
         self.self_attn_learnable_embedding1  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding2  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding3  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        # self.self_attn_learnable_embedding4  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-
         #* for learnable embedding 
         self.norm4 = nn.LayerNorm(d_model)
-        # self.norm5 = nn.LayerNorm(d_model)
-        # self.norm6 = nn.LayerNorm(d_model)
-        # self.norm7 = nn.LayerNorm(d_model)
         self.dropout4 = nn.Dropout(dropout)
-        # self.dropout5 = nn.Dropout(dropout)
-        # self.dropout6 = nn.Dropout(dropout)
-        # self.dropout7 = nn.Dropout(dropout)
+        
 
         #!======================================================================================================
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)

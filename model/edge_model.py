@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-16 14:30:14
+LastEditTime: 2022-07-27 22:42:50
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -188,8 +188,12 @@ class EdgeCerberus(BaseModel):
                                           return_intermediate=self.return_intermediate_dec)
 
        #!===============================================================
-       #* [40,40] ,
-       
+
+
+        #!===============================================================
+        self.final_norm = nn.BatchNorm2d(d_model)
+        self.final_dropout = nn.Dropout(dropout)
+        #!===============================================================
 
 
         #* fusion for different decoder layer 
@@ -347,6 +351,11 @@ class EdgeCerberus(BaseModel):
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
 
+        #* decoder_out 正则化  , 
+        # !+===========================        
+        decoder_out  = edge_path_1 + self.final_dropout(decoder_out)
+        decoder_out = self.final_norm(decoder_out)
+        # !+===========================
         #* rind 
         for  x in self.full_output_task_list[1:]:
             it = x[1][0]#* 每个任务只有一类 
