@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-07-25 16:48:31
+ # @LastEditTime: 2022-07-27 21:57:14
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -43,26 +43,12 @@
 
 
 
-for i in $(seq 260 5 299); do 
-    a=$(printf "%04d" $i);
-    
-    model_path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658548858/checkpoints/ckpt_rank000_ep$a.pth.tar
-
-    echo $model_path,$i;
-
-    python -u test.py test  -s 320 \
-    --resume $model_path \
-    --batch-size 1 --workers 40 --gpu-ids "6" --run-id $i \
-    2>&1 | tee -a logs/test.log
-
-done;
-
 
 #* test one model 
-# python -u test.py test  -s 320 \
-# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658548858/checkpoints/ckpt_rank000_ep0299.pth.tar \
-# --batch-size 1 --workers 40 --gpu-ids "2" --run-id 2 \
-# 2>&1 | tee -a logs/test.log
+python -u test.py test  -s 320 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus2/checkpoints/edge_full_version.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "6" --run-id 1 --save-file "full_version"\
+2>&1 | tee -a logs/test.log
 
 
 

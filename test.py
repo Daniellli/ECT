@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-07-22 17:13:37
+LastEditTime: 2022-07-27 21:55:49
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -54,14 +54,15 @@ description:
 param {*} args
 return {*}
 '''
-def test_edge(model_abs_path,test_loader,runid=None ):
+def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     tic = time.time()
     
     a = osp.split(model_abs_path)
     if runid is  None:
-        output_dir  = osp.join(a[0],"..","model_res")
+        output_dir  = osp.join(a[0],"..",save_name)
     else:
-        output_dir  = osp.join(a[0],"..","model_res_%d"%runid)
+        output_dir  = osp.join(a[0],"..","%s_%d"%(save_name,runid))
+
 
 
     
@@ -262,7 +263,7 @@ def main():
     train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
     test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
                         shuffle=False,num_workers=args.workers,pin_memory=False)
-    test_edge(args.resume,test_loader,args.run_id)#! resume 给的model path需要是绝对路径
+    test_edge(args.resume,test_loader,args.save_file,args.run_id)#! resume 给的model path需要是绝对路径
     
 if __name__ == '__main__':
     main()

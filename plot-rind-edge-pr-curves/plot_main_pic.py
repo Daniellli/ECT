@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-07-27 10:55:09
+LastEditTime: 2022-07-27 19:04:57
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
@@ -20,6 +20,8 @@ from os.path import split , join
 import cv2
 
 import numpy as np
+
+import skimage
 
 from torchvision.transforms import transforms
 
@@ -86,6 +88,24 @@ def draw_all_testset():
 
 
 
+''' 
+description:  对goal 的非零元素进行扩张, 扩张倍数为10 
+param {*} goal 
+param {*} times
+return {*}
+'''
+def dilation(goal, times = 2 ):
+    selem = skimage.morphology.disk(times)
+
+
+    goal = skimage.morphology.binary_dilation(goal, selem) != True
+    goal = 1 - goal * 1.
+    goal*=255
+    
+    return goal
+
+
+
         
 '''
 description:  绘制 特定的一张测试集图像
@@ -108,11 +128,20 @@ def draw_specific_image(image_name):
 
 
 
-    RE_color=(0,192,255)
-    NE_color=(255,255,0)
-    IE_color=(0,253,14)
-    DE_color=(1,0,255) 
-    E_color=[244, 35, 232]
+    
+    # RE_color=(255,192,255)
+    # NE_color=(255,255,0)
+    # IE_color=(0,253,14)
+    # DE_color=(244, 35, 232) 
+
+    RE_color=(10,139,226)
+    NE_color=(235,191,114)
+    IE_color=(142,217,199)
+    DE_color=(174, 125, 176) 
+
+
+
+    E_color=[219, 118, 2]#* BGR
     
 
     idx=-1
@@ -120,10 +149,18 @@ def draw_specific_image(image_name):
     draw_image  = osp.join(image,image_name)
     name =   split(draw_image)[-1].split('.')[-2]
     origin_img= cv2.imread(draw_image)
+
     t_normal  = cv2.imread(osp.join(normal,name+".png"),cv2.IMREAD_GRAYSCALE) 
+    t_normal = dilation(t_normal)
     t_reflectance  = cv2.imread(osp.join(reflectance,name+".png"),cv2.IMREAD_GRAYSCALE)
+    t_reflectance = dilation(t_reflectance)
     t_depth  = cv2.imread(osp.join(depth,name+".png"),cv2.IMREAD_GRAYSCALE)
+    t_depth = dilation(t_depth)
     t_illumination  = cv2.imread(osp.join(illumination,name+".png"),cv2.IMREAD_GRAYSCALE)
+    t_illumination = dilation(t_illumination)
+
+
+
 
     t_edge = np.zeros(t_illumination.shape)
     t_edge[(t_illumination==255) | (t_normal==255)| (t_depth==255)| (t_reflectance==255)] = 255 

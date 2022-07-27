@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-07-22 16:46:35
+LastEditTime: 2022-07-27 21:56:06
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -329,6 +329,11 @@ def parse_args():
     parser.add_argument("--save-dir",type=str,default=None,
                 help="save path")
     
+
+    parser.add_argument("--save-file",type=str,default=None,
+                help="save path name")
+
+                
     args = parser.parse_args()
     if args.bn_sync:
         drn.BatchNorm = batchnormsync.BatchNormSync

@@ -1,11 +1,11 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-07-14 09:19:36
+LastEditTime: 2022-07-27 18:27:52
 LastEditors: xushaocong
 Description: 
 
-FilePath: /cerberus/model/decoder.py
+FilePath: /Cerberus-main/model/decoder.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -161,7 +161,8 @@ class TransformerDecoderLayer(nn.Module):
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
-                                   
+
+        
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))

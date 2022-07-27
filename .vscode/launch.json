@@ -8,10 +8,10 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            // "program": "${file}",
+            "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             
             
@@ -34,11 +34,11 @@
             // ]
 
             //* ddp debug 
-            "args": ["--nproc_per_node=1", "--master_port","29511","train2.py",
-            "train","-s","320","--batch-size","2","--epochs","300","--lr","1e-5",
-            "--momentum","0.9","--lr-mode","poly","--workers", "12","--gpu-ids","4",
+            // "args": ["--nproc_per_node=1", "--master_port","29511","train2.py",
+            // "train","-s","320","--batch-size","2","--epochs","300","--lr","1e-5",
+            // "--momentum","0.9","--lr-mode","poly","--workers", "12","--gpu-ids","4",
             // "--resume","/data3/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1657761722/checkpoints/ckpt_rank000_ep0100.pth.tar"
-            ],
+            // ],
 
 
         }
