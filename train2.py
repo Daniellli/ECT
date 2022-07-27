@@ -122,9 +122,9 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                 # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
                 # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
                 
-                loss =  bg_weight*b_loss+ rind_weight*rind_loss  
-            else :
                 loss =  bg_weight*b_loss+ rind_weight*rind_loss   + extra_loss_weight * extra_loss
+            else :
+                loss =  bg_weight*b_loss+ rind_weight*rind_loss  
 
 
             if  i % print_freq == 0 and local_rank == 0:#* for debug 

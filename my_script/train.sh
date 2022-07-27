@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-25 16:48:58
+ # @LastEditTime: 2022-07-27 11:41:24
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train.sh
@@ -39,7 +39,7 @@ gpu_number=2;
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
-extra_loss_weight=1
+extra_loss_weight=100
 
 for idx in $(seq 0 1 0);do 
     echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
