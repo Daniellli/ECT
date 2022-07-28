@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-27 22:42:50
+LastEditTime: 2022-07-28 23:07:39
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -40,7 +40,6 @@ def _make_fusion_block(features, use_bn):
 
 
 
-
 def _get_activation_fn(activation):
     """Return an activation function given a string"""
     if activation == "relu":
@@ -50,52 +49,6 @@ def _get_activation_fn(activation):
     if activation == "glu":
         return F.glu
     raise RuntimeError(F"activation should be relu/gelu, not {activation}.")
-
-
-
-'''
-description:  before decoder, embed the interaction between the different learnable embedding 
-return {*}
-'''
-class QueryAttention(nn.Module):
-    
-
-    def __init__(self,d_model  = 256 ,nhead = 8 ,dim_feedforward  =2048,dropout = 0.1 ,
-                    activation="relu") -> None:
-
-        super(QueryAttention, self).__init__()
-
-
-        self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout) #
-        #* without position embedding 
-        # Implementation of Feedforward model
-        self.linear1 = nn.Linear(d_model, dim_feedforward)#
-        self.dropout = nn.Dropout(dropout)#
-        self.linear2 = nn.Linear(dim_feedforward, d_model)#
-        self.norm1 = nn.LayerNorm(d_model)#
-        self.norm2 = nn.LayerNorm(d_model)#
-        self.dropout1 = nn.Dropout(dropout)#
-        self.dropout2 = nn.Dropout(dropout)#
-        self.activation = _get_activation_fn(activation)#
-
-        
-        
-    '''
-    description:  
-    param {*} self
-    param {*} src:single  query embedding  ,  
-    return {*}
-    '''
-    def forward(self,src ):
-        src2 = self.self_attn(src, src, value=src)[0]
-        src = src + self.dropout1(src2)
-        src = self.norm1(src)
-        
-        src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-        src = src + self.dropout2(src2)
-        src = self.norm2(src)
-
-        return src
 
 
 
@@ -198,26 +151,10 @@ class EdgeCerberus(BaseModel):
 
         #* fusion for different decoder layer 
         #*  pick 2 layer  to upsampling to [160,160 ] by refine net 
-        # self.scratch.refinenet05 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet06 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet07 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet08 = _make_fusion_block(features, use_bn)
-
         self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet10 = _make_fusion_block(features, use_bn) 
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet12 = _make_fusion_block(features, use_bn)
-
-        # self.scratch.refinenet13 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet14 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet15 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet16 = _make_fusion_block(features, use_bn)
-
-        # self.scratch.refinenet17 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet18 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet19 = _make_fusion_block(features, use_bn)
-        # self.scratch.refinenet20 = _make_fusion_block(features, use_bn)
-
+   
         #* final head 
         #* conv and ConvTranspose2d to [320,320] and classify
         for (num_classes, output_task_list) in self.full_output_task_list:
@@ -228,7 +165,6 @@ class EdgeCerberus(BaseModel):
                     nn.ReLU(True),
                     nn.Dropout(0.1, False),
                     nn.Conv2d(features, num_classes, kernel_size=1),
-                    # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
                 ))
 
                 if it == "background":
@@ -333,20 +269,10 @@ class EdgeCerberus(BaseModel):
             #* pick up layer 1 and layer6
             decoder_layer1 =decoder_out[0]
             decoder_layer6 =decoder_out[-1]
-            # decoder_layer3 =decoder_out[2]
-            # decoder_layer4 =decoder_out[3]
-            
-            
             #* refinenet05-09
             a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
             b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
             decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
-
-            # c= self.scratch.refinenet08(decoder_layer4) #* from [B,C,40,40] to  [B,C,80,80]
-            # d= self.scratch.refinenet07(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
-            # decoder_out2  = self.scratch.refinenet06(c,d)#* from [B,C,80,80] to  [B,C,160,160]
-            # decoder_out = self.scratch.refinenet05(decoder_out1,decoder_out2)
-            
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
