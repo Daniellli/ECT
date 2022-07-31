@@ -18,7 +18,9 @@ import os.path as osp
 
 
 import random
+
 import wandb
+
 from loguru import logger
 from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
@@ -52,7 +54,7 @@ return {*}
 '''
 def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
           eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,
-          extra_loss_weight=0.1,inverse_form_criterion  = None,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
+          extra_loss_weight=0.1,inverse_form_criterion  = None,edge_branch_out="edge",use_wandb=False): # transfer_model=None, transfer_optim=None):
     
     task_list_array = [['background'],['depth'],
                        ['normal'],['reflectance'],
@@ -132,8 +134,11 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
                     all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss,"extra_loss":extra_loss}
                 else :
                     all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
-                    
-                wandb.log(all_need_upload)
+                
+
+                if use_wandb:
+                    wandb.log(all_need_upload)
+
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(train_loader),local_rank)
                 tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 logger.info(tmp)
@@ -359,15 +364,25 @@ def train_seg_cerberus(args):
     model_save_dir = None
 
     if args.local_rank == 0 : 
-        wandb.init(project="train_cerberus") 
+
+        if args.wandb:
+            wandb.init(project="train_cerberus") 
+
+        
         model_save_dir = args.save_dir
         logger.info(f"bg_weight = {args.bg_weight},rind_weight = {args.rind_weight} ")
         
         info =""
         for k, v in args.__dict__.items():
-            setattr(wandb.config,k,v)
+
+            if args.wandb:
+                setattr(wandb.config,k,v)
+
             info+= ( str(k)+' : '+ str(v))
-        setattr(wandb.config,"extra_loss_weight",args.extra_loss_weight)
+        if args.wandb:
+            setattr(wandb.config,"extra_loss_weight",args.extra_loss_weight)
+
+        logger.info(f"save dir  == {model_save_dir}")
         if not osp.exists(model_save_dir):
             os.makedirs(model_save_dir)
 
@@ -489,7 +504,8 @@ def train_seg_cerberus(args):
              local_rank = args.local_rank,print_freq=1,
              bg_weight=args.bg_weight,rind_weight=args.rind_weight,
              extra_loss_weight = args.extra_loss_weight,
-             inverse_form_criterion=inverse_form_criterion
+             inverse_form_criterion=inverse_form_criterion,
+             use_wandb=args.wandb
              )
 
 
@@ -499,7 +515,7 @@ def train_seg_cerberus(args):
             val_dir = osp.join(model_save_dir,'..','ckpt_ep%04d'%epoch)
             os.makedirs(val_dir)
             val_res = edge_validation(model,test_loader,val_dir)
-            wandb.log(val_res["Average"])
+            # wandb.log(val_res["Average"])
             logger.info(val_res["Average"])
             save_flag = False 
             if best_ods <val_res["Average"]["ODS"]:
@@ -566,8 +582,9 @@ def main():
     args = parse_args()
     if args.save_dir is None :
         args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
-                "lr@%s_ep@%s_bgw@%s_rindw@%s_%s"%(args.lr,args.epochs,args.bg_weight,args.rind_weight,int(time.time())),\
+                "extraw@%s_lr@%s_ep@%s_bgw@%s_rindw@%s_%s"%(args.extra_loss_weight,args.lr,args.epochs,args.bg_weight,args.rind_weight,int(time.time())),\
                 "checkpoints")
+
 
     logger.info(args.save_dir)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids

@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-07-27 22:43:44
+ # @LastEditTime: 2022-07-31 13:55:27
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/my_script/train.sh
+ # @FilePath: /cerberus/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -28,43 +28,42 @@
 lr=1e-5;
 
 batch_size=16;
-gpuids="3,5,6,7";
+gpuids="2,4,6,7";
 gpu_number=4;
 
 
 # batch_size=8;
 # gpuids="6,7";
 # gpu_number=2;
-
 epoch=300;
 bg_weights=(1);
 rind_weights=(1);
-extra_loss_weight=100
+extra_loss_weight=(0.01 0.1 1 10 100 1000)
 
-for idx in $(seq 0 1 0);do 
-    echo bg_weights = ${bg_weights[$idx]} ,rind_weights = ${rind_weights[$idx]};
-    # python   train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-    #     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-    #     2>&1 | tee -a logs/train.log
-
+for idx in $(seq 0 1 5);do 
+    echo ${extra_loss_weight[$idx]};
     #*========================================================================================
     # python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
     #     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
     #     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
     #     --extra-loss-weight $extra_loss_weight --validation  2>&1 | tee -a logs/train.log
+
+
+    echo edge_extra_weight@${extra_loss_weight[$idx]}
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
         train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-        --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-        --extra-loss-weight $extra_loss_weight  2>&1 | tee -a logs/train.log
+        --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[0]} --rind-weight ${rind_weights[0]} \
+        --extra-loss-weight ${extra_loss_weight[$idx]} --wandb \
+        2>&1 | tee -a logs/train.log
     #*=======================================================git a=================================
 
     #*========================================================================================resume 
     #* --resume 绝对路径和 相对路径都可以 
     # python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29506 \
     #     train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-    #     --resume "/data3/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1657761722/checkpoints/ckpt_rank000_ep0100.pth.tar" \
-    #     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[$idx]} --rind-weight ${rind_weights[$idx]} \
-    #     --save-dir "/data3/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1657761722/checkpoints/" \
+    #     --resume "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@2.0_rindw@1.0_1659166908/checkpoints/ckpt_rank000_ep0020.pth.tar" \
+    #     --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[0]} --rind-weight ${rind_weights[0]} \
+    #     --save-dir "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@2.0_rindw@1.0_1659166908/checkpoints/" \
     #     2>&1 | tee -a logs/train.log
     #*========================================================================================
 

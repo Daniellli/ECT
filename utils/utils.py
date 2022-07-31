@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-07-27 21:56:06
+LastEditTime: 2022-07-31 13:32:22
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/utils/utils.py
+FilePath: /cerberus/utils/utils.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
@@ -324,11 +324,14 @@ def parse_args():
 
     parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
+
     parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
+
     parser.add_argument("--save-dir",type=str,default=None,
                 help="save path")
     
+    parser.add_argument('--wandb', action='store_true',help=' using wandb for log')
 
     parser.add_argument("--save-file",type=str,default=None,
                 help="save path name")
