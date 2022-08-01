@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-01 08:52:45
+ # @LastEditTime: 2022-08-01 11:02:01
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -45,10 +45,10 @@
 
 
 #* test one model 
-# python -u test.py test  -s 320 \
-# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus2/checkpoints/without_self_attention.pth.tar \
-# --batch-size 1 --workers 40 --gpu-ids "6" --run-id 1 --save-file "without_self_attention"\
-# 2>&1 | tee -a logs/test.log
+python -u test.py test  -s 320 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus3/checkpoints/edge_rindw@0.5.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "6" --run-id 1 --save-file "test_edge_for_vis"\
+2>&1 | tee -a logs/test.log
 
 
 
@@ -56,17 +56,17 @@
 
 
 #* test all model under path 
-path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus7/checkpoints/
-# idx=1;
-for model in $(ls $path); do 
-    echo $path$model;
-    model_name=(${model//./ });
-    echo ${model_name[0]}${model_name[1]};
+# path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus7/checkpoints/
+# # idx=1;
+# for model in $(ls $path); do 
+#     echo $path$model;
+#     model_name=(${model//./ });
+#     echo ${model_name[0]}${model_name[1]};
 
-    python -u test.py test  -s 320 \
-    --resume $path$model \
-    --batch-size 1 --workers 40 --run-id 0 --save-file ${model_name[0]}${model_name[1]} \
-    2>&1 | tee -a logs/test.log
-    # idx=` expr $idx + 1 `;
-done;
+#     python -u test.py test  -s 320 \
+#     --resume $path$model \
+#     --batch-size 1 --workers 40 --run-id 0 --save-file ${model_name[0]}${model_name[1]} \
+#     2>&1 | tee -a logs/test.log
+#     # idx=` expr $idx + 1 `;
+# done;
 # echo $idx;

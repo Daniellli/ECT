@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-07-27 21:55:49
+LastEditTime: 2022-08-01 11:23:01
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -151,7 +151,9 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
                         {'result': illumination_pred})
     logger.info("reference done , start to eval ")
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
-    os.system("./eval_tools/test.sh %s"%output_dir)
+    #! 第二个参数给1 就是测试edge
+    os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
+    # test_edge
     #* 读取评估的结果
     logger.info("eval done  ")
     with open (osp.join(output_dir,"eval_res.json"),'r')as f :
@@ -217,7 +219,7 @@ def edge_validation(model,test_loader,output_dir):
     
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
     tic = time.time()
-    os.system("./eval_tools/test.sh %s"%output_dir)
+    os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
     spend_time =  time.time() - tic
     logger.info("validation spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     #* 读取评估的结果

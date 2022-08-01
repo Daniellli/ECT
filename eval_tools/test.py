@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-07-22 19:16:30
+LastEditTime: 2022-08-01 11:23:39
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -22,6 +22,7 @@ from  loguru import logger
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('-d', '--eval-data-dir', 
     default='./dataset/BSDS_RIND_mine',help="eval data dir  , must be absolution dir ")
+parser.add_argument('--test-edge',action="store_true",help="  eval edge   or not ?   ")
 args = parser.parse_args()
 
 # logger.info(osp.dirname(__file__))
@@ -36,11 +37,17 @@ description:  调用matlab 来eval ,
 param {*} eval_data_dir : 只能绝对路径进行测试, 
 return {*}
 '''
-def test_by_matlab(eval_data_dir):
+def test_by_matlab(eval_data_dir,test_edge):
     logger.info(eval_data_dir)
     eng = matlab.engine.start_matlab()
-    keys=['depth','normal','reflectance','illumination']
-    # keys=['depth','normal','reflectance','illumination','edge']
+    if test_edge:
+        
+        keys=['depth','normal','reflectance','illumination','edge']
+        logger.info("test edge ,keys = {keys}")
+    else :
+        keys=['depth','normal','reflectance','illumination']
+        logger.info("do not test edge ,keys = {keys}")
+
     eval_res = eng.eval_edge(eval_data_dir,keys) #* 评估完会返回一串 string 
     res = {}
     sum_ODS = sum_OIS = sum_AP =sum_R50 = 0
@@ -70,7 +77,7 @@ def test_by_matlab(eval_data_dir):
 
 
 if __name__ =="__main__":
-    test_by_matlab(args.eval_data_dir)
+    test_by_matlab(args.eval_data_dir,test_edge=args.test_edge)
     
     # test_by_matlab("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/model_res")
     # test_by_matlab("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/dashing-wind-713/model_res")
