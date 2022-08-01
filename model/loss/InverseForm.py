@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 12:00:57
-LastEditTime: 2022-07-21 12:00:57
+LastEditTime: 2022-07-30 15:25:26
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/loss/InverseForm.py
+FilePath: /Cerberus-main/model/loss/InverseForm.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -41,6 +41,7 @@ class InverseNet(nn.Module):
 
     def forward(self, x1, x2):
         # Perform the usual forward pass
+        #* concat 然后经过上面定义的全连接
         x = torch.cat((x1.view(-1, 224*224),x2.view(-1, 224*224)), dim=1)
         return x1, x2, self.fc(x)
 
