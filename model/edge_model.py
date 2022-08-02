@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-07-28 23:07:39
+LastEditTime: 2022-08-02 21:02:57
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/edge_model.py
+FilePath: /cerberus/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -21,6 +21,7 @@ from .blocks import (
     Interpolate,
     _make_encoder,
     forward_vit,
+    ResidualConvUnit_custom
 )
 
 import time
@@ -144,8 +145,11 @@ class EdgeCerberus(BaseModel):
 
 
         #!===============================================================
-        self.final_norm = nn.BatchNorm2d(d_model)
-        self.final_dropout = nn.Dropout(dropout)
+        self.final_norm1 = nn.BatchNorm2d(d_model)
+        self.final_dropout1 = nn.Dropout(dropout)
+        self.final_rcu = ResidualConvUnit_custom(d_model,_get_activation_fn(activation),True)
+        
+
         #!===============================================================
 
 
@@ -279,8 +283,10 @@ class EdgeCerberus(BaseModel):
 
         #* decoder_out 正则化  , 
         # !+===========================        
-        decoder_out  = edge_path_1 + self.final_dropout(decoder_out)
-        decoder_out = self.final_norm(decoder_out)
+        decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
+        decoder_out = self.final_norm1(decoder_out)
+        decoder_out = self.final_rcu(decoder_out)
+
         # !+===========================
         #* rind 
         for  x in self.full_output_task_list[1:]:
