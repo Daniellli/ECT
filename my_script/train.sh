@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-08-02 21:06:09
+ # @LastEditTime: 2022-08-03 15:03:49
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /cerberus/my_script/train.sh
+ # @FilePath: /Cerberus-main/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -36,9 +36,9 @@ gpu_number=4;
 # gpuids="6,7";
 # gpu_number=2;
 epoch=300;
-bg_weights=(1);
+bg_weights=(0.5);
 rind_weights=(1);
-extra_loss_weight=(100)
+extra_loss_weight=(0.01)
 
 for idx in $(seq 0 1 0);do 
     echo ${extra_loss_weight[$idx]};
