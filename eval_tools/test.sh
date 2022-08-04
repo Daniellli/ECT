@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2022-08-01 11:22:27
+ # @LastEditTime: 2022-08-04 13:32:45
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -19,14 +19,15 @@ echo param == $2,dir == $1;
 # conda activate matlab #* 不需要切换环境也可以测试
 # echo "output_dir == $output_dir";
 #! 注意空格的问题
-if [ $2=="1" ]; then 
-    echo  "test edge ";
-    python test.py -d $1 --test-edge;
-else
-    echo  "do not test edge ";
-    python test.py -d $1;
-fi;
+# if [ $2=="1" ]; then 
+#     echo  "test edge ";
+#     python test.py -d $1 --test-edge;
+# else
+#     echo  "do not test edge ";
+#     python test.py -d $1;
+# fi;
 
+python test.py -d $1;
 
 
 
