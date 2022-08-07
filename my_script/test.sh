@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-04 13:34:25
+ # @LastEditTime: 2022-08-07 14:50:26
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -46,8 +46,8 @@
 
 #* test one model 
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints3/edge_residual.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "6" --run-id 0 --save-file "edge_residual"\
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_final_slurm.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "6" --run-id 0 --save-file "edge_final_slurm"\
 2>&1 | tee -a logs/test.log
 
 
@@ -56,7 +56,7 @@ python -u test.py test  -s 320 \
 
 
 #* test all model under path 
-# path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus7/checkpoints/
+# path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/
 # # idx=1;
 # for model in $(ls $path); do 
 #     echo $path$model;

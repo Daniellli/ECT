@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-01 11:23:01
+LastEditTime: 2022-08-07 14:51:28
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -218,15 +218,8 @@ def edge_validation(model,test_loader,output_dir):
                     {'result': illumination_pred})
     
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
-    tic = time.time()
-    os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
-    spend_time =  time.time() - tic
-    logger.info("validation spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-    #* 读取评估的结果
-    with open (osp.join(output_dir,"eval_res.json"),'r')as f :
-        eval_res = json.load(f)
 
-    return eval_res
+    return eval_dir(output_dir)
     
 
 def test_visul_label(label ,output_name):
@@ -257,6 +250,25 @@ def test_visul_label(label ,output_name):
 
 
 
+def eval_dir(output_dir):
+    tic = time.time()
+    os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
+    spend_time =  time.time() - tic
+    logger.info("validation spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
+    
+    #* 读取评估的结果
+    with open (osp.join(output_dir,"eval_res.json"),'r')as f :
+        eval_res = json.load(f)
+
+    return eval_res
+    
+
+def eval_precompute_res():
+    p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
+    
+    logger.info(eval_dir(p))
+    
+    
 
 def main():
     args = parse_args()
@@ -269,5 +281,6 @@ def main():
     
 if __name__ == '__main__':
     main()
+    # eval_precompute_res()
 
     
