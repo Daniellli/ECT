@@ -52,7 +52,7 @@ description:
 criterion2 : 
 return {*}
 '''
-def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimizer, epoch,
+def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterion,focal_criterion ,optimizer, epoch,
           eval_score=None, print_freq=1,_moo=False,local_rank=0,bg_weight=1,rind_weight=1,
           extra_loss_weight=0.1,inverse_form_criterion  = None,edge_branch_out="edge",use_wandb=False): # transfer_model=None, transfer_optim=None):
     
@@ -99,13 +99,13 @@ def train_cerberus(train_loader, model, atten_criterion,focal_criterion ,optimiz
             '''
             b_loss=None
             if edge_branch_out == "edge":
-                b_loss=atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                b_loss=edge_atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
             elif edge_branch_out == "unet" :
                 b_loss=focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
             else :
                 raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
             
-            rind_loss=atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            rind_loss=rind_atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
                 print("nan")
@@ -407,7 +407,11 @@ def train_seg_cerberus(args):
 
     cudnn.benchmark = args.cudnn_benchmark
     #*=====================================
-    atten_criterion = AttentionLoss2().cuda(args.local_rank)
+    
+    edge_atten_criterion = AttentionLoss2(gamma=args.edge_loss_gamma,beta=args.edge_loss_beta).cuda(args.local_rank)
+    rind_atten_criterion = AttentionLoss2(gamma=args.rind_loss_gamma,beta=args.rind_loss_beta).cuda(args.local_rank)
+
+
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
     inverse_form_criterion = InverseTransform2D()
 
@@ -499,7 +503,7 @@ def train_seg_cerberus(args):
         #     logger.info(f"is consistent: {is_consistent}")
         #     wandb.log({"is_consistent":1 if is_consistent else 0 })
         #!===============
-        train_cerberus(train_loader, model, atten_criterion,
+        train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,
              local_rank = args.local_rank,print_freq=1,
              bg_weight=args.bg_weight,rind_weight=args.rind_weight,

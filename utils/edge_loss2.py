@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 22:24:07
-LastEditTime: 2022-06-21 17:15:28
+LastEditTime: 2022-08-09 22:05:07
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/edge_loss2.py
@@ -25,19 +25,20 @@ param undefined
 param undefined
 return {*}
 '''
-def attention_loss2(output,target):
+def attention_loss2(output,target,beta=4,gamma = 0.5):
     num_pos = torch.sum(target == 1).float()
     num_neg = torch.sum(target == 0).float()
-    alpha = num_neg / (num_pos + num_neg) * 1.0
-    eps = 1e-14
-    p_clip = torch.clamp(output, min=eps, max=1.0 - eps)
+    alpha = num_neg / (num_pos + num_neg) * 1.0#* 对应loss 公式的alpha ,正负样本均衡的作用
+    eps = 1e-14 
+    p_clip = torch.clamp(output, min=eps, max=1.0 - eps) #* map  the output into the range [min,max]
+    weight = target * alpha * (beta ** ((1.0 - p_clip) ** gamma)) + \
+             (1.0 - target) * (1.0 - alpha) * (beta ** (p_clip ** gamma))
 
-    weight = target * alpha * (4 ** ((1.0 - p_clip) ** 0.5)) + \
-             (1.0 - target) * (1.0 - alpha) * (4 ** (p_clip ** 0.5))
     weight=weight.detach()
     loss = F.binary_cross_entropy(output, target, weight, reduction='none')
     loss = torch.sum(loss)
     return loss
+
 
 
 '''
@@ -45,11 +46,11 @@ description:
 return {*}
 '''
 class AttentionLoss2(nn.Module):
-    def __init__(self,alpha=0.1,gamma=2,lamda=0.5):
+    def __init__(self,gamma=0.5,beta=4):
         super(AttentionLoss2, self).__init__()
-        self.alpha = alpha
+        #* by default ,,alpha=0.1,gamma=2,lamda=0.5  
         self.gamma = gamma
-        self.lamda = lamda
+        self.beta = beta
 
     '''
     description:  
@@ -61,14 +62,14 @@ class AttentionLoss2(nn.Module):
     def forward(self,output,label):
         batch_size, c, height, width = label.size()# B,C,H,W 
         total_loss = 0
-        #!+===========
-        # label = label.reshape([len(output),height,width])
-        #!+===========
         for i in range(len(output)):
             o = output[i].reshape(batch_size,height,width) #* [B,H,W]
             l = label[:,i,:,:] #*[C,H,W]
-            loss_focal = attention_loss2(o, l)#? 
-            # attention_loss2(label[:,i,:,:],output[i].reshape(batch_size,height,width))
+
+            loss_focal = attention_loss2(o, l,
+                                        beta=self.beta,
+                                        gamma=self.gamma)
+
             total_loss = total_loss + loss_focal
         total_loss = total_loss / batch_size
         return total_loss

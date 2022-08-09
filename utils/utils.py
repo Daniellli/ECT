@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-08-03 15:03:19
+LastEditTime: 2022-08-09 22:11:51
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -335,6 +335,11 @@ def parse_args():
 
     parser.add_argument("--save-file",type=str,default=None,
                 help="save path name")
+
+    parser.add_argument("--edge-loss-gamma", type=float,default=0.5,help="for loss ")
+    parser.add_argument("--edge-loss-beta", type=float,default=4,help="for loss ")
+    parser.add_argument("--rind-loss-gamma", type=float,default=0.5,help="for loss ")
+    parser.add_argument("--rind-loss-beta", type=float,default=4,help="for loss ")
 
                 
     args = parser.parse_args()

@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-07 14:51:28
+LastEditTime: 2022-08-09 13:33:42
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -277,6 +277,8 @@ def main():
     train_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
     test_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, 
                         shuffle=False,num_workers=args.workers,pin_memory=False)
+    logger.info(args.run_id)
+    logger.info(args.save_file)
     test_edge(args.resume,test_loader,args.save_file,args.run_id)#! resume 给的model path需要是绝对路径
     
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2022-08-04 13:32:45
+ # @LastEditTime: 2022-08-09 13:21:08
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -27,7 +27,8 @@ echo param == $2,dir == $1;
 #     python test.py -d $1;
 # fi;
 
-python test.py -d $1;
+# python test.py -d $1;
+python test.py -d $1 --test-edge;
 
 
 

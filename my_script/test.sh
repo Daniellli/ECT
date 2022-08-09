@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-08 10:34:01
+ # @LastEditTime: 2022-08-09 16:42:55
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -45,9 +45,10 @@
 
 
 #* test one model 
+
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_momentun085.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "7" --run-id 0 --save-file "edge_momentun085"\
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_without_constraint_loss.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "7" --run-id 0 --save-file "edge_without_constraint_losspth2" \
 2>&1 | tee -a logs/test.log
 
 
