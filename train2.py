@@ -586,8 +586,12 @@ def main():
     args = parse_args()
     if args.save_dir is None :
         args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
-                "extraw@%s_lr@%s_ep@%s_bgw@%s_rindw@%s_%s"%(args.extra_loss_weight,args.lr,args.epochs,args.bg_weight,args.rind_weight,int(time.time())),\
+                "rind_loss_beta@%f_rind_loss_gamma@%f_edge_loss_beta@%f_edge_loss_gamma%f_%s"%(
+                    args.rind_loss_beta,args.rind_loss_gamma,args.edge_loss_beta,args.edge_loss_gamma,
+                    int(time.time())),\
                 "checkpoints")
+
+
 
 
     logger.info(args.save_dir)

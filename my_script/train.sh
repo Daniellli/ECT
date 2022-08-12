@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-08-09 22:25:05
+ # @LastEditTime: 2022-08-09 23:20:44
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /Cerberus-main/my_script/train.sh
+ # @FilePath: /cerberus/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -27,7 +27,7 @@
 #* 炼丹代码
 lr=1e-5;
 batch_size=12;
-gpuids="3,5,7";
+gpuids="0,1,3";
 gpu_number=3;
 
 
@@ -43,27 +43,27 @@ extra_loss_weight=(1000);#* 这个权重 影响不大,  不管是 (0.1 1 0.01 10
 #* beta = [1 to 5 ]
 #* gamma = [0.1 to 0.8 ]
 #* by default : beta = 4, gamma=0.5
-edge_loss_beta=(1 2 3 5);
-edge_loss_gamma=(0.5);
+edge_loss_beta=(4);
+edge_loss_gamma=(0.1 0.2 0.3 0.4 0.6 0.7 0.8);
 rind_loss_beta=(4);
 rind_loss_gamma=(0.5);
 
-for idx in $(seq 0 1 3);do 
+for idx in $(seq 0 1 6);do 
     
     #*========================================================================================
-    echo edge_loss_beta@${edge_loss_beta[$idx]};
-    # echo edge_loss_gamma@${edge_loss_gamma[$idx]};
+    # echo edge_loss_beta@${edge_loss_beta[$idx]};
+    echo edge_loss_gamma@${edge_loss_gamma[$idx]};
     # echo rind_loss_beta@${rind_loss_beta[$idx]};
     # echo rind_loss_gamma@${rind_loss_gamma[$idx]};
 
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
         train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
         --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[0]} --rind-weight ${rind_weights[0]} \
-        --extra-loss-weight ${extra_loss_weight[0]} --edge-loss-gamma 0.5 --edge-loss-beta ${edge_loss_beta[$idx]} \
+        --extra-loss-weight ${extra_loss_weight[0]} --edge-loss-gamma ${edge_loss_gamma[$idx]} --edge-loss-beta ${edge_loss_beta[0]} \
         --rind-loss-gamma 0.5  --rind-loss-beta 4 --wandb \
         2>&1 | tee -a logs/train.log
-        
     #*=======================================================git a=================================
+
 
     #*========================================================================================resume 
     #* --resume 绝对路径和 相对路径都可以 
