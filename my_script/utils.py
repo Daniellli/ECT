@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-08-09 18:48:30
+LastEditTime: 2022-08-15 09:25:02
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -61,13 +61,15 @@ def test():
 
 
 
-a= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
+# a= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
 # a= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_final_3_3090pth2_0"
+a="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
 
 task=['reflectance','illumination','normal','depth','edge']
+# task=['reflectance','illumination','normal','depth']
 
 
-all_name = np.array(sorted([x.split('.')[0] for x in os.listdir(osp.join(a,'depth',"met"))]))
+all_name = np.array(sorted([x.split('.')[0] for x in os.listdir(osp.join(a,'depth',"nms"))]))
 
 
 data = None

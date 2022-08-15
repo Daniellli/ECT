@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-08-09 23:20:44
+ # @LastEditTime: 2022-08-15 14:17:33
  # @LastEditors: xushaocong
  # @Description: 
- # @FilePath: /cerberus/my_script/train.sh
+ # @FilePath: /Cerberus-main/my_script/train.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -26,14 +26,9 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=12;
-gpuids="0,1,3";
-gpu_number=3;
-
-
-# batch_size=8;
-# gpuids="6,7";
-# gpu_number=2;
+batch_size=4;
+gpuids="5";
+gpu_number=1;
 epoch=300;
 bg_weights=(0.5);
 rind_weights=(1);
@@ -43,24 +38,24 @@ extra_loss_weight=(1000);#* 这个权重 影响不大,  不管是 (0.1 1 0.01 10
 #* beta = [1 to 5 ]
 #* gamma = [0.1 to 0.8 ]
 #* by default : beta = 4, gamma=0.5
-edge_loss_beta=(4);
-edge_loss_gamma=(0.1 0.2 0.3 0.4 0.6 0.7 0.8);
-rind_loss_beta=(4);
-rind_loss_gamma=(0.5);
+edge_loss_beta=(1);
+edge_loss_gamma=(0.3);
+rind_loss_beta=(5);#* 好像越高越好
+rind_loss_gamma=(0.3);
 
-for idx in $(seq 0 1 6);do 
+for idx in $(seq 0 1 0);do 
     
     #*========================================================================================
     # echo edge_loss_beta@${edge_loss_beta[$idx]};
-    echo edge_loss_gamma@${edge_loss_gamma[$idx]};
+    # echo edge_loss_gamma@${edge_loss_gamma[$idx]};
     # echo rind_loss_beta@${rind_loss_beta[$idx]};
     # echo rind_loss_gamma@${rind_loss_gamma[$idx]};
 
     python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
         train2.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
         --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight ${bg_weights[0]} --rind-weight ${rind_weights[0]} \
-        --extra-loss-weight ${extra_loss_weight[0]} --edge-loss-gamma ${edge_loss_gamma[$idx]} --edge-loss-beta ${edge_loss_beta[0]} \
-        --rind-loss-gamma 0.5  --rind-loss-beta 4 --wandb \
+        --extra-loss-weight ${extra_loss_weight[0]} --edge-loss-gamma ${edge_loss_gamma[0]} --edge-loss-beta ${edge_loss_beta[0]} \
+        --rind-loss-gamma ${rind_loss_gamma[0]}  --rind-loss-beta ${rind_loss_beta[0]} --wandb \
         2>&1 | tee -a logs/train.log
     #*=======================================================git a=================================
 

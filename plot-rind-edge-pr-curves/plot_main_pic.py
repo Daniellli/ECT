@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-08-09 18:57:48
+LastEditTime: 2022-08-15 09:27:33
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
@@ -327,25 +327,59 @@ def draw_inverse_loss_conceptual_plot_gt(
     
     task = ["reflectance","illumination","normal","depth"]
 
-
-    all_imgs= sorted([x for x in os.listdir(origin_image_path) if x.endswith('jpg')])
+    #* 读取所以图像了, 因为是gt
+    all_imgs= sorted([x for x in os.listdir(osp.join(model_res,'images')) if x.endswith('jpg')])
     
+    RE_color=(10,139,226)
+    NE_color=(235,191,114)
+    IE_color=(142,217,199)
+    DE_color=(174, 125, 176) 
+
+
+    E_color=[219, 118, 2]#* BGR
+
+    #* test image==============
+
+    test1 = cv2.imread(osp.join(model_res,'images',all_imgs[0]))
+    test2 = test1.copy()
+    test3 = test1.copy()
+    test4 = test1.copy()
+    test5 = test1.copy()
+    test6 = test1.copy()
+    
+    test1[:] = RE_color
+    test2[:] = NE_color
+    test3[:] = IE_color
+    test4[:] = DE_color
+    test5[:] = E_color
+    test6[:]=(0,0,255)
+
+    cv2.imwrite(osp.join(save_dir,'r.jpg'),test1)
+    cv2.imwrite(osp.join(save_dir,'n.jpg'),test2)
+    cv2.imwrite(osp.join(save_dir,'i.jpg'),test3)
+    cv2.imwrite(osp.join(save_dir,'d.jpg'),test4)
+    cv2.imwrite(osp.join(save_dir,'e.jpg'),test5)
+    cv2.imwrite(osp.join(save_dir,'e.jpg'),test5)
+    cv2.imwrite(osp.join(save_dir,'composition.jpg'),test6)
+    
+
+    #*========================
+
+
     for im in all_imgs:
 
-        RE_color=(10,139,226)
-        NE_color=(235,191,114)
-        IE_color=(142,217,199)
-        DE_color=(174, 125, 176) 
-
-
-        E_color=[219, 118, 2]#* BGR
+    
 
         maps = {}
         for t in task:
-            maps[t]= cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE)
+            
+            # maps[t]=dilation( cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE))
+            maps[t]=dilation( cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE),times=1.5)
+            # maps[t]= cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE)
         
         
-        res = cv2.imread(osp.join(origin_image_path,im))
+        res = cv2.imread(osp.join(model_res,'images',im))
+        
         
         res_2 = res.copy()
         res[maps[task[0]] ==255] = RE_color #* 5976
@@ -353,14 +387,19 @@ def draw_inverse_loss_conceptual_plot_gt(
         res[maps[task[2]] ==255] = NE_color
         res[maps[task[3]] ==255] = DE_color
 
+
+
+        res[((maps[task[0]] ==255 ) &  (maps[task[1]] ==255 ) & (maps[task[2]] ==255 ) & (maps[task[3]] ==255 ) )] = (0,0,255)
+        
+
         
         res_2[((maps[task[0]] ==255 ) | (maps[task[1]] ==255 ) | (maps[task[2]] ==255 ) | (maps[task[3]] ==255 ) )] = E_color
 
         if is_concat_save:
-            cv2.imwrite(osp.join(save_dir,im),np.concatenate([res,res_2],axis=1))
+            cv2.imwrite(osp.join(save_dir,im.replace('jpg','png')),np.concatenate([res,res_2],axis=1))
         else :
-            cv2.imwrite(osp.join(save_dir,im),res)
-            cv2.imwrite(osp.join(save_dir2,im),res_2)
+            cv2.imwrite(osp.join(save_dir,im.replace('jpg','png')),res)
+            cv2.imwrite(osp.join(save_dir2,im.replace('jpg','png')),res_2)
 
 
 
@@ -419,21 +458,33 @@ if __name__=="__main__":
     gt_save_dir = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/gt_plot_compara" 
     
 
+
     without_loss_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
     without_loss_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/without_loss_path"
 
 
+
+    rindnet_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
+    rindnet_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/rindnet"
+
+
+
     #* 绘制并写入
-    tic = time.time()
+    # tic = time.time()
     # threshold=[0.84,0.61,0.84,0.66,0.5]
-    threshold=[0.918081,0.93,0.88,0.82,0.76] #* for 8068
-    draw_inverse_loss_conceptual_plot(without_loss_path,
-    save_dir=without_loss_save_path,
-    is_rindnet_res=False,
-    is_concat_save=False,
-    threshold=threshold
-    )
-    logger.info(time.strftime("%H:%M:%S",time.gmtime(time.time()-tic)))
+    # threshold=[0.918081,0.93,0.88,0.82,0.76] #* for 8068
+    # draw_inverse_loss_conceptual_plot(
+    #     without_loss_path,
+    #     save_dir=without_loss_save_path,
+    #     is_rindnet_res=False,
+    #     is_concat_save=False,
+    #     threshold=threshold
+    # )
+    # logger.info(time.strftime("%H:%M:%S",time.gmtime(time.time()-tic)))
+
+
+
+
 
     # tic = time.time()
     # threshold=[0.48,0.94,0.01,0.13,0.18] #* for 35028, 0.01 有问题
@@ -447,7 +498,7 @@ if __name__=="__main__":
 
     # spend_time= time.time()-tic
     # logger.info(time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-    draw_inverse_loss_conceptual_plot_gt(gt,save_dir=gt_save_dir,is_concat_save=False)
+    # draw_inverse_loss_conceptual_plot_gt(gt,save_dir=gt_save_dir,is_concat_save=False)
 
 
     # tic = time.time()
@@ -461,4 +512,11 @@ if __name__=="__main__":
 
 
 
- 
+    threshold=[0.91,0.64,0.9,0.69,0.48] #* for 8068
+    draw_inverse_loss_conceptual_plot(
+        rindnet_path,
+        save_dir=rindnet_save_path,
+        is_rindnet_res=False,
+        is_concat_save=True,
+        threshold=threshold
+    )

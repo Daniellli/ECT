@@ -1,7 +1,16 @@
 ###
+###
+ # @Author: xushaocong
+ # @Date: 2022-08-13 17:02:54
+ # @LastEditTime: 2022-08-15 08:49:00
+ # @LastEditors: xushaocong
+ # @Description: 
+ # @FilePath: /Cerberus-main/my_script/test2.sh
+ # email: xushaocong@stu.xmu.edu.cn
+### 
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-15 08:38:27
+ # @LastEditTime: 2022-08-13 16:45:17
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -57,8 +66,7 @@
 
 
 #* test all model under path 
-# path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/rind_loss_gamma/checkpoints/
-path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/rind_loss_beta/checkpoints/
+path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_loss_gamma/checkpoints/
 
 # idx=1;
 for model in $(ls $path); do 
@@ -67,7 +75,7 @@ for model in $(ls $path); do
     echo ${model_name[0]}${model_name[1]};
 
     python -u test.py test  -s 320 \
-    --resume $path$model \
+    --resume $path$model --gpu-ids '6' \
     --batch-size 1 --workers 40 --run-id 0 --save-file ${model_name[0]}${model_name[1]} \
     2>&1 | tee -a logs/test.log
     # idx=` expr $idx + 1 `;
