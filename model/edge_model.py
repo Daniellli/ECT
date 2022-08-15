@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-15 23:27:39
+LastEditTime: 2022-08-15 23:30:04
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -252,6 +252,9 @@ class EdgeCerberus(BaseModel):
         layer_2_rn = self.scratch.layer2_rn(layer_2)#*  : (B,256,40,40)
         layer_3_rn = self.scratch.layer3_rn(layer_3)#*  : (B,256,20,20)
         layer_4_rn = self.scratch.layer4_rn(layer_4)#*  : (B,256,10,10)
+
+        
+
 
         edge_path_4 = self.scratch.refinenet04(layer_4_rn)#* enlarge to  (B,256,20,20)
         edge_path_3 = self.scratch.refinenet03(edge_path_4, layer_3_rn)#* fusion to  (B,256,40,40) ,  spend  0s  to pass decoder 
