@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:29
- # @LastEditTime: 2022-08-15 14:17:33
+ # @LastEditTime: 2022-08-15 23:24:25
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train.sh
@@ -26,8 +26,8 @@
 
 #* 炼丹代码
 lr=1e-5;
-batch_size=4;
-gpuids="5";
+batch_size=2;
+gpuids="2";
 gpu_number=1;
 epoch=300;
 bg_weights=(0.5);
