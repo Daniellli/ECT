@@ -1,14 +1,14 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-02 21:02:57
+LastEditTime: 2022-08-15 22:25:04
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
-
+from torchvision import transforms
 from turtle import forward
 import torch
 import torch.nn as nn
@@ -23,10 +23,17 @@ from .blocks import (
     forward_vit,
     ResidualConvUnit_custom
 )
+from PIL import Image
 
+import matplotlib.pyplot as plt
+import numpy as  np 
 import time
 from .decoder import *
 from loguru import logger
+import os.path as osp
+import cv2
+
+from sklearn.manifold import TSNE
 
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
@@ -37,6 +44,8 @@ def _make_fusion_block(features, use_bn):
         expand=False,
         align_corners=True,
     )
+
+
 
 
 
@@ -130,16 +139,19 @@ class EdgeCerberus(BaseModel):
         num_decoder_layers= 6 #* detr == 6
         self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
         
-
+        self.return_attention = True
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
-                                                dropout, activation, normalize_before)
+                                                dropout, activation, normalize_before,
+                                                return_attention = self.return_attention)
 
 
 
         decoder_norm = nn.LayerNorm(d_model)
 
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
-                                          return_intermediate=self.return_intermediate_dec)
+                                          return_intermediate=self.return_intermediate_dec,
+                                          return_attention = self.return_attention
+                                          )
 
        #!===============================================================
 
@@ -224,7 +236,9 @@ class EdgeCerberus(BaseModel):
     return {*}
     '''
     def forward(self, x ):
-        B,C,H,W=x.shape
+        if self.return_attention:
+            origin_image= x.clone()
+        _B,_C,_H,_W=x.shape
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
         #* layer1 : (B,256,80,80)
@@ -265,7 +279,37 @@ class EdgeCerberus(BaseModel):
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
 
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
-        decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+        if self.return_attention:
+            unloader = transforms.ToPILImage()
+            # unloader(origin_image.cpu().clone().squeeze(0)).save(f'origin.jpg')
+            cv2.imwrite('origin.jpg',origin_image.cpu().clone().squeeze().permute(1,2,0).numpy()*255)
+
+
+            decoder_out,attentions = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+            #todo vis attentions
+            attentions = torch.stack([ x.permute([2,3,0,1]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
+            #* traverse 6 decoder layer 
+            
+            for iidx,atten in enumerate(attentions):
+                #* traverse 4 attention map 
+                for  idx, (attention,x) in enumerate(zip(atten.squeeze(),self.full_output_task_list[1:])):
+                    name = x[1][0]
+                    attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')
+                    # unloader(attention_map.cpu().clone().squeeze(0)).save(f'atten-{name}-{iidx}.jpg')
+                    # unloader(attention.cpu().clone().unsqueeze(0)).save(f'atten-{name}-{iidx}.jpg')
+                    # cv2.imwrite(f'atten-{name}-{iidx}.jpg',attention_map.squeeze().cpu().clone().unsqueeze(2).numpy()*255)
+                    plt.imsave(fname=f'atten-{name}-{iidx}.jpg', arr=attention_map.cpu().clone().squeeze().numpy(), format='png')
+
+                    # vis_atten(attention,f'atten-{name}-{iidx}.jpg')
+                    #todo save path ?
+                    # unloader(attention_map.cpu().clone().squeeze(0)).save(f'atten-{name}-{iidx}.jpg')
+                    # blend_atten_origin_image(unloader(attention_map.cpu().clone().squeeze(0)),
+                    #             unloader(origin_image.cpu().clone().squeeze(0)),f'atten-{name}-{iidx}.jpg')  
+        else :
+            decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+
+
+
         if self.return_intermediate_dec : 
             #* 返回的是多个decoder layer , 需要另外处理 
             #* [6,WH,B,256] == 
@@ -303,4 +347,83 @@ class EdgeCerberus(BaseModel):
       
 
 
+'''
+description: 传过来的都是PIL 的image类型 
+param {*} gray_img interpolate输出的灰度图
+param {*} origin_img
+param {*} save_name
+return {*}
+'''
+def blend_atten_origin_image(gray_img,origin_img,save_name):
+    figure = plt.figure()
+    plt.pcolor(gray_img, cmap='jet')
+    # plt.colorbar()
+    # plt.savefig('tmp.jpg')
+    plt.xticks([])
+    plt.yticks([])
+    plt.axis('off')
+    #* 将裁减的数据和原来数据融合到一起
+    To_tensor=transforms.ToTensor()
+
+    a =To_tensor(fig2data(figure).convert('RGB'))
+    center = np.array(a.shape[-2:])/2
+
+
+    #* crop a 
+    # todo      map (480,640) 和origin image (480,320)大小 不一致, 一个 
+    # after_blend=Image.blend(,origin_img.convert('RGBA'),0.8)
+
+    # d =  cv2.cvtColor(np.asarray(after_blend),cv2.COLOR_RGB2BGR) 
+
+    # cv2.imwrite(save_name,d)
     
+
+'''
+description:  可视化attention
+param {*} atten: (H,W) map 
+param {*} save_name
+return {*}
+'''
+def down_dim_and_vis_atten(atten,save_name):
+    H,W=atten.shape
+    tsne = TSNE(n_components=1, init='pca', random_state=0)
+    # temp = atten.view(H*W).cpu().clone().unsqueeze(0)
+    temp = atten.view(H*W,1).cpu().clone()
+    #temp = q_feat.squeeze(0).cpu()
+    result = tsne.fit_transform(temp)
+    result = result.reshape([H,W])
+
+    result = result - result.min()
+    result = result/result.max()
+
+    plt.imsave(fname=save_name, arr=result, format='png',cmap='plasma')
+    
+
+'''
+description:  将matplotlib 数据 转image
+param {*} self
+param {*} fig
+return {*}
+'''
+def fig2data(fig):
+    """
+    fig = plt.figure()
+    image = fig2data(fig)
+    @brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+    @param fig a matplotlib figure
+    @return a numpy 3D array of RGBA values
+    """
+    import PIL.Image as Image
+    # draw the renderer
+    fig.canvas.draw()
+
+    # Get the RGBA buffer from the figure
+    w, h = fig.canvas.get_width_height()
+    buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
+    buf.shape = (w, h, 4)
+
+    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
+    buf = np.roll(buf, 3, axis=2)
+    image = Image.frombytes("RGBA", (w, h), buf.tostring())
+    # image = np.asarray(image)
+    return image

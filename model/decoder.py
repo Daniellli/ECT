@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-07-27 18:27:52
+LastEditTime: 2022-08-15 20:30:33
 LastEditors: xushaocong
 Description: 
 
@@ -23,12 +23,15 @@ from torch import nn, Tensor
 
 class TransformerDecoder(nn.Module):
 
-    def __init__(self, decoder_layer, num_layers, norm=None, return_intermediate=False):
+    def __init__(self, decoder_layer, num_layers, norm=None,
+            return_intermediate=False,
+            return_attention = False):
         super().__init__()
         self.layers = _get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
         self.return_intermediate = return_intermediate
+        self.return_attention = return_attention
 
     def forward(self, tgt, memory,
                 tgt_mask: Optional[Tensor] = None,
@@ -40,13 +43,21 @@ class TransformerDecoder(nn.Module):
         output = tgt
 
         intermediate = []
-
+        attentions = []
         for layer in self.layers:
-            output = layer(output, memory, tgt_mask=tgt_mask,
-                           memory_mask=memory_mask,
-                           tgt_key_padding_mask=tgt_key_padding_mask,
-                           memory_key_padding_mask=memory_key_padding_mask,
-                           pos=pos, query_pos=query_pos)
+            if self.return_attention:
+                output ,attention= layer(output, memory, tgt_mask=tgt_mask,
+                            memory_mask=memory_mask,
+                            tgt_key_padding_mask=tgt_key_padding_mask,
+                            memory_key_padding_mask=memory_key_padding_mask,
+                            pos=pos, query_pos=query_pos)
+                attentions.append(attention)         
+            else:
+                output = layer(output, memory, tgt_mask=tgt_mask,
+                            memory_mask=memory_mask,
+                            tgt_key_padding_mask=tgt_key_padding_mask,
+                            memory_key_padding_mask=memory_key_padding_mask,
+                            pos=pos, query_pos=query_pos)
             if self.return_intermediate:
                 intermediate.append(self.norm(output))
 
@@ -57,9 +68,16 @@ class TransformerDecoder(nn.Module):
                 intermediate.append(output)
 
         if self.return_intermediate:
-            return torch.stack(intermediate)
+            if self.return_attention:
+                return output.unsqueeze(0),torch.stack(attentions)
+            else :
+                return torch.stack(intermediate)
+        
 
-        return output.unsqueeze(0)
+        if self.return_attention:
+            return output.unsqueeze(0),torch.stack(attentions)
+        else :
+            return output.unsqueeze(0)
 
 
 
@@ -67,14 +85,18 @@ class TransformerDecoder(nn.Module):
 class TransformerDecoderLayer(nn.Module):
 
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 activation="relu", normalize_before=False):
+                 activation="relu", normalize_before=False,return_attention=False):
         super().__init__()
+
+
+
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         #!======================================================================================================
         self.self_attn_learnable_embedding1  = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         #* for learnable embedding 
         self.norm4 = nn.LayerNorm(d_model)
         self.dropout4 = nn.Dropout(dropout)
+        self.return_attention = return_attention
         
 
         #!======================================================================================================
@@ -147,19 +169,35 @@ class TransformerDecoderLayer(nn.Module):
         # memory = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
 
         #*==============================================================================
-        
-        tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
+        #*  multihead_attn 返回两个参数, 第一个是attention输出, 第二个  是weight , 就是这次的attention 
+
+        if self.return_attention :
+            tgt2,attention= self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
+                                   key=self.with_pos_embed(memory, pos),
+                                   value=memory, attn_mask=memory_mask,
+                                   key_padding_mask=memory_key_padding_mask)
+
+            tgt = tgt + self.dropout2(tgt2)
+            tgt = self.norm2(tgt)
+            tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
+            tgt = tgt + self.dropout3(tgt2)
+            tgt = self.norm3(tgt)
+            return tgt,attention
+            
+        else :
+            tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
 
-        
-        tgt = tgt + self.dropout2(tgt2)
-        tgt = self.norm2(tgt)
-        tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
-        tgt = tgt + self.dropout3(tgt2)
-        tgt = self.norm3(tgt)
-        return tgt
+
+            tgt = tgt + self.dropout2(tgt2)
+            tgt = self.norm2(tgt)
+            tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
+            tgt = tgt + self.dropout3(tgt2)
+            tgt = self.norm3(tgt)
+
+            return tgt
 
     def forward_pre(self, tgt, memory,
                     tgt_mask: Optional[Tensor] = None,

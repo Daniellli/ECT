@@ -176,16 +176,16 @@ def forward_flex(self, x, attn = False, name = None):
 
     pos_embed = self._resize_pos_embed(
         self.pos_embed, h // self.patch_size[1], w // self.patch_size[0]
-    )
+    )#* [1,608,768]
 
     B = x.shape[0]
 
     if hasattr(self.patch_embed, "backbone"):
-        x = self.patch_embed.backbone(x)
+        x = self.patch_embed.backbone(x)#*output:  [1,1024,20,30]
         if isinstance(x, (list, tuple)):
             x = x[-1]  # last feature if backbone outputs list/tuple of features
 
-    x = self.patch_embed.proj(x).flatten(2).transpose(1, 2)
+    x = self.patch_embed.proj(x).flatten(2).transpose(1, 2)#* [1,600,768]
     #* 加了hasattr 这句话 , 不然会报错, 很奇怪在10.0.0.15 不会报错, 在10.0.0.14会报错
     if hasattr(self,"dist_token") and  self.dist_token:
     #*=========================================================
@@ -202,27 +202,26 @@ def forward_flex(self, x, attn = False, name = None):
 
     x = x + pos_embed
     x = self.pos_drop(x)
-
-    for i, blk in enumerate(self.blocks):
+    
+    for i, blk in enumerate(self.blocks):#* vit block , number == 12 
         if (attn == False) or (i < len(self.blocks) - 1):
             x = blk(x)
         else:
             x, attentions  = blk(x,True)
             nh = attentions.shape[1]
             token = 0
-            attentions = attentions[0, :, token, 1:].reshape(nh, -1)
-            attentions = attentions.reshape(nh, h // self.patch_size[0], w // self.patch_size[1])
-            attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=self.patch_size[0], mode="nearest")[0].cpu().numpy()
-            for j in range(nh):
+            attentions = attentions[0, :, token, 1:].reshape(nh, -1)#? 为什么第三维只取一个数据?  这个就是readout token? 
+            attentions = attentions.reshape(nh, h // self.patch_size[0], w // self.patch_size[1])#* output shape =[12,20,30]
+            attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=self.patch_size[0], mode="nearest")[0].cpu().numpy()#* upsample 
+            for j in range(nh):#* write
                 folder = name
                 if not os.path.exists(folder):
                     os.makedirs(folder)
                 fname =  os.path.join(folder ,str(token)+"_attn-head" + str(j) + ".png")
                 plt.imsave(fname=fname, arr=attentions[j], format='png')
-                print(f"{fname} saved.")
+                # print(f"{fname} saved.")
 
     x = self.norm(x)
-
     return x
 
 
