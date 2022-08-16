@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-15 23:30:04
+LastEditTime: 2022-08-16 09:35:48
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/edge_model.py
+FilePath: /cerberus/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -33,7 +33,7 @@ from loguru import logger
 import os.path as osp
 import cv2
 
-from sklearn.manifold import TSNE
+# from sklearn.manifold import TSNE
 
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
@@ -387,19 +387,19 @@ param {*} atten: (H,W) map
 param {*} save_name
 return {*}
 '''
-def down_dim_and_vis_atten(atten,save_name):
-    H,W=atten.shape
-    tsne = TSNE(n_components=1, init='pca', random_state=0)
-    # temp = atten.view(H*W).cpu().clone().unsqueeze(0)
-    temp = atten.view(H*W,1).cpu().clone()
-    #temp = q_feat.squeeze(0).cpu()
-    result = tsne.fit_transform(temp)
-    result = result.reshape([H,W])
+# def down_dim_and_vis_atten(atten,save_name):
+#     H,W=atten.shape
+#     tsne = TSNE(n_components=1, init='pca', random_state=0)
+#     # temp = atten.view(H*W).cpu().clone().unsqueeze(0)
+#     temp = atten.view(H*W,1).cpu().clone()
+#     #temp = q_feat.squeeze(0).cpu()
+#     result = tsne.fit_transform(temp)
+#     result = result.reshape([H,W])
 
-    result = result - result.min()
-    result = result/result.max()
+#     result = result - result.min()
+#     result = result/result.max()
 
-    plt.imsave(fname=save_name, arr=result, format='png',cmap='plasma')
+#     plt.imsave(fname=save_name, arr=result, format='png',cmap='plasma')
     
 
 '''
@@ -419,7 +419,6 @@ def fig2data(fig):
     import PIL.Image as Image
     # draw the renderer
     fig.canvas.draw()
-
     # Get the RGBA buffer from the figure
     w, h = fig.canvas.get_width_height()
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
