@@ -413,7 +413,14 @@ def train_seg_cerberus(args):
 
 
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
-    inverse_form_criterion = InverseTransform2D()
+    #!================
+    if args.constraint_loss:
+        inverse_form_criterion = InverseTransform2D()
+    else :
+        inverse_form_criterion =None
+    #!================
+
+    logger.info(f" the arg of constraint loss == {args.constraint_loss},constraint  loss = {inverse_form_criterion}")
 
 
 
@@ -503,6 +510,7 @@ def train_seg_cerberus(args):
         #     logger.info(f"is consistent: {is_consistent}")
         #     wandb.log({"is_consistent":1 if is_consistent else 0 })
         #!===============
+        
         train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,
              local_rank = args.local_rank,print_freq=1,
@@ -590,8 +598,6 @@ def main():
                     args.rind_loss_beta,args.rind_loss_gamma,args.edge_loss_beta,args.edge_loss_gamma,
                     int(time.time())),\
                 "checkpoints")
-
-
 
 
     logger.info(args.save_dir)
