@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-16 21:07:16
+LastEditTime: 2022-08-16 09:37:35
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/test.py
+FilePath: /cerberus/test.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -48,8 +48,6 @@ import json
 
 from utils.global_var import *
 
-
-from my_script.vis_attention import vis_att
 
 '''
 description: 
