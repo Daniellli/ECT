@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-08-01 11:23:39
+LastEditTime: 2022-08-16 21:17:18
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -69,11 +69,13 @@ def test_by_matlab(eval_data_dir,test_edge):
         "AP":round(sum_AP/num_sub_task,3),
         "R50":round(sum_R50/num_sub_task,3) 
     }
+    
     #* calc average 
     with open (osp.join(eval_data_dir,"eval_res.json"),'w')as f :
         json.dump(res,f)
 
     return res
+
 
 
 if __name__ =="__main__":

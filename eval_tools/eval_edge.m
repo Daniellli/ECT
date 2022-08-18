@@ -47,9 +47,16 @@ for test_index=1:size(test_list,2)
         x = matObj.(char(varlist));
         E=convTri(single(x),1);
         [Ox,Oy]=gradient2(convTri(E,4));
-        [Oxx,~]=gradient2(Ox); [Oxy,Oyy]=gradient2(Oy);
+        [Oxx,~]=gradient2(Ox); 
+        [Oxy,Oyy]=gradient2(Oy);
         O=mod(atan(Oyy.*sign(-Oxy)./(Oxx+1e-5)),pi);
-        E=edgesNmsMex(E,O,1,5,1.01,4);
+        % E=edgesNmsMex(E,O,1,5,1.01,4);
+        %  RCF explaination for  NMS as listed as follows : 
+        % 2 for BSDS500 and Multi-cue datasets, 4 for NYUD dataset 
+        % E = edgesNmsMex(E, O, 2, 5, 1.01, 4);
+        % edgesNmsMex(edge , O, r, s, m, nThreads);
+        E=edgesNmsMex(E,O,2,5,1.01,4);
+        
         imwrite(uint8(E*255),fullfile(nms_dir, nms_names{i}))
     end
     

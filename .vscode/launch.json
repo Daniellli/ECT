@@ -8,11 +8,11 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            // "program": "${file}",
+            "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
+            // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             
             
             

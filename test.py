@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-15 22:17:48
+LastEditTime: 2022-08-16 21:07:16
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -112,8 +112,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     
     logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
-    # if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
-    if True:
+    if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
+    # if True:
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
         for i, image in enumerate(tbar):#*  B,C,H,W

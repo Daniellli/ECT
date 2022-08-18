@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-08-15 09:27:33
+LastEditTime: 2022-08-16 19:49:05
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
@@ -311,7 +311,8 @@ def draw_inverse_loss_conceptual_plot_gt(
     model_res="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50",
     origin_image_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/test",
     save_dir = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/tmp",
-    is_concat_save=False
+    is_concat_save=False,
+    rind_split_save = False
 ):
     
     save_dir2=None
@@ -365,35 +366,63 @@ def draw_inverse_loss_conceptual_plot_gt(
 
     #*========================
 
+    reflec_path = osp.join(osp.dirname(save_dir),'reflectance')
+    
+    make_dir(reflec_path)
+
+    illu_path = osp.join(osp.dirname(save_dir),'illumination')
+    make_dir(illu_path)
+
+    normal_path = osp.join(osp.dirname(save_dir),'normal')
+    make_dir(normal_path)
+
+    depth_path = osp.join(osp.dirname(save_dir),'depth')
+    make_dir(depth_path)
+    edge_path = osp.join(osp.dirname(save_dir),'edge')
+    make_dir(edge_path)
+
 
     for im in all_imgs:
-
-    
-
         maps = {}
         for t in task:
-            
             # maps[t]=dilation( cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE))
             maps[t]=dilation( cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE),times=1.5)
             # maps[t]= cv2.imread(osp.join(model_res,t,im.replace('jpg','png')),cv2.IMREAD_GRAYSCALE)
-        
-        
         res = cv2.imread(osp.join(model_res,'images',im))
         
         
         res_2 = res.copy()
+
+        if rind_split_save:
+            # r_res = res.copy()
+            # i_res = res.copy()
+            # n_res = res.copy()
+            # d_res = res.copy()
+            e_res = res.copy()
+
+            # r_res[maps[task[0]] ==255] = (0,0,255) #* 5976
+            # i_res[maps[task[1]] ==255] = (0,0,255)
+            # n_res[maps[task[2]] ==255] = (0,0,255)
+            # d_res[maps[task[3]] ==255] = (0,0,255)
+
+            e_res[((maps[task[0]] ==255 ) | (maps[task[1]] ==255 ) | (maps[task[2]] ==255 ) | (maps[task[3]] ==255 ) )] = (0,0,255)
+
+            # cv2.imwrite(osp.join(reflec_path,im.replace('jpg','png')),r_res)
+            # cv2.imwrite(osp.join(illu_path,im.replace('jpg','png')),i_res)
+            # cv2.imwrite(osp.join(normal_path,im.replace('jpg','png')),n_res)
+            # cv2.imwrite(osp.join(depth_path,im.replace('jpg','png')),d_res)
+            cv2.imwrite(osp.join(edge_path,im.replace('jpg','png')),e_res)
+            
+            continue        
         res[maps[task[0]] ==255] = RE_color #* 5976
         res[maps[task[1]] ==255] = IE_color
         res[maps[task[2]] ==255] = NE_color
         res[maps[task[3]] ==255] = DE_color
 
 
-
         res[((maps[task[0]] ==255 ) &  (maps[task[1]] ==255 ) & (maps[task[2]] ==255 ) & (maps[task[3]] ==255 ) )] = (0,0,255)
-        
-
-        
         res_2[((maps[task[0]] ==255 ) | (maps[task[1]] ==255 ) | (maps[task[2]] ==255 ) | (maps[task[3]] ==255 ) )] = E_color
+
 
         if is_concat_save:
             cv2.imwrite(osp.join(save_dir,im.replace('jpg','png')),np.concatenate([res,res_2],axis=1))
@@ -424,6 +453,10 @@ def pinjie(ims,save_name):
     result.save(save_name)
  
 
+def make_dir(path):
+    
+    if  not osp.exists(path):
+        os.makedirs(path)
 '''
 description:  给定两个生成的结果路径,两个路径的结果一一对应,然后将其concat在一起存储到concat_save_path
 return {*}
@@ -435,8 +468,6 @@ def concat_for_comparison(
     ):
       
     #* 读取然后concat在一起
-    
-    
 
     if not osp.exists(concat_save_path):
         os.makedirs(concat_save_path)
@@ -498,7 +529,7 @@ if __name__=="__main__":
 
     # spend_time= time.time()-tic
     # logger.info(time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-    # draw_inverse_loss_conceptual_plot_gt(gt,save_dir=gt_save_dir,is_concat_save=False)
+    draw_inverse_loss_conceptual_plot_gt(gt,save_dir=gt_save_dir,is_concat_save=False,rind_split_save=True)
 
 
     # tic = time.time()
@@ -512,11 +543,11 @@ if __name__=="__main__":
 
 
 
-    threshold=[0.91,0.64,0.9,0.69,0.48] #* for 8068
-    draw_inverse_loss_conceptual_plot(
-        rindnet_path,
-        save_dir=rindnet_save_path,
-        is_rindnet_res=False,
-        is_concat_save=True,
-        threshold=threshold
-    )
+    # threshold=[0.91,0.64,0.9,0.69,0.48] #* for 8068
+    # draw_inverse_loss_conceptual_plot(
+    #     rindnet_path,
+    #     save_dir=rindnet_save_path,
+    #     is_rindnet_res=False,
+    #     is_concat_save=True,
+    #     threshold=threshold
+    # )
