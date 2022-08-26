@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-08-09 22:11:51
+LastEditTime: 2022-08-18 16:05:40
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/utils/utils.py
+FilePath: /cerberus/utils/utils.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
@@ -333,6 +333,9 @@ def parse_args():
     
     parser.add_argument('--wandb', action='store_true',help=' using wandb for log')
 
+    parser.add_argument('--constraint-loss', action='store_true',help='using constraint loss or not')
+    
+    
     parser.add_argument("--save-file",type=str,default=None,
                 help="save path name")
 
