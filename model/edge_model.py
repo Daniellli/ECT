@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-16 09:35:48
+LastEditTime: 2022-08-19 15:51:00
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -139,7 +139,7 @@ class EdgeCerberus(BaseModel):
         num_decoder_layers= 6 #* detr == 6
         self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
         
-        self.return_attention = False
+        self.return_attention = True
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before,
                                                 return_attention = self.return_attention)
@@ -290,18 +290,27 @@ class EdgeCerberus(BaseModel):
 
             decoder_out,attentions = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
             #todo vis attentions
-            attentions = torch.stack([ x.permute([2,3,0,1]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
+            # attentions = torch.stack([ x.permute([0,3,2,1]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
+            attentions = torch.stack([ x.permute([0,3,1,2]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
+
             #* traverse 6 decoder layer 
+            
+            #*=================
+            with open('tmp.txt','r') as f:
+                atten_path = f.readlines()
+            #*=================
             
             for iidx,atten in enumerate(attentions):
                 #* traverse 4 attention map 
                 for  idx, (attention,x) in enumerate(zip(atten.squeeze(),self.full_output_task_list[1:])):
                     name = x[1][0]
-                    attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')
+                    #* 乘不乘255 都一样
+                    attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')#*  attention == [40,60] ->[320,480]
                     # unloader(attention_map.cpu().clone().squeeze(0)).save(f'atten-{name}-{iidx}.jpg')
                     # unloader(attention.cpu().clone().unsqueeze(0)).save(f'atten-{name}-{iidx}.jpg')
                     # cv2.imwrite(f'atten-{name}-{iidx}.jpg',attention_map.squeeze().cpu().clone().unsqueeze(2).numpy()*255)
-                    plt.imsave(fname=f'atten-{name}-{iidx}.jpg', arr=attention_map.cpu().clone().squeeze().numpy(), format='png')
+                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map.cpu().clone().squeeze().numpy(), format='png')
+                    
 
                     # vis_atten(attention,f'atten-{name}-{iidx}.jpg')
                     #todo save path ?

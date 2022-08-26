@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-16 19:59:17
+ # @LastEditTime: 2022-08-21 23:40:53
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -46,10 +46,10 @@
 
 #* test one model 
 
-python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_8_3090.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "1" --run-id 0 --save-file "edge_final_8_3090" \
-2>&1 | tee -a logs/test.log
+# python -u test.py test  -s 320 \
+# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_4_A100_80G_no_loss.pth.tar \
+# --batch-size 1 --workers 40 --gpu-ids "4" --run-id 0 --save-file "edge_final_4_A100_80G_no_loss" \
+# 2>&1 | tee -a logs/test.log
 
 
 
@@ -59,19 +59,21 @@ python -u test.py test  -s 320 \
 #* test all model under path 
 # path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/rind_loss_gamma/checkpoints/
 # path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/rind_loss_beta/checkpoints/
+# path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/edge_final_8_3090/
+path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints2/
 
-# # idx=1;
-# for model in $(ls $path); do 
-#     echo $path$model;
-#     model_name=(${model//./ });
-#     echo ${model_name[0]}${model_name[1]};
+# idx=1;
+for model in $(ls $path); do 
+    echo $path$model;
+    model_name=(${model//./ });
+    echo ${model_name[0]}${model_name[1]};
 
-#     python -u test.py test  -s 320 \
-#     --resume $path$model \
-#     --batch-size 1 --workers 40 --run-id 0 --save-file ${model_name[0]}${model_name[1]} \
-#     2>&1 | tee -a logs/test.log
-#     # idx=` expr $idx + 1 `;
-# done;
-# echo $idx;
+    python -u test.py test  -s 320 \
+    --resume $path$model \
+    --batch-size 1 --workers 40 --run-id 0 --save-file ${model_name[0]}${model_name[1]} \
+    2>&1 | tee -a logs/test.log
+    # idx=` expr $idx + 1 `;
+done;
+echo $idx;
 
 

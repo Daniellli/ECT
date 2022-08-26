@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-16 09:37:35
+LastEditTime: 2022-08-22 09:23:36
 LastEditors: xushaocong
 Description: 
-FilePath: /cerberus/test.py
+FilePath: /Cerberus-main/test.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -126,6 +126,11 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             attention_save_dir = osp.join(attention_output_dir,name)
 
             make_dir(attention_save_dir)
+
+            # np.savetxt('tmp.txt',attention_save_dir,'%s')
+            with open('tmp.txt' ,'w') as f :
+                f.write(attention_save_dir)
+
             
             with torch.no_grad():
                 #!======================
@@ -165,6 +170,11 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             illumination_pred = illumination_pred.squeeze()
             sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                         {'result': illumination_pred})
+    
+
+    
+
+    #* just for attention 
     logger.info("reference done , start to eval ")
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
     #! 第二个参数给1 就是测试edge

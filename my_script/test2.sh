@@ -2,7 +2,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-08-13 17:02:54
- # @LastEditTime: 2022-08-16 20:59:37
+ # @LastEditTime: 2022-08-20 10:44:29
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test2.sh
@@ -56,8 +56,8 @@
 #* test one model 
 
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_final_3_3090.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "4" --run-id 0 --save-file "edge_final_3_3090" \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_8_3090.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "4" --run-id 0 --save-file "edge_final_8_3090" \
 2>&1 | tee -a logs/test.log
 
 

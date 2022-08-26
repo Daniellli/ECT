@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-08-17 10:08:04
+LastEditTime: 2022-08-26 20:38:53
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -19,11 +19,19 @@ import os.path as osp
 import numpy as np
 
 
+import json
 
-def get_arg_ois_score(all_dict,name):
+import glob
+
+
+def get_arg_ois_score(all_dict,name,including_edge=True):
     tmp = []
-    for k,v in all_dict.items():
+    
+    for idx,(k,v) in enumerate(all_dict.items()):
+        if k == 'edge'  and not including_edge:
+            break
         tmp.append(float(v[name][1]))
+    
     return np.array(tmp).mean()
     
 
@@ -77,11 +85,14 @@ description: 获取评估的结果
 param {*} path : 结果存储的路径
 param {*} tasks: list  : 要评估的任务
 param {*} print_top10 : 是否打印前10个
+param {*}  avg_including_edge : 回去评估 精度的时候是否包含edge, 
 return {*}
 '''
 def get_eval_res(path, 
                 tasks=['reflectance','illumination','normal','depth'],
-                print_top10=False):
+                print_top10=False,
+                avg_including_edge=False
+                ):
     
     #* 获取所有图像的名字
     all_name = np.array(sorted([x.split('.')[0] for x in os.listdir(osp.join(path,'depth',"nms"))]))
@@ -107,7 +118,7 @@ def get_eval_res(path,
     #* 获取每张图像 5个子任务的 ois score 的avg score 
     avg_ ={}
     for name in all_name:
-        avg_[name] = round(get_arg_ois_score(all_dict,name),3)
+        avg_[name] = round(get_arg_ois_score(all_dict,name,including_edge=avg_including_edge),3,)
 
     #*  输出前10个 
     if print_top10:
@@ -124,38 +135,126 @@ def get_eval_res(path,
             
 
 
-# a= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
-ours_res_path= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_final_3_3090pth_0"
+
+
+'''
+description:  输出前X个比较大的
+param {*} X
+param {*} best_avg_ois_idx
+param {*} our_avg_ois
+return {*}
+'''
+def print_topX_avg_ois(X,avg_ois,eval_dict):
+    best_avg_ois_idx = np.argsort(-np.array(list(avg_ois.values())))
+    for idx in best_avg_ois_idx[:X]:
+        name = list(avg_ois.keys())[idx]
+        print(name)
+        for k,v in eval_dict.items():
+            print(v[name])
+        print("==============================================================")
+    
+
+
+def search_dict(_dict,search_name,return_numpy = True):
+    res = {}
+    for k,v in _dict.items():
+        res[k]= v[search_name].tolist()
+    
+    if return_numpy:
+        res = {k:  np.array((v[0],v[1],v[2],v[3],v[4]),
+                dtype=[('img_idx',np.float32),('threshold',np.float64),('recall',np.float64),('precision',np.float64),('F1',np.float64)]) 
+                for k,v in res.items()}
+    else:
+        pass
+
+    
+    
+    return res
+        
+
+
+
+'''
+description: 写入json文件
+param {*} json_data
+param {*} filename
+return {*}
+'''
+def dump_dict(json_data,filename):
+    
+    with open(filename,'w') as f :
+        json.dump(json_data,f)
+    
+    
+'''
+description:  给定两组数据 ,输出距离最大的前K pair, 用 group A - group B,  然后距离最大的, 也就是A 比B, A表现最好的 
+param {*} K
+param {*} A_avg_ois
+param {*} A_eval_dict
+param {*} B_avg_ois
+param {*} B_eval_dict
+return {*}
+'''
+def print_topK_distance(K,A_avg_ois,A_eval_dict,B_avg_ois,B_eval_dict,save_path =None):
+    minus_res = {k: round(v - B_avg_ois[k],3) for k,v in A_avg_ois.items()}
+    distance_sorted_idx=np.argsort(-np.array(list(minus_res.values())))
+    res = {}
+    for  name_idx in  distance_sorted_idx[:K]:
+        name = list(minus_res.keys())[name_idx]
+        A_avg_ois_score = round(get_arg_ois_score(A_eval_dict,name),3)
+        B_avg_ois_score = round(get_arg_ois_score(B_eval_dict,name),3)
+        print(f" name : {name} \t group A  score : {A_avg_ois_score} \t group B  score: {B_avg_ois_score}, \t distance = {minus_res[name]}")
+        #* A 对应的阈值 和 B 对应的阈值   都要存起来可视化 
+        pair = {}
+        pair['A1'] = search_dict(A_eval_dict,name,return_numpy=False)
+        pair['B1'] = search_dict(B_eval_dict,name,return_numpy=False)
+        res[name] = pair
+
+    if save_path is not None:
+        dump_dict(res,osp.join(SAVE_PATH,save_path))
+
+    return res
+
+        
+    
+
+
+
+
+
+SAVE_PATH = "plot-rind-edge-pr-curves/plot_material"
+# ours_res_path= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_final_3_3090pth_0"#* with  constraint loss
+ours_res_path= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/edge_final_8_3090_0"#* with  constraint loss
+
+# without_constraint_loss = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
+without_constraint_loss = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/edge_final_4_A100_80G_no_loss_0"
 #* 算法结果
 rindnet_res_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
 
 #* 子任务
-# task=['reflectance','illumination','normal','depth','edge']
+task=['reflectance','illumination','normal','depth','edge']
 
-our_eval_dict,our_avg_ois=get_eval_res(ours_res_path)
-rindnet_eval_dict,rindnet_avg_ois=get_eval_res(rindnet_res_path)
+our_eval_dict,our_avg_ois=get_eval_res(ours_res_path,task,avg_including_edge=True)
 
+rindnet_eval_dict,rindnet_avg_ois=get_eval_res(rindnet_res_path,task,avg_including_edge=True)
 
-minus_res = {k: round(v - rindnet_avg_ois[k],3) for k,v in our_avg_ois.items()}
+no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,task,avg_including_edge=True)
 
-distance_sorted_idx=np.argsort(-np.array(list(minus_res.values())))
-print("hello")
-
-
-
-for  name_idx in  distance_sorted_idx[:5]:
-    name = list(minus_res.keys())[name_idx]
-    our_avg_ois_score = round(get_arg_ois_score(our_eval_dict,name),3)
-    rindnet_avg_ois_score = round(get_arg_ois_score(rindnet_eval_dict,name),3)
-    
-    print(f" name : {name} \t our score : {our_avg_ois_score} \t rindnet score: {rindnet_avg_ois_score}, \tdistance = {minus_res[name]}")
-    
+# print_topX_avg_ois(5,our_avg_ois,our_eval_dict)
+# print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
+# print_topK_distance(5,our_avg_ois,our_eval_dict,rindnet_avg_ois,rindnet_eval_dict)
 
 
 
+# print_topK_distance(10,our_avg_ois,our_eval_dict,
+#                 rindnet_avg_ois,rindnet_eval_dict,
+#                 save_path = "loss_our_with_rind.json") 
 
-# need_to_knowns = {'185092':0.865 , '141048': 0.862,"250047":0.859,"238025":0.856,"326085":0.855}#* need to known in rindnet 
-#todo : 查看185092, ours: 185092 0.865; 141048 0.862;250047 0.859;238025 0.856;326085 0.855
-#* 差距比较大的,   185092,238025,326085,250047
-    
+
+print_topK_distance(10,our_avg_ois,our_eval_dict,
+                no_loss_avg_ois,no_loss_eval_dict,
+                save_path = "with_and_without_loss.json") 
+
+
+
 

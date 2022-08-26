@@ -1,95 +1,35 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-08-16 19:49:05
+LastEditTime: 2022-08-26 23:32:38
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
-
-
-from os import listdir
+from genericpath import exists
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from PIL import Image
 import time
-
-from genericpath import exists
 import os
 import os.path as osp
 import glob
 from loguru import logger
 import torch 
-from os.path import split , join 
 import cv2
-
+from os.path import split,join
+import torch
 import numpy as np
-
 import skimage
-
 from torchvision.transforms import transforms
-
-
-
-
-
+import matplotlib.pyplot as plt
 import scipy.io as scio
+from PIL import Image
+import json
 
 
-def draw_all_testset():
-    path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/BSDS_RIND_mine/"
-    normal = osp.join(path,"normal")
-    reflectance = osp.join(path,"reflectance")
-    depth = osp.join(path,"depth")
-    illumination = osp.join(path,"illumination")
-    image = osp.join(path,"images")
-
-    target_path = osp.join("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/tmp")
-
-
-    images = sorted(glob.glob(image+"/*.jpg"))
-
-    # RE_color=(255,192,0)
-    # NE_color=(0,255,255)
-    # IE_color=(14,253,0)
-    # DE_color=(255,0,1)
-
-
-    RE_color=(0,192,255)
-    NE_color=(255,255,0)
-    IE_color=(0,253,14)
-    DE_color=(1,0,255)
-
-
-    
-
-
-    for idx, x in enumerate(images):
-        
-        name =   split(x)[-1].split('.')[-2]
-        origin_img= cv2.imread(x)
-        t_normal  = cv2.imread(osp.join(normal,name+".png"),cv2.IMREAD_GRAYSCALE) 
-        t_reflectance  = cv2.imread(osp.join(reflectance,name+".png"),cv2.IMREAD_GRAYSCALE)
-        t_depth  = cv2.imread(osp.join(depth,name+".png"),cv2.IMREAD_GRAYSCALE)
-        t_illumination  = cv2.imread(osp.join(illumination,name+".png"),cv2.IMREAD_GRAYSCALE)
-
-        O1=  origin_img.copy()
-        O2=  origin_img.copy()
-        O3=  origin_img.copy()
-        O4=  origin_img.copy()
-        
-        
-        O1[t_normal == 255] =NE_color
-        O2[t_reflectance == 255] =RE_color
-        O3[t_depth == 255] =DE_color
-        O4[t_illumination == 255] =IE_color
-        
-        cv2.imwrite(osp.join(target_path,"normal_%04d.jpg"%(idx)),O1)
-        cv2.imwrite(osp.join(target_path,"t_reflectance_%04d.jpg"%(idx)),O2)
-        cv2.imwrite(osp.join(target_path,"t_depth_%04d.jpg"%(idx)),O3)
-        cv2.imwrite(osp.join(target_path,"t_illumination_%04d.jpg"%(idx)),O4)
-        
-
+from loguru import logger 
 
 
 ''' 
@@ -110,13 +50,15 @@ def dilation(goal, times = 2 ):
 
 
 
+
+
         
 '''
-description:  绘制 特定的一张测试集图像
+description:  绘制ppt的图像 
 param {*} origin_image_pathath
 return {*}
 '''
-def draw_specific_image(image_name):
+def draw_specific_image(image_name,target_path):
     path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/BSDS_RIND_mine/"
     normal = osp.join(path,"normal")
     reflectance = osp.join(path,"reflectance")
@@ -124,31 +66,13 @@ def draw_specific_image(image_name):
     illumination = osp.join(path,"illumination")
     image = osp.join(path,"images")
 
-    target_path = osp.join("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/tmp2")
-    if not osp.exists(target_path):
-        os.makedirs(target_path)
-
-
-
-
-
-    
-    # RE_color=(255,192,255)
-    # NE_color=(255,255,0)
-    # IE_color=(0,253,14)
-    # DE_color=(244, 35, 232) 
 
     RE_color=(10,139,226)
     NE_color=(235,191,114)
     IE_color=(142,217,199)
     DE_color=(174, 125, 176) 
-
-
-
     E_color=[219, 118, 2]#* BGR
     
-
-    idx=-1
 
     draw_image  = osp.join(image,image_name)
     name =   split(draw_image)[-1].split('.')[-2]
@@ -173,8 +97,6 @@ def draw_specific_image(image_name):
     # edge1 = edge["groundTruth"][0][0][0][0][0]
 
 
-
-    
     O1=  origin_img.copy()
     O2=  origin_img.copy()
     O3=  origin_img.copy()
@@ -182,9 +104,7 @@ def draw_specific_image(image_name):
     O5=  origin_img.copy()
     
     
-    
     O1[t_normal == 255] =NE_color
-    
     O2[t_reflectance == 255] =RE_color
     O3[t_depth == 255] =DE_color
     O4[t_illumination == 255] =IE_color
@@ -197,46 +117,39 @@ def draw_specific_image(image_name):
     cv2.imwrite(osp.join(target_path,"t_illumination.jpg"),O4)
     cv2.imwrite(osp.join(target_path,"t_edge.jpg"),O5)
         
-
-    
-    split_to_16_part(origin_img,target_path)
+    split_to_16_part(origin_img,osp.join(target_path,'split.png'))
 
 
-def split_to_16_part(img,target_path):
+''' 
+description:  将图像划分成16个部分, 
+param {*} img
+param {*} target_path
+param {*} color
+return {*}
+'''
+def split_to_16_part(img,save_path,color=[255,255,255]):
     H,W,C=img.shape
-    
     tmp = img.copy()
 
     part_h = H//4
     part_w = W//4
     
-    color=[255,255,255]
-
-
     #* 绘制横白线
     for i in range(1,4):
         tmp[part_h*i:(part_h*i+5),:] =  color
-
-
-    #*
     for i in range(1,4):
         tmp[:,part_w*i:(part_w*i+5)] =  color
-        
-        
-
-    cv2.imwrite(osp.join(target_path,"t_input.jpg"),tmp)
+    
+    cv2.imwrite(save_path,tmp)
     
         
-
-    logger.info("hello world")
-
-
 
 
 '''
 description: 
 return {*}
 '''
+
 def draw_inverse_loss_conceptual_plot(
     model_res="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50",
     origin_image_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/test",
@@ -250,13 +163,14 @@ def draw_inverse_loss_conceptual_plot(
     if not is_concat_save:
         save_dir2 = save_dir+"_edge"
         
-
+    
+    make_dir()
     if not osp.exists(save_dir):
         os.makedirs(save_dir)
 
+
     if  save_dir2 is not None and not osp.exists(save_dir2):
         os.makedirs(save_dir2)
-        
 
     if is_rindnet_res:
         task = ["reflectance","illumination","normal","depth","all_edges"]
@@ -300,8 +214,69 @@ def draw_inverse_loss_conceptual_plot(
 
 
 
+'''
+description:  将算法结果沿第一维度求最大值融合成一个tensor  , 
+return {*}
+'''
+def maximun_for_contraint_loss(model_res,
+                            save_dir = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/tmp",
+):
 
+    save_dir = osp.join(save_dir,'heat_map_3')
+    if not  osp.exists(save_dir):
+        os.makedirs(save_dir)
+    
+    task = ["reflectance","illumination","normal","depth"]
+    
 
+    all_imgs= sorted(os.listdir(osp.join(model_res,task[0],'nms/')))
+    for idx,im in enumerate(all_imgs):
+        
+
+        tmp = []
+        for t in task:
+            tmp.append(cv2.imread(osp.join(model_res,t,"nms",im),cv2.IMREAD_GRAYSCALE))
+        tmp = torch.from_numpy(np.array(tmp))
+        rind,_ = torch.max(tmp,0)
+        
+        #!+==============
+        edge = cv2.imread(osp.join(model_res,'edge',"nms",im),cv2.IMREAD_GRAYSCALE)
+        edge  = torch.tensor(edge)
+        rind = torch.cat([edge,rind],1)
+        #!+==============
+        
+        #* 默认是6.4, 4.8 对应size 是640X480,  
+        
+        # plt.figure(figsize=(130,50))
+        s = (np.array(rind.shape)/100).astype(np.float)
+        
+        plt.figure(figsize=(s[1],s[0]))
+        
+        plt.pcolor(rind, cmap='jet')
+        # plt.colorbar()
+        plt.xticks([])
+        plt.yticks([])
+        plt.axis('off')
+        
+        # plt.savefig('tmp.jpg',bbox_inches = 'tight', pad_inches = 0)
+        #* 将 plt figure数据转numpy 矩阵
+        canvas = FigureCanvasAgg(plt.gcf())
+        canvas.draw()
+        img = np.array(canvas.renderer.buffer_rgba())
+        img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+        
+        
+    
+        # edge_ = cv2.imread(osp.join(model_res,'edge',"nms",im),cv2.IMREAD_GRAYSCALE)
+        # Image.open(osp.join(model_res,'edge',"nms",im))
+
+        #* 将numpy矩阵转 Pillow数据
+        PIL_img = Image.fromarray(img) #data二维图片矩阵。
+        PIL_img = PIL_img.rotate(180, expand=True).transpose(Image.FLIP_LEFT_RIGHT)
+        PIL_img.save(osp.join(save_dir,im))
+        # PIL_img.save('tmp.jpg')
+        
+        
 
 '''
 description: 
@@ -452,11 +427,6 @@ def pinjie(ims,save_name):
     # 保存图片
     result.save(save_name)
  
-
-def make_dir(path):
-    
-    if  not osp.exists(path):
-        os.makedirs(path)
 '''
 description:  给定两个生成的结果路径,两个路径的结果一一对应,然后将其concat在一起存储到concat_save_path
 return {*}
@@ -480,26 +450,207 @@ def concat_for_comparison(
         pinjie([Image.open(a),Image.open(b)],osp.join(concat_save_path,a.split('/')[-1].split('.')[0]+".png") )
         
 
-if __name__=="__main__":
-    # draw_specific_image("102062.jpg")
-    with_loss_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_final_3_3090pth2_0"
-    with_loss_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/with_loss_path"
 
-    gt="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS_RIND_mine"
-    gt_save_dir = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/gt_plot_compara" 
+'''
+description:  concat  两个路径下的图像 , 为了合成with loss and without loss heat map 方便对比
+param {*} with_loss_save_path
+param {*} without_loss_save_path
+return {*}
+'''
+def concat_two_set(with_loss_save_path,without_loss_save_path):
+
+    path_a = osp.join(with_loss_save_path,'heat_map_3')
+    path_b = osp.join(without_loss_save_path,'heat_map_3')
+
+    save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/with_and_without_loss_compare"
+    if not osp.exists(save_path):
+        os.makedirs(save_path)
+    all_ims = sorted(os.listdir(path_a))
+
+    for i in all_ims:
+        
+        x= cv2.imread(osp.join(path_a,i))
+        y= cv2.imread(osp.join(path_b,i))
+        #*  row 1 : with loss ,  
+        #*  row 2 : without loss 
+        #* col 1:  edge
+        #* col 2:  rind
+        
+        cv2.putText(x,"with loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
+        cv2.putText(y,"without loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
+
+        cv2.imwrite(osp.join(save_path,i) ,np.concatenate([x,y]))
+
+        
+
+'''
+description:  concatenate two image 
+param {*} imgA : 有loss的
+param {*} imgB: 无loss的
+param {*} save_file
+return {*}
+'''
+def concat_two_img(imgA,imgB,save_file,):
+    x = cv2.imread(imgA)
+    y = cv2.imread(imgB)
+     
+    cv2.putText(x,"Ours ,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
+    cv2.putText(y,"RINDNET loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
+
+    
+    
+    cv2.imwrite(save_file ,np.concatenate([x,np.ones([20,x.shape[1],3])*255,y]))
+
+
+
+
+
+'''
+description: 
+param {*} im_name 
+param {*} threshold_list :rind sequence   for best ois threshold 
+param {*} img_path_root : 要找的图片的root, 可以在这个目录找到图像
+param {*} save_dir: 结果保存路径
+error_threashold : 低于这个阈值就直接 认为没有这类边缘了
+return {*} A for RIND, B for edge 
+'''
+def draw_rind_on_img_with_threshold(im_name,threshold_list,img_path_root,save_dir,error_threashold = 0.1):
+
+    RE_color=(10,139,226)
+    IE_color=(142,217,199)
+    NE_color=(235,191,114)
+    DE_color=(174, 125, 176) 
+    E_color=[219, 118, 2]#* BGR
+
+    rinde_color = [
+        (10,139,226),
+        (142,217,199),
+        (235,191,114),
+        (174, 125, 176),
+        (219, 118, 2)
+    ]
+    
+    
+    origin_im = cv2.imread(osp.join(ORIGIN_IMG_PATH,im_name+'.jpg'))
+    
+
+    #* save edge =============================================    
+    origin_im2 = origin_im.copy()
+    egde = cv2.imread(osp.join(img_path_root,'edge','nms',im_name+'.png'),cv2.IMREAD_GRAYSCALE)
+    origin_im2[egde>255*threshold_list['edge']]  = E_color
+    res_name_edge = osp.join(save_dir,"%s_compare_loss_edge.png"%(im_name))
+    cv2.imwrite(res_name_edge,origin_im2)
+    #* =======================================================
+
+
+    
+    # origin_im[egde >v*255]= rinde_color[idx]
+    
+    for  idx,(k,v) in enumerate(threshold_list.items()):
+        #* judge edge 
+        if idx== 4:
+            break
+        tmp_im = cv2.imread(osp.join(img_path_root,k,'nms',im_name+'.png'),cv2.IMREAD_GRAYSCALE)#* the image coresponding to the RIND
+
+        if v < error_threashold :
+            origin_im[tmp_im >0.6*255]= rinde_color[idx]
+        else :
+            origin_im[tmp_im >v*255]= rinde_color[idx]
+        
+
+        #* 扩大后没法看, 都挤在一起了
+        # tmp_im[tmp_im<=v*255] = 0
+        # tmp_im = dilation(tmp_im,1)
+        # origin_im[tmp_im>v*255]= rinde_color[idx]
+
+    
+    res_name = osp.join(save_dir,"%s_compare_loss.png"%(im_name))
+    cv2.imwrite(res_name,origin_im)
+
+
+    res_name_concat = osp.join(save_dir,"%s_compare_loss_concat.png"%(im_name))
+
+    concat_res = np.concatenate([origin_im,np.ones([origin_im.shape[0],10,3])*255,origin_im2],axis=1)
+    cv2.imwrite(res_name_concat,concat_res)
+    
+
+    return res_name,res_name_edge,res_name_concat
+    
+
     
 
 
-    without_loss_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
-    without_loss_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/without_loss_path"
+def load_json(path):
+
+
+    with open(path,'r') as f:
+
+        data = json.load(f)
+
+    return data
 
 
 
-    rindnet_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
-    rindnet_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/rindnet"
+def make_dir(path):
+    if  not osp.exists(path):
+        os.makedirs(path)
 
 
 
+'''
+description:  delete  the  file with the  corresponding suffix
+param {*} dir_path
+param {*} suffix
+return {*}
+'''
+def delete_file_with_suffix(dir_path,suffix):
+
+    
+    all_file = glob.glob(dir_path+"/*."+suffix)
+
+    for f in all_file:
+        os.remove(f)
+
+'''
+description:  读取json 文件,读取对比的结果,
+ 将对比的结果分别先根据对比的效果比较好的几个sample根据ois绘制RIND和edge,
+ 然后分别保存到a_save_path和b_save_path, 然后最后将 两个路径的结果concat到一起存储到save_path
+param: compara_json_path : 包含对比的实验结果的json 文件
+
+return {*}
+'''
+def draw_topK_result(compara_json_path,a_path,a_save_path,
+                    b_path,b_save_path,save_path):
+
+    make_dir(a_save_path)
+    make_dir(b_save_path)
+    make_dir(save_path)
+    
+
+    compare_data = load_json(compara_json_path)
+    for im_name,value in compare_data.items():
+        a_threshold= {}
+        b_threshold= {}
+        for k,v in value['A1'].items():
+            a_threshold[k] = float(v[1])#* pick threshold 
+
+        for k,v in value['B1'].items():
+            b_threshold[k] = float(v[1])#* pick threshold 
+            
+        #* return file name 
+        rind_a,edge_a,concat_a = draw_rind_on_img_with_threshold(im_name,a_threshold,a_path,a_save_path)#* A1 是带有loss的
+        rind_b,edge_b,concat_b= draw_rind_on_img_with_threshold(im_name,b_threshold,b_path,b_save_path)#* 
+        concat_two_img(concat_a,concat_b,osp.join(save_path,im_name+'_final_compare.png'))
+        print(a_threshold,b_threshold)
+            
+
+
+'''
+description:  绘制loss 概念图的相关代码
+return {*}
+'''
+def tmp():
+   pass
     #* 绘制并写入
     # tic = time.time()
     # threshold=[0.84,0.61,0.84,0.66,0.5]
@@ -514,40 +665,58 @@ if __name__=="__main__":
     # logger.info(time.strftime("%H:%M:%S",time.gmtime(time.time()-tic)))
 
 
+'''
+description:  两个mat格式的gt和 png 格式的gt 是否一致
+return {*}
+'''
+# def check_consistence():
+#     a = scio.loadmat(osp.join(ORIGIN_IMG_GT,'depth/2018.mat'))
+#     b = cv2.imread(osp.join(ORIGIN_IMG_GT2,'depth/2018.png'),cv2.IMREAD_GRAYSCALE)
+#     a = a['groundTruth'][0][0][0][0][0] 
+#     if (b==255).sum()==(a==255).sum():
+#         logger.info("yes")
+    
+            
+if __name__=="__main__":
+
+    SAVE_ROOT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material"
+    EVAL_RES_ROOT="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks"
+    ORIGIN_IMG_PATH="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/test" #! 读取测试图像的路径
+    # ORIGIN_IMG_GT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/testgt"
+    ORIGIN_IMG_GT2 = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS_RIND_mine"
+    
+
+    
+
+    # draw_specific_image("102062.jpg")
+    with_loss_path= osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_final_3_3090pth_0")
+    with_loss_path= osp.join(EVAL_RES_ROOT,"final_version/edge_final_8_3090_0")
+    with_loss_save_path =  osp.join(SAVE_ROOT,"with_loss_path")
+    
+
+    gt="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS_RIND_mine"
+    gt_save_dir = osp.join(SAVE_ROOT,"gt_plot_compara") 
+    
+    
+    # without_loss_path= osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_without_constraint_losspth2_0")
+    without_loss_path= osp.join(EVAL_RES_ROOT,"final_version/edge_final_4_A100_80G_no_loss_0")
+    without_loss_save_path =osp.join(SAVE_ROOT,"without_loss_path")
+    
+
+    rindnet_path= osp.join(EVAL_RES_ROOT,"precomputed/rindnet-resnet50")
+    rindnet_save_path = osp.join(SAVE_ROOT,"rindnet")
 
 
-
-    # tic = time.time()
-    # threshold=[0.48,0.94,0.01,0.13,0.18] #* for 35028, 0.01 有问题
-    # threshold=[0.78,0.92,0.65,0.82,0.44] #* for 16068
-    # threshold=[0.85,0.73,0.86,0.72,0.815859] #* for 302022
-    # draw_inverse_loss_conceptual_plot(with_loss_path,
-    # save_dir=with_loss_save_path,
-    # is_rindnet_res=False,is_concat_save=True,
-    # threshold=threshold
-    # )
-
-    # spend_time= time.time()-tic
-    # logger.info(time.strftime("%H:%M:%S",time.gmtime(spend_time)))
-    draw_inverse_loss_conceptual_plot_gt(gt,save_dir=gt_save_dir,is_concat_save=False,rind_split_save=True)
+    # maximun_for_contraint_loss(with_loss_path,with_loss_save_path)
+    # maximun_for_contraint_loss(without_loss_path,without_loss_save_path)
+    # concat_two_set(with_loss_save_path,without_loss_save_path)
 
 
-    # tic = time.time()
-    # concat_for_comparison(
-    #     without_loss_save_path,
-    #     gt_save_dir)
-    # logger.info(time.strftime("%H:%M:%S",time.gmtime(time.time()-tic)))
-
-
-
-
-
-
-    # threshold=[0.91,0.64,0.9,0.69,0.48] #* for 8068
-    # draw_inverse_loss_conceptual_plot(
-    #     rindnet_path,
-    #     save_dir=rindnet_save_path,
-    #     is_rindnet_res=False,
-    #     is_concat_save=True,
-    #     threshold=threshold
-    # )
+    #* 绘制证明loss 有效的代码
+    # tmp = osp.join(SAVE_ROOT,"tmp")
+    # path = osp.join(SAVE_ROOT,"loss_our_with_rind.json")
+    # path = osp.join(SAVE_ROOT,"with_and_without_loss.json")
+    # draw_topK_result(path,with_loss_path,with_loss_save_path,without_loss_path,without_loss_save_path,save_path=tmp)
+    
+    
+ 
