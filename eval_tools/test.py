@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-08-16 21:17:18
+LastEditTime: 2022-08-27 15:55:39
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -42,7 +42,7 @@ def test_by_matlab(eval_data_dir,test_edge):
     eng = matlab.engine.start_matlab()
     if test_edge:
         
-        keys=['depth','normal','reflectance','illumination','edge']
+        keys=['depth','normal','reflectance','illumination','all_edges']
         logger.info("test edge ,keys = {keys}")
     else :
         keys=['depth','normal','reflectance','illumination']

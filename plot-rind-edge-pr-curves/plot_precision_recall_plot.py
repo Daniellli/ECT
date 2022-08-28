@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 19:21:58
-LastEditTime: 2022-08-04 11:01:31
+LastEditTime: 2022-08-28 19:50:39
 LastEditors: xushaocong
 Description:  
-FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot.py
+FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_precision_recall_plot.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -75,9 +75,14 @@ def move_alg_res2plot_dir(
 
 
 if __name__ =="__main__":
+    EVAL_RES_ROOT="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks"
+
+    best_performance = osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_residualpth_0")
+    edge_cerberus= osp.join(EVAL_RES_ROOT,"final_version/edge_final_8_3090_0")
     test_edge = False
-    move_alg_res2plot_dir(my_res="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_residualpth_0",
-                        test_edge = test_edge)
+    
+    # move_alg_res2plot_dir(my_res=edge_cerberus,
+    #                     test_edge = test_edge)
 
     plot(test_edge = test_edge)
 

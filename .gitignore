@@ -34,6 +34,8 @@ networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658026477
 
 *.tar.gz
 
+*.json
+
 
 
 
@@ -43,3 +45,5 @@ networks/*.json
 
 *.pyc
 logs/*
+
+

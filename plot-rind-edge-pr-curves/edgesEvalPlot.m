@@ -49,12 +49,24 @@ colors=colors(o);  lines=lines(o);  names=names(o); years=years(o);
 for i=n:-1:1
   hs(i)=plot(prs{i}(:,2),prs{i}(:,3),'-','LineWidth',2,'Color',colors{i},'LineStyle',lines{i});
   fprintf('ODS=%.3f OIS=%.3f AP=%.3f R50=%.3f',res(i,[4 7:9]));
-  if(~isempty(names)), fprintf(' - %s',[names{i} years{i}]); end; fprintf('\n');
+  %=================================================================================
+
+
+  %if(~isempty(names)), fprintf(' - %s',[names{i} years{i}]); end; fprintf('\n');
+  if(~isempty(names)), fprintf(' - %s',[names{i}]); end; fprintf('\n');
+
+  %=================================================================================
 end
 
 % show legend if nms provided (report best first)
 hold off; if(isempty(names)), return; end
-for i=1:n, names{i}=sprintf('[F=.%3d] %s',round(res(i,4)*1000),[names{i} years{i}]); end
+
+
+
+%=================================================================================
+%for i=1:n, names{i}=sprintf('[F=.%3d] %s',round(res(i,4)*1000),[names{i} years{i}]); end
+for i=1:n, names{i}=sprintf('[F=.%3d] %s',round(res(i,4)*1000),[names{i}]); end
+%=================================================================================
 
 
 

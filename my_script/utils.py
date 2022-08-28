@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-08-26 20:38:53
+LastEditTime: 2022-08-28 15:44:10
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -12,6 +12,7 @@ email: xushaocong@stu.xmu.edu.cn
 
 import json
 import os
+from re import S
 from loguru import logger 
 
 import os.path as osp
@@ -22,6 +23,7 @@ import numpy as np
 import json
 
 import glob
+
 
 
 def get_arg_ois_score(all_dict,name,including_edge=True):
@@ -162,7 +164,7 @@ def search_dict(_dict,search_name,return_numpy = True):
     
     if return_numpy:
         res = {k:  np.array((v[0],v[1],v[2],v[3],v[4]),
-                dtype=[('img_idx',np.float32),('threshold',np.float64),('recall',np.float64),('precision',np.float64),('F1',np.float64)]) 
+                dtype=[('img_idx',np.float32),('OIS',np.float64),('recall',np.float64),('precision',np.float64),('F1',np.float64)]) 
                 for k,v in res.items()}
     else:
         pass
@@ -211,50 +213,227 @@ def print_topK_distance(K,A_avg_ois,A_eval_dict,B_avg_ois,B_eval_dict,save_path 
         res[name] = pair
 
     if save_path is not None:
-        dump_dict(res,osp.join(SAVE_PATH,save_path))
+        dump_dict(res,osp.join(SAVE_ROOT,save_path))
 
     return res
 
+
+
+'''
+description:  给定一个评估的数据, 分别获取每个任务最好ois那张图像
+param {*} eval_dict
+return {*}
+'''
+def __get_best_ois_for_each_task(eval_dict,top_k=1):
+
+    res = {}
+    for task,all_evals in eval_dict.items():
+        #* get  the best ios  in single task 
+        all_ois_data = {}
+        for img_name,eval_data in all_evals.items():
+            all_ois_data[img_name]= float(eval_data[1])
+        #* sort
+        all_ois_data = sorted(all_ois_data.items(),key=lambda k : k[1],reverse=True)
+        logger.info(f" task :{task}, img name : {all_ois_data[0][0]}, ois: {all_ois_data[0][1]}")
+        res[task]=all_ois_data[:top_k]
+    return res
         
+        
+    
+
+'''
+description:  根据 image_name 获取task下的ois 
+param {*} image_name 
+param {*} path
+param {*} task
+return {*}
+'''
+def __get_ois_threshold_accoding_name(image_name,path,task): 
+    eval_dict,_=get_eval_res(path,[task])#* single task 
+    return float(eval_dict[task][image_name][1])
+    
+    
+
+
+def get_ois_threshold_accoding_name(image_name,path,task):
+    return __get_ois_threshold_accoding_name(image_name,path,task)
+
+
+'''
+description:  向其他py文件暴露的接口 ,给定路径返回每个任务最好ois那张图像
+param {*} path  : 包含评估的所有结果的路径
+return {*}
+'''
+def get_best_ois_for_each_task(path,task):
+    eval_dict,_=get_eval_res(path,task)
+    return __get_best_ois_for_each_task(eval_dict)
+    
+    
+
+
+'''
+description: 获取所有ODS
+param {*} path
+return {*}
+'''
+def __get_ods(path):
+
+    with open(osp.join(path,'eval_res.json'),'r')as f :
+        data = json.load(f)
+    
+    return  data
+
+
+'''
+description:  根据task 获取ODS 
+param {*} path
+param {*} task
+return {*}
+'''
+def __get_task_ods(path,task):
+    ods  = __get_ods(path)
+
+    
+    return float(ods[task]['ODS'])
+
+    
+
+def get_task_ods(path,task):
+    return __get_task_ods(path,task)
+
+
+
+'''
+description:  打印指定任务的topK 个 A 优于B的 image 
+param {*} pathA
+param {*} pathB
+param {*} task
+param {*} K
+return {*}
+'''
+def print_topK_distance_in_specific_task(pathA,pathB,task,K=10):
+    
+    dictA ,_ = get_eval_res(pathA,[task])
+    dictB ,_ = get_eval_res(pathB,[task])
+
+    A = { name:float(value[1]) for name,value in dictA[task].items()}
+    B = { name:float(value[1]) for name,value in dictB[task].items()}
+
+
+    minus_res = {k: round(v - B[k],3) for k,v in A.items()}
+    distance_sorted_idx=np.argsort(-np.array(list(minus_res.values())))
+    
+    
+    for  name_idx in  distance_sorted_idx[:K]:
+        name = list(minus_res.keys())[name_idx]
+        logger.info(f"task:{task} \t  name : {name} \t distance = {minus_res[name]}")
+        
+        
+
+
+'''
+description:  打印指定任务的topK 个 A 优于B的 image 
+param {*} pathA
+param {*} pathB
+param {*} task
+param {*} K
+return {*}
+'''
+def print_topK_distance_in_specific_task_multi_source(pathA , paths,task,K=10):
+    
+
+    dictA ,_ = get_eval_res(pathA,[task])
+    A = { name:float(value[1]) for name,value in dictA[task].items()}
+    
+    dicts = []
+    for p in paths:
+        tmp ,_ = get_eval_res(p,[task])
+        dicts.append({name:float(value[1]) for name,value in tmp[task].items()})
+        
+   
+   #* A compare to all in this task
+    distances={}
+    mean_distance = {}
+    for img_name,osi in A.items():
+        dis = []
+        for d in dicts:
+            dis.append(osi - d[img_name])
+        distances[img_name] = dis
+        mean_distance[img_name] = np.array(dis).mean()
+        # logger.info(distances)
+        # logger.info(mean_distance[img_name] )
+        
+    
+    
+    #* sort according to the mean distance 
+    distance_sorted_idx=np.argsort(-np.array(list(mean_distance.values())))
+    
+    #*  print top K 
+    for  name_idx in  distance_sorted_idx[:K]:
+        name = list(mean_distance.keys())[name_idx]
+        logger.info(f"task:{task} \t  name : {name} \t distance = {mean_distance[name]}")
+        logger.info(distances[name])
+
+
     
 
 
 
 
 
-SAVE_PATH = "plot-rind-edge-pr-curves/plot_material"
-# ours_res_path= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_final_3_3090pth_0"#* with  constraint loss
-ours_res_path= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/edge_final_8_3090_0"#* with  constraint loss
-
-# without_constraint_loss = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/edge_without_constraint_losspth2_0"
-without_constraint_loss = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/edge_final_4_A100_80G_no_loss_0"
-#* 算法结果
-rindnet_res_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/rindnet-resnet50"
-
-#* 子任务
-task=['reflectance','illumination','normal','depth','edge']
-
-our_eval_dict,our_avg_ois=get_eval_res(ours_res_path,task,avg_including_edge=True)
-
-rindnet_eval_dict,rindnet_avg_ois=get_eval_res(rindnet_res_path,task,avg_including_edge=True)
-
-no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,task,avg_including_edge=True)
-
-# print_topX_avg_ois(5,our_avg_ois,our_eval_dict)
-# print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
-# print_topK_distance(5,our_avg_ois,our_eval_dict,rindnet_avg_ois,rindnet_eval_dict)
 
 
-
-# print_topK_distance(10,our_avg_ois,our_eval_dict,
-#                 rindnet_avg_ois,rindnet_eval_dict,
-#                 save_path = "loss_our_with_rind.json") 
+if __name__ == "__main__":
 
 
-print_topK_distance(10,our_avg_ois,our_eval_dict,
-                no_loss_avg_ois,no_loss_eval_dict,
-                save_path = "with_and_without_loss.json") 
+    SAVE_ROOT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material"
+    EVAL_RES_ROOT="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks"
+    TASKS = ["reflectance","illumination","normal","depth","all_edges"]
+
+    RINDNET_path= osp.join(EVAL_RES_ROOT,"precomputed/rindnet-resnet50")
+    DFF_path= osp.join(EVAL_RES_ROOT,"precomputed/dff")
+    RCF_path= osp.join(EVAL_RES_ROOT,"precomputed/rcf")
+    OFNET_path= osp.join(EVAL_RES_ROOT,"precomputed/ofnet")
+    HED_path= osp.join(EVAL_RES_ROOT,"precomputed/hed")
 
 
+    # edge_cerberus= osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_final_3_3090pth_0")
+    edge_cerberus= osp.join(EVAL_RES_ROOT,"final_version/edge_final_8_3090_0")
+    without_constraint_loss = osp.join(EVAL_RES_ROOT,"final_version/edge_final_4_A100_80G_no_loss_0")
+
+    #* 子任务
+    our_eval_dict,our_avg_ois=get_eval_res(edge_cerberus,TASKS,avg_including_edge=True)
+    no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,TASKS,avg_including_edge=True)
+
+    rindnet_eval_dict,rindnet_avg_ois=get_eval_res(RINDNET_path,TASKS,avg_including_edge=True)
+
+    
+    
+    # print_topX_avg_ois(5,our_avg_ois,our_eval_dict)
+    # print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
+    # print_topK_distance(5,our_avg_ois,our_eval_dict,rindnet_avg_ois,rindnet_eval_dict)
+
+
+    # print_topK_distance(10,our_avg_ois,our_eval_dict,
+    #                 rindnet_avg_ois,rindnet_eval_dict,
+    #                 save_path = "loss_our_with_rind.json") 
+
+
+    # print_topK_distance(10,our_avg_ois,our_eval_dict,
+    #                 no_loss_avg_ois,no_loss_eval_dict,
+    #                 save_path = "with_and_without_loss.json") 
+
+    #* 根据任务来获取单个任务表现最好的图像
+    # __get_best_ois_for_each_task(our_eval_dict)
+    # get_ois_threshold_accoding_name('2018',ours_res_path,'depth')
+    
+    
+    paths = [RINDNET_path,DFF_path,RCF_path,OFNET_path,HED_path]
+    for t in TASKS[4:5]:
+        # print_topK_distance_in_specific_task(edge_cerberus,RINDNET_path,t,K=20)
+        print_topK_distance_in_specific_task_multi_source(edge_cerberus,paths,t,K=10)
+
+
+            
 
 
