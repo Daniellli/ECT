@@ -593,11 +593,13 @@ def adjust_learning_rate(args, optimizer, epoch):
 def main():
     args = parse_args()
     if args.save_dir is None :
+
         args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
-                "rind_loss_beta@%f_rind_loss_gamma@%f_edge_loss_beta@%f_edge_loss_gamma%f_%s"%(
-                    args.rind_loss_beta,args.rind_loss_gamma,args.edge_loss_beta,args.edge_loss_gamma,
-                    int(time.time())),\
-                "checkpoints")
+                "EdgeCerberus_%s"%(int(time.time())),"checkpoints")
+    else :
+        args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
+                "%s_%s"%(args.save_dir,int(time.time())),"checkpoints")
+        
 
 
     logger.info(args.save_dir)
