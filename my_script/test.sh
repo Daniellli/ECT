@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-27 15:47:35
+ # @LastEditTime: 2022-08-28 23:13:28
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -46,10 +46,10 @@
 
 #* test one model 
 
-# python -u test.py test  -s 320 \
-# --resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_4_A100_80G_no_loss.pth.tar \
-# --batch-size 1 --workers 40 --gpu-ids "4" --run-id 0 --save-file "edge_final_4_A100_80G_no_loss" \
-# 2>&1 | tee -a logs/test.log
+python -u test.py test  -s 320 \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_8_3090.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "1" --run-id 0 --save-file "edge_final_8_3090" \
+2>&1 | tee -a logs/test.log
 
 
 

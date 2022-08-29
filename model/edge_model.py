@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-19 15:51:00
+LastEditTime: 2022-08-28 23:29:48
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -139,7 +139,7 @@ class EdgeCerberus(BaseModel):
         num_decoder_layers= 6 #* detr == 6
         self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
         
-        self.return_attention = False
+        self.return_attention = True
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before,
                                                 return_attention = self.return_attention)
@@ -306,17 +306,20 @@ class EdgeCerberus(BaseModel):
                     name = x[1][0]
                     #* 乘不乘255 都一样
                     attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')#*  attention == [40,60] ->[320,480]
-                    # unloader(attention_map.cpu().clone().squeeze(0)).save(f'atten-{name}-{iidx}.jpg')
-                    # unloader(attention.cpu().clone().unsqueeze(0)).save(f'atten-{name}-{iidx}.jpg')
-                    # cv2.imwrite(f'atten-{name}-{iidx}.jpg',attention_map.squeeze().cpu().clone().unsqueeze(2).numpy()*255)
-                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map.cpu().clone().squeeze().numpy(), format='png')
-                    
+                    attention_map = attention_map.cpu().clone().squeeze().numpy()
 
-                    # vis_atten(attention,f'atten-{name}-{iidx}.jpg')
-                    #todo save path ?
-                    # unloader(attention_map.cpu().clone().squeeze(0)).save(f'atten-{name}-{iidx}.jpg')
-                    # blend_atten_origin_image(unloader(attention_map.cpu().clone().squeeze(0)),
-                    #             unloader(origin_image.cpu().clone().squeeze(0)),f'atten-{name}-{iidx}.jpg')  
+                    #* plan 1 
+                    # plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png')
+                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png',cmap='jet')
+                    #* plan 2
+                    # figure = plt.figure()
+                    # plt.pcolor(test, cmap='jet')
+                    # # plt.colorbar()
+                    # # plt.savefig('tmp.jpg')
+                    # plt.xticks([])
+                    # plt.yticks([])
+                    # plt.axis('off')
+                    
         else :
             decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
 

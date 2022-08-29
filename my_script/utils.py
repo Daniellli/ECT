@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-08-28 15:44:10
+LastEditTime: 2022-08-29 17:37:16
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -30,7 +30,7 @@ def get_arg_ois_score(all_dict,name,including_edge=True):
     tmp = []
     
     for idx,(k,v) in enumerate(all_dict.items()):
-        if k == 'edge'  and not including_edge:
+        if k == 'all_edges'  and not including_edge:
             break
         tmp.append(float(v[name][1]))
     
@@ -146,15 +146,17 @@ param {*} best_avg_ois_idx
 param {*} our_avg_ois
 return {*}
 '''
-def print_topX_avg_ois(X,avg_ois,eval_dict):
+def print_topX_avg_ois(X,avg_ois,eval_dict,print_all=False):
     best_avg_ois_idx = np.argsort(-np.array(list(avg_ois.values())))
     for idx in best_avg_ois_idx[:X]:
         name = list(avg_ois.keys())[idx]
-        print(name)
-        for k,v in eval_dict.items():
-            print(v[name])
-        print("==============================================================")
-    
+        print(f"name :{name } \t   avg performance : {avg_ois[name]}")
+        
+        if print_all:
+            for k,v in eval_dict.items():
+                print(v[name])
+            print("==============================================================")
+
 
 
 def search_dict(_dict,search_name,return_numpy = True):
@@ -402,14 +404,11 @@ if __name__ == "__main__":
     without_constraint_loss = osp.join(EVAL_RES_ROOT,"final_version/edge_final_4_A100_80G_no_loss_0")
 
     #* 子任务
-    our_eval_dict,our_avg_ois=get_eval_res(edge_cerberus,TASKS,avg_including_edge=True)
-    no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,TASKS,avg_including_edge=True)
+    our_eval_dict,our_avg_ois=get_eval_res(edge_cerberus,TASKS,avg_including_edge=False)
+    no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,TASKS,avg_including_edge=False)
 
-    rindnet_eval_dict,rindnet_avg_ois=get_eval_res(RINDNET_path,TASKS,avg_including_edge=True)
-
-    
-    
-    # print_topX_avg_ois(5,our_avg_ois,our_eval_dict)
+    rindnet_eval_dict,rindnet_avg_ois=get_eval_res(RINDNET_path,TASKS,avg_including_edge=False)
+    print_topX_avg_ois(5,our_avg_ois,our_eval_dict,print_all=True)
     # print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
     # print_topK_distance(5,our_avg_ois,our_eval_dict,rindnet_avg_ois,rindnet_eval_dict)
 
@@ -428,10 +427,10 @@ if __name__ == "__main__":
     # get_ois_threshold_accoding_name('2018',ours_res_path,'depth')
     
     
-    paths = [RINDNET_path,DFF_path,RCF_path,OFNET_path,HED_path]
-    for t in TASKS[4:5]:
+    # paths = [RINDNET_path,DFF_path,RCF_path,OFNET_path,HED_path]
+    # for t in TASKS[4:5]:
         # print_topK_distance_in_specific_task(edge_cerberus,RINDNET_path,t,K=20)
-        print_topK_distance_in_specific_task_multi_source(edge_cerberus,paths,t,K=10)
+        # print_topK_distance_in_specific_task_multi_source(edge_cerberus,paths,t,K=10)
 
 
             

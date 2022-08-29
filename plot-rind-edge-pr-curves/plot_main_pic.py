@@ -1,15 +1,14 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-08-28 18:45:50
+LastEditTime: 2022-08-28 23:49:52
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
-from genericpath import exists
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 from PIL import Image
 import time
 import os
@@ -27,13 +26,6 @@ import matplotlib.pyplot as plt
 import scipy.io as scio
 from PIL import Image
 import json
-
-
-from loguru import logger 
-from my_script.utils import get_best_ois_for_each_task,get_ois_threshold_accoding_name, get_task_ods
-
-
-
 import shutil
 
 
