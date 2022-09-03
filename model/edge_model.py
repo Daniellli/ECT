@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-28 23:29:48
+LastEditTime: 2022-09-03 10:30:36
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/edge_model.py
+FilePath: /cerberus/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -139,7 +139,7 @@ class EdgeCerberus(BaseModel):
         num_decoder_layers= 6 #* detr == 6
         self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
         
-        self.return_attention = True
+        self.return_attention = False
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before,
                                                 return_attention = self.return_attention)
