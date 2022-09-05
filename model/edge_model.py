@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-08-30 10:39:24
+LastEditTime: 2022-09-03 10:30:36
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/edge_model.py
+FilePath: /cerberus/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
