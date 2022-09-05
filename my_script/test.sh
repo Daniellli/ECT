@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-08-28 23:13:28
+ # @LastEditTime: 2022-09-05 23:35:52
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -45,10 +45,9 @@
 
 
 #* test one model 
-
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/final_version/checkpoints/edge_final_8_3090.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "1" --run-id 0 --save-file "edge_final_8_3090" \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/wo_cause_interaction.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "0" --run-id 0 --save-file "wo_cause_interaction" \
 2>&1 | tee -a logs/test.log
 
 
@@ -71,5 +70,3 @@ python -u test.py test  -s 320 \
 
 # done;
 # echo $idx;
-
-

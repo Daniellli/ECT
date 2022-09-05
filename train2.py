@@ -364,7 +364,6 @@ def train_seg_cerberus(args):
     model_save_dir = None
 
     if args.local_rank == 0 : 
-
         if args.wandb:
             wandb.init(project="train_cerberus") 
 

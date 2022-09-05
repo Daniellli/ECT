@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-08-28 23:49:52
+LastEditTime: 2022-09-03 16:07:21
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
@@ -897,12 +897,17 @@ if __name__=="__main__":
 
 
     COLORS = {
-        "TP":(10,251,9),
-        "FN":(8,9,250),
+        # "TP":(10,251,9),
+        # "TP":(20,251,9),
+        # "TP":(100,251,9),
+        "TP":(20,255,10),
+
+        # "FN":(8,9,255),
+        # "FN":(20,20,255),
         # "FN":(255,255,0),#* 青色
         # "FN":(255,0,255),#* 深红色
         # "FN":(203,192,255),#* 粉色
-        # "FN":(255,1,1),#* 蓝色
+        "FN":(255,10,10),#* 蓝色
         "FP":(7,255,252),
     }
 
@@ -961,11 +966,12 @@ if __name__=="__main__":
     
     # delete_dir(save_paths)
     # delete_dir([gt_save_path])
+
     
     for image_name in pick_imgs:
         for task in TASKS:
-            draw_precision(paths,task,image_name,save_paths)        
-    # draw_gt_map(all_images,gt_save_path)
+            draw_precision(paths,task,image_name,save_paths)     
+    draw_gt_map(pick_imgs,gt_save_path)
  
             
     

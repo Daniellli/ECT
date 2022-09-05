@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-28 23:32:54
+LastEditTime: 2022-08-30 09:31:42
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -89,7 +89,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
   
     cudnn.benchmark = True
 
-    edge_output_dir = os.path.join(output_dir, 'edge/met')
+    edge_output_dir = os.path.join(output_dir, 'all_edges/met')
     make_dir(edge_output_dir)
 
     depth_output_dir = os.path.join(output_dir, 'depth/met')
@@ -110,8 +110,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     
     logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
-    # if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
-    if True:
+    if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
         for i, image in enumerate(tbar):#*  B,C,H,W
@@ -170,10 +169,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             illumination_pred = illumination_pred.squeeze()
             sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                         {'result': illumination_pred})
-            
-    
-
-    return 
+        
 
     #* just for attention 
     logger.info("reference done , start to eval ")

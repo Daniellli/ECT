@@ -15,19 +15,25 @@
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            // test
+            //*inference
             "args": [
-                "test",  "-s", "320",
-                 "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_momentun085.pth.tar", 
-                 "--batch-size", "1", "--workers", "40", "--gpu-ids", "2",
-                 "--run-id", "0", "--save-file","attention_test",
+                "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar",
+                "--data-dir", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/demo/Transform_video_Q15-Img",
+                "--batch-size", "1",  ,"--gpu-ids", "0" ,"--run-id", "0"
+
+
+
             ]
+            // test
+            // "args": [
+            //     "test",  "-s", "320",
+            //      "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/edge_momentun085.pth.tar", 
+            //      "--batch-size", "1", "--workers", "40", "--gpu-ids", "2",
+            //      "--run-id", "0", "--save-file","attention_test",
+            // ]
 
             
 
-
-   
-            
             //train  minimize the parameter numebr 
             // "args": [
             //     "train",  "-s", "320", "--batch-size", "4",

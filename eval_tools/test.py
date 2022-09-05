@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2022-08-27 15:55:39
+LastEditTime: 2022-09-05 23:09:47
 LastEditors: xushaocong
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -22,6 +22,13 @@ from  loguru import logger
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('-d', '--eval-data-dir', 
     default='./dataset/BSDS_RIND_mine',help="eval data dir  , must be absolution dir ")
+
+
+# parser.add_argument('-d', '--eval-data-dir', 
+#     default='./dataset/BSDS_RIND_mine',help="eval data dir  , must be absolution dir ")
+
+
+
 parser.add_argument('--test-edge',action="store_true",help="  eval edge   or not ?   ")
 args = parser.parse_args()
 
