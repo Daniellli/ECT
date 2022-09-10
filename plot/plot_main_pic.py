@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-09-03 16:07:21
+LastEditTime: 2022-09-06 13:42:05
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
@@ -552,7 +552,6 @@ def draw_rind_on_img_with_threshold(im_name,threshold_list,img_path_root,save_di
     res_name = osp.join(save_dir,"%s_compare_loss.png"%(im_name))
     cv2.imwrite(res_name,origin_im)
 
-
     res_name_concat = osp.join(save_dir,"%s_compare_loss_concat.png"%(im_name))
 
     concat_res = np.concatenate([origin_im,np.ones([origin_im.shape[0],10,3])*255,origin_im2],axis=1)
@@ -561,12 +560,12 @@ def draw_rind_on_img_with_threshold(im_name,threshold_list,img_path_root,save_di
     return res_name,res_name_edge,res_name_concat
     
 
+
+
     
 
 
 def load_json(path):
-
-
     with open(path,'r') as f:
 
         data = json.load(f)
@@ -886,6 +885,7 @@ if __name__=="__main__":
     ORIGIN_IMG_GT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/testgt"
     ORIGIN_IMG_GT2 = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS_RIND_mine"
 
+
     #* 每种边缘对应的颜色
     RINDE_COLOR = [
         (10,139,226),
@@ -939,15 +939,13 @@ if __name__=="__main__":
 
     gt_save_path = osp.join(SAVE_ROOT,'GT')
 
- 
-    
+
+
     # maximun_for_contraint_loss(with_loss_path,with_loss_save_path)
     # maximun_for_contraint_loss(without_loss_path,without_loss_save_path)
     # concat_two_set(with_loss_save_path,without_loss_save_path)
 
     #* 绘制证明loss 有效的代码
-    tmp = osp.join(SAVE_ROOT,"tmp")
-    
     # path = osp.join(SAVE_ROOT,"loss_our_with_rind.json")
     # path = osp.join(SAVE_ROOT,"with_and_without_loss.json")
     # draw_topK_result(path,with_loss_path,with_loss_save_path,without_loss_path,without_loss_save_path,save_path=tmp)
@@ -955,25 +953,18 @@ if __name__=="__main__":
     #! GT, OURS, RINDNET,DFF,RCF,*OFNet,HED 
     # draw_precision_according_best_performace(rindnet_path,TASKS,tmp)
     # best_dict = get_best_ois_for_each_task(edge_cerberus,TASKS)
-    #* 绘制所有的, 
 
-    
-    paths = [edge_cerberus,RINDNET_path,DFF_path,RCF_path,OFNET_path,HED_path]
-    save_paths = [edge_cerberus_save_path,RINDNET_save_path,DFF_save_path,RCF_save_path,OFNET_save_path,HED_save_path]
+    #* 绘制所有的, 
+    # paths = [edge_cerberus,RINDNET_path,DFF_path,RCF_path,OFNET_path,HED_path]
+    # save_paths = [edge_cerberus_save_path,RINDNET_save_path,DFF_save_path,RCF_save_path,OFNET_save_path,HED_save_path]
     # all_images =sorted( [x.split('.')[0] for x in os.listdir(osp.join(ORIGIN_IMG_GT,'depth'))])
 
-    pick_imgs = ["376086","10081","112056","385022","179084"]
-    
-    # delete_dir(save_paths)
-    # delete_dir([gt_save_path])
-
-    
-    for image_name in pick_imgs:
-        for task in TASKS:
-            draw_precision(paths,task,image_name,save_paths)     
-    draw_gt_map(pick_imgs,gt_save_path)
+    # pick_imgs = ["376086","10081","112056","385022","179084"]    
+    # for image_name in pick_imgs:
+    #     for task in TASKS:
+    #         draw_precision(paths,task,image_name,save_paths)     
+    # draw_gt_map(pick_imgs,gt_save_path)
  
-            
     
     # save_paths = [edge_cerberus_save_path,RINDNET_save_path,DFF_save_path,RCF_save_path,OFNET_save_path,HED_save_path,gt_save_path]
     # tmp = osp.join(SAVE_ROOT,"concat_for_compare")

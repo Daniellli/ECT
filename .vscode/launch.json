@@ -13,16 +13,13 @@
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
-            "console": "integratedTerminal",
+            // "console": "integratedTerminal",
             "justMyCode": true,
             //*inference
             "args": [
                 "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar",
-                "--data-dir", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/demo/Transform_video_Q15-Img",
-                "--batch-size", "1",  ,"--gpu-ids", "0" ,"--run-id", "0"
-
-
-
+                "--data-dir", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo1/Transform_video_Q15-Img",
+                "--batch-size", "1","--gpu-ids", "1,2,3" ,"--run-id", "0"
             ]
             // test
             // "args": [

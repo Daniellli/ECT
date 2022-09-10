@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-08-29 17:37:16
+LastEditTime: 2022-09-07 08:45:49
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -18,13 +18,17 @@ from loguru import logger
 import os.path as osp
 
 import numpy as np
-
+import cv2
 
 import json
 
+import shutil
 import glob
 
 
+import torch
+
+from tqdm import tqdm
 
 def get_arg_ois_score(all_dict,name,including_edge=True):
     tmp = []
@@ -380,7 +384,99 @@ def print_topK_distance_in_specific_task_multi_source(pathA , paths,task,K=10):
     
 
 
+def interp_img(img,to_size= (320,480)):
+    a = torch.from_numpy(img)
+    a = a.permute([2,0,1]).unsqueeze(0)
+    a = torch.nn.functional.interpolate(a,size=to_size)
+    a = a.squeeze().permute(1,2,0).numpy()
+    return a 
 
+
+
+''' 
+description:  将视频转图片序列
+param {*} video_path 视频文件的路径
+param {*} im_dir 转换后的结果文件夹 
+param {*} img_name_format 转换后 的图片 存储的文件名格式 比如 dancer-1.jpg
+param {*} interp 是否下采样, 如果图像太大可以下采样
+return {*}
+'''
+def video2imgs(video_path , im_dir,img_name_format="%06d.png" ,interp=False):
+    
+    if ( not osp.exists(im_dir)):
+        os.mkdir(im_dir)
+        
+        
+    cap = cv2.VideoCapture(video_path)
+    ind =  1
+    ret, frame = cap.read()
+    while(ret):
+        if interp:
+            a  =interp_img(frame)
+        else :
+            a =frame
+            
+        cv2.imwrite(osp.join(im_dir,img_name_format%ind), a)
+        ind+=1
+        ret, frame = cap.read()
+    cap.release()
+    cv2.destroyAllWindows()
+    return ind# 产生了多少帧图像
+
+
+
+
+
+def make_dir(path):
+    if  not osp.exists(path):
+        os.makedirs(path)
+
+
+
+def delete_dirs_files(asb_path_list):
+    
+    for d in need_delete_p:
+        if osp.isdir(d):
+            shutil.rmtree(d)
+        else:
+            os.remove(d)
+        print(d)
+
+
+
+'''
+description:  下采样dir_path的图像数据 ,   存储到另一个文件夹
+param {*} dir_path
+return {*}
+'''
+def inter_dir(dir_path):
+    target_p = osp.join(osp.dirname(dir_path),'after_interp')
+    make_dir(target_p)
+    all_imgs = sorted(glob.glob(dir_path+"/*.jpg"))
+    for idx,im in tqdm(enumerate(all_imgs)):
+        print(im)
+        a = interp_img(cv2.imread(im))
+        cv2.imwrite(osp.join(target_p,"%06d.png"%(idx)),a)
+        
+        
+    
+    
+
+
+    
+'''
+description:  
+param dir_path: 将这个文件夹下的mp4视频转图像,  
+return {*}
+'''
+def my_video2img(dir_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo"):
+    all_mp4 = glob.glob(dir_path+"/*.mp4")
+    for  idx,p in tqdm(enumerate(all_mp4)):
+        logger.info(f"processing  {p}")
+        save_p = osp.join(osp.dirname(p),'%04d'%(idx),'imgs')
+        
+        make_dir(save_p)
+        video2imgs(p,save_p,interp=True)
 
 
 
@@ -404,12 +500,12 @@ if __name__ == "__main__":
     without_constraint_loss = osp.join(EVAL_RES_ROOT,"final_version/edge_final_4_A100_80G_no_loss_0")
 
     #* 子任务
-    our_eval_dict,our_avg_ois=get_eval_res(edge_cerberus,TASKS,avg_including_edge=False)
-    no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,TASKS,avg_including_edge=False)
+    # our_eval_dict,our_avg_ois=get_eval_res(edge_cerberus,TASKS,avg_including_edge=False)
+    # no_loss_eval_dict,no_loss_avg_ois=get_eval_res(without_constraint_loss,TASKS,avg_including_edge=False)
+    # rindnet_eval_dict,rindnet_avg_ois=get_eval_res(RINDNET_path,TASKS,avg_including_edge=False)
+    # print_topX_avg_ois(5,our_avg_ois,our_eval_dict,print_all=True)
 
-    rindnet_eval_dict,rindnet_avg_ois=get_eval_res(RINDNET_path,TASKS,avg_including_edge=False)
-    print_topX_avg_ois(5,our_avg_ois,our_eval_dict,print_all=True)
-    # print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
+    # # print_topX_avg_ois(5,no_loss_avg_ois,no_loss_eval_dict)
     # print_topK_distance(5,our_avg_ois,our_eval_dict,rindnet_avg_ois,rindnet_eval_dict)
 
 
@@ -433,6 +529,13 @@ if __name__ == "__main__":
         # print_topK_distance_in_specific_task_multi_source(edge_cerberus,paths,t,K=10)
 
 
-            
+
+    # p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo1/Transform_video_Q15-Img"
+    # p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo%d"
+    p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/%04d"
+    for i in range(0,5):
+        need_delete_p = glob.glob(osp.join(p%i,'2022*'))
+        delete_dirs_files(need_delete_p)
+
 
 

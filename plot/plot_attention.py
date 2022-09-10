@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-28 22:57:06
-LastEditTime: 2022-08-29 09:58:25
+LastEditTime: 2022-09-06 13:42:08
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_attention.py
@@ -138,11 +138,7 @@ gt_save_path = osp.join(SAVE_ROOT,'GT')
 
 
 
-
-
-
 #* concat attention 
-
 all_images =sorted( [x.split('.')[0] for x in os.listdir(osp.join(ORIGIN_IMG_GT,'depth'))])
 
 

@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2022-08-30 09:41:07
+ # @LastEditTime: 2022-09-06 13:22:40
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -29,6 +29,10 @@ echo param == $2,dir == $1;
 
 python test.py -d $1
 # python test.py -d $1 --test-edge;
+
+
+
+
 #! GT, OURS, RINDNET,DFF,RCF,*OFNet,HED 
 # path=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/precomputed/
 # paths=(dff rcf hed ofnet);
@@ -36,6 +40,8 @@ python test.py -d $1
 # echo $path$model;
 # python test.py -d $path$model --test-edge;
 # done;
+
+
 
 
 

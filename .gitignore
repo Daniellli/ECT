@@ -47,3 +47,7 @@ networks/*.json
 logs/*
 
 
+
+
+plot/plot_material
+plot/demo
