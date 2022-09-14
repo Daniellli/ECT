@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-09-05 20:50:42
-LastEditTime: 2022-09-06 22:08:24
+LastEditTime: 2022-09-11 19:03:17
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/inference.py
@@ -55,7 +55,7 @@ from utils.global_var import *
 from torch.utils.data import Dataset
 
 
-from plot.draw_inference import draw
+from plot.draw_inference import draw,draw_grid2
 
 import math
 
@@ -164,7 +164,7 @@ def inference(model_abs_path,test_loader,src_data_dir,runid=None,):
     spend_time =  time.time() - tic
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     #* plot 
-    draw(src_data_dir,output_dir)
+    draw_grid2(src_data_dir,output_dir)
 
         
 

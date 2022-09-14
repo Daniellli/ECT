@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-09-07 08:45:49
+LastEditTime: 2022-09-11 19:33:38
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/my_script/utils.py
@@ -25,6 +25,7 @@ import json
 import shutil
 import glob
 
+import math
 
 import torch
 
@@ -514,10 +515,6 @@ if __name__ == "__main__":
     #                 save_path = "loss_our_with_rind.json") 
 
 
-    # print_topK_distance(10,our_avg_ois,our_eval_dict,
-    #                 no_loss_avg_ois,no_loss_eval_dict,
-    #                 save_path = "with_and_without_loss.json") 
-
     #* 根据任务来获取单个任务表现最好的图像
     # __get_best_ois_for_each_task(our_eval_dict)
     # get_ois_threshold_accoding_name('2018',ours_res_path,'depth')
@@ -529,13 +526,40 @@ if __name__ == "__main__":
         # print_topK_distance_in_specific_task_multi_source(edge_cerberus,paths,t,K=10)
 
 
-
     # p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo1/Transform_video_Q15-Img"
     # p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo%d"
-    p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/%04d"
-    for i in range(0,5):
-        need_delete_p = glob.glob(osp.join(p%i,'2022*'))
-        delete_dirs_files(need_delete_p)
+    # p = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/%04d"
+    # for i in range(0,5):
+    #     need_delete_p = glob.glob(osp.join(p%i,'2022*'))
+    #     delete_dirs_files(need_delete_p)
+
+
+    
+
+    # my_video2img()
+
+    
+
+    path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/KITTI/KITTI_21_OR_22"
+    save_path = osp.join(osp.dirname(path),'imgs')
+    make_dir(save_path)
+    all_img= sorted(glob.glob(path+"/*.png"))
+    for idx,im in tqdm(enumerate(all_img)):
+        tmp  = cv2.imread(im)
+
+        H,W,C = tmp.shape
+
+        to_size = (math.ceil(H/32)*32,math.ceil(W/32)*32)
+        
+        
+        tmp2 = interp_img(tmp,to_size)
+        cv2.imwrite(osp.join(save_path,"%06d.png"%idx),tmp2)
+        if idx == 0 :
+            logger.info(f"from {H,W} to {to_size }")
+        
+
+
+
 
 
 

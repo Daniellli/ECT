@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-09-05 23:35:52
+ # @LastEditTime: 2022-09-11 22:57:31
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -46,7 +46,7 @@
 
 #* test one model 
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/wo_cause_interaction.pth.tar \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar \
 --batch-size 1 --workers 40 --gpu-ids "0" --run-id 0 --save-file "wo_cause_interaction" \
 2>&1 | tee -a logs/test.log
 

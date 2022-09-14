@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 11:59:44
-LastEditTime: 2022-07-30 16:58:40
+LastEditTime: 2022-09-13 13:29:16
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/loss/inverse_loss.py
@@ -66,7 +66,8 @@ class InverseTransform2D(nn.Module):
         _, _, distance_coeffs = self.inversenet(tiled_inputs, tiled_targets)
 
         
-        mean_square_inverse_loss = (((distance_coeffs*distance_coeffs).sum(dim=1))**0.5).mean()
+        mean_square_inverse_loss = (((distance_coeffs*distance_coeffs).sum(dim=1))**0.5).mean() 
+        #* 对输出的 [18 * 4] 矩阵 每个元素取平方, 然后求和得 [18]  开根号: [18], 然后取平均 得[1]
         return mean_square_inverse_loss
 
 

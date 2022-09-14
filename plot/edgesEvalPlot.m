@@ -74,20 +74,20 @@ tmp= strsplit(path,"_");
 
 
 if tmp(2) == "depth"
-  title('Depth');
+  %title('Depth');
   legend(hs,names,'FontSize',7,'Location','sw','NumColumns',2);
 elseif tmp(2) == "normal"
-  title('Normal');
+  %title('Normal');
   legend(hs,names,'FontSize',7,'Location','ne','NumColumns',1);
 
 elseif tmp(2) == "illumination"
-title('Illumination');
+  %title('Illumination');
   legend(hs,names,'FontSize',7,'Location','ne','NumColumns',1);
 elseif tmp(2) == "reflectance"
-title('Reflectance');
+  %title('Reflectance');
   legend(hs,names,'FontSize',7,'Location','ne','NumColumns',1);
 else 
-  title('Edge Detection');
+  %title('Edge Detection');
   legend(hs,names,'FontSize',7,'Location','sw','NumColumns',2);
 end
 

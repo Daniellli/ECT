@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 19:21:58
-LastEditTime: 2022-09-10 15:32:00
+LastEditTime: 2022-09-11 10:38:31
 LastEditors: xushaocong
 Description:  
 FilePath: /Cerberus-main/plot/plot_precision_recall_plot.py
@@ -14,7 +14,7 @@ import matlab.engine
 import argparse
 import os.path as osp
 import os
-os.chdir("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves")
+os.chdir("/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot")
 from  loguru import logger
 
 import shutil
@@ -40,10 +40,10 @@ return {*}
 '''
 def move_alg_res2plot_dir(
     my_res ="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v8/model_res_2",
-    prefix= "EdgeCerberus",
+    prefix= "Ours",
     test_edge = False
     ):
-    target= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves"
+    target= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot"
     
     suffix1 = "_bdry.txt"
     suffix2 = "_bdry_thr.txt"
@@ -77,12 +77,14 @@ def move_alg_res2plot_dir(
 if __name__ =="__main__":
     EVAL_RES_ROOT="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks"
 
-    best_performance = osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_residualpth_0")
-    edge_cerberus= osp.join(EVAL_RES_ROOT,"final_version/edge_final_8_3090_0")
+    # best_performance = osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_residualpth_0")
+    edge_cerberus= osp.join(EVAL_RES_ROOT,"need2release/full_version_0")
+
+    
     test_edge = False
     
-    # move_alg_res2plot_dir(my_res=edge_cerberus,
-    #                     test_edge = test_edge)
+    move_alg_res2plot_dir(my_res=edge_cerberus,
+                        test_edge = test_edge)
 
     plot(test_edge = test_edge)
 

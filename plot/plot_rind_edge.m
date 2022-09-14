@@ -26,7 +26,8 @@ colors = {
 lines = {'-','-','-','-','-','-','-','-','-','--','--','--','--','--','--','--','--','--'};
 
 names = {
-    'EdgeCerberus'
+    %'EdgeCerberus'
+    'Ours'
     % 'RINDNet-ResNeXt101'
     % 'RINDNet-ResNet101'
     'RINDNet-ResNet50'
