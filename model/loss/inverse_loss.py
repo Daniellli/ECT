@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 11:59:44
-LastEditTime: 2022-09-13 13:29:16
+LastEditTime: 2022-09-16 17:54:56
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/model/loss/inverse_loss.py
@@ -31,6 +31,10 @@ class InverseTransform2D(nn.Module):
         for param in self.inversenet.parameters():
             param.requires_grad = False            
 
+
+
+    #* cityscape 的分辨率 : 1024x2048  , setting :  resize to  672×1344 and  tile it to 18 tiles of 224X224 pixels 
+    #* NYU-Depth-v2 and PASCAL , setting :  resize to  672* 672 and  tile it to 9 tiles of 224X224 pixels , 
     def forward(self, inputs, targets):   
         inputs = F.log_softmax(inputs) #* 先softmax 后取对数 
             
@@ -44,7 +48,7 @@ class InverseTransform2D(nn.Module):
 
 
         #* from [1,1,224,244]  to [18,1,224,244], 就是提取一个一个的context patch 
-        k=1      
+        k=1
         for i in range(0, self.tile_factor):
             for j in range(0, 2*self.tile_factor):
                 if i+j!=0:

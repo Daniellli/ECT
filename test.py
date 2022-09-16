@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-30 09:31:42
+LastEditTime: 2022-09-15 08:32:00
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -74,7 +74,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     
     #* 加载模型
     # single_model = EdgeCerberus(backbone="vitb_rn50_384")
-    single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
+    # single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
+    single_model = EdgeCerberus(backbone="vitb_rn50_384")
 
     
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
