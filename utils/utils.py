@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2022-08-18 16:05:40
-LastEditors: xushaocong
+LastEditTime: 2023-02-06 23:17:18
+LastEditors: daniel
 Description: 
-FilePath: /cerberus/utils/utils.py
+FilePath: /Cerberus-main/utils/utils.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
@@ -324,10 +324,10 @@ def parse_args():
     parser.add_argument("--bg-weight", type=float,default=1,help=" background weight  ")
     parser.add_argument("--rind-weight", type=float,default=1,help=" rind weight  ")
 
-    parser.add_argument("--train-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
+    parser.add_argument("--train-dir",type=str,default="data/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
 
-    parser.add_argument("--test-dir",type=str,default="dataset/BSDS-RIND/BSDS-RIND/Augmentation/",
+    parser.add_argument("--test-dir",type=str,default="data/BSDS-RIND/BSDS-RIND/Augmentation/",
                 help="训练数据集的文件夹root")
 
     parser.add_argument("--save-dir",type=str,default=None,
