@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-09-06 13:40:43
-LastEditTime: 2022-09-12 21:13:30
+LastEditTime: 2022-09-23 13:44:26
 LastEditors: xushaocong
 Description: 
 FilePath: /Cerberus-main/plot/draw_inference.py
@@ -126,10 +126,14 @@ def imgs2video(img_root,video_name=None,fps=20  ):
     #保存视频的FPS，可以适当调整
     
     if video_name is None:
-        video_name = time.strftime("%Y:%m:%d",time.gmtime(time.time()))+"_"+str(int(time.time()))+".avi"
+        video_name = time.strftime("%Y:%m:%d",time.gmtime(time.time()))+"_"+str(int(time.time()))+".mp4"
 
     #可以用(*'DVIX')或(*'X264'),如果都不行先装ffmepg: sudo apt-get install ffmepg
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    # fourcc = cv2.VideoWriter_fourcc(*'XVID') #* 对应后缀: avi
+    # fourcc = cv2.VideoWriter_fourcc(*'DVIX')
+    # fourcc = cv2.VideoWriter_fourcc(*'X264')
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V') #* for mp4
+    
 
     videoWriter = cv2.VideoWriter(osp.join(img_root,'..',video_name),fourcc,fps,(W,H))#最后一个是保存图片的尺寸
 
@@ -252,7 +256,7 @@ param {*} inference_res_path
 param {*} origin_img_suffix
 return {*}
 '''
-def draw_grid2(origin_path,inference_res_path,origin_img_suffix='png'):
+def draw_grid2(origin_path,inference_res_path,origin_img_suffix='png',model_res_right=False):
     #* 1. read origin image and RIND nms map 
     #* 2. upsample origin image for 2 times , 
     #* 3. concatenate all the results   as a grip, first colunm for origin image and second and third for RIND , format as 2 X 2 matric 
@@ -260,40 +264,44 @@ def draw_grid2(origin_path,inference_res_path,origin_img_suffix='png'):
 
     save_path = osp.join(osp.dirname(origin_path),'inference_res')#* plot save path
     make_dir(save_path)
-    all_img_names = sorted([x.split('.')[0] for x in os.listdir(origin_path) if x.endswith(f'.{origin_img_suffix}') ])
+    # all_img_names = sorted([x.split('.')[0] for x in os.listdir(origin_path) if x.endswith(f'.{origin_img_suffix}') ])
+    all_img_names = sorted(['.'.join(x.split('.')[0:2]) for x in os.listdir(origin_path) if x.endswith(f'.{origin_img_suffix}') ],key=lambda x:(x.split('.')[0],x.split('.')[1]))
+
+    if len(os.listdir(save_path))  != len(all_img_names):
+        for im_name in tqdm(all_img_names):
+
+            origin_img_path = osp.join(origin_path,im_name+f'.{origin_img_suffix}')
+            
+            origin_img = cv2.imread(origin_img_path)
+            origin_img_max= upsample_numpy_format(origin_img)
+
+            origin_img_max = cv2.cvtColor(origin_img_max,cv2.COLOR_RGB2BGR)
+            origin_img_max = cv2.cvtColor(origin_img_max,cv2.COLOR_RGB2BGR)
+            
+            cv2.putText(origin_img_max,"Origin",(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
+            
+        
+            rind_nms_map=read_rind_nms_img(origin_img_path,inference_res_path)
+
+            rind_nms_map_filtered = filter_by_maximun(rind_nms_map)
+
+            #* draw  
+            for idx,x in enumerate(rind_nms_map_filtered):
+                cv2.putText(x,TASKS[idx],(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,0),2)
+
+            a = np.concatenate([rind_nms_map_filtered[0],rind_nms_map_filtered[1]],axis=1) #* reflectance , illumination
+            b = np.concatenate([rind_nms_map_filtered[2],rind_nms_map_filtered[3]],axis=1) #* normal  , depth
+            c = np.concatenate([a,b])
+
+
+            if model_res_right:
+                cv2.imwrite(osp.join(save_path,im_name+".png"),np.concatenate([origin_img_max,np.stack([c , c , c] , axis = 2)],axis=1))
+            else :
+                cv2.imwrite(osp.join(save_path,im_name+".png"),np.concatenate([origin_img_max,np.stack([c , c , c] , axis = 2)],axis=0))
+
     
 
-    for im_name in tqdm(all_img_names):
-
-        origin_img_path = osp.join(origin_path,im_name+f'.{origin_img_suffix}')
-        
-        origin_img = cv2.imread(origin_img_path)
-        origin_img_max= upsample_numpy_format(origin_img)
-
-        origin_img_max = cv2.cvtColor(origin_img_max,cv2.COLOR_RGB2BGR)
-        origin_img_max = cv2.cvtColor(origin_img_max,cv2.COLOR_RGB2BGR)
-        
-        cv2.putText(origin_img_max,"Origin",(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2)
-        
-        
-
-    
-        rind_nms_map=read_rind_nms_img(origin_img_path,inference_res_path)
-
-        rind_nms_map_filtered = filter_by_maximun(rind_nms_map)
-
-        #* draw  
-        for idx,x in enumerate(rind_nms_map_filtered):
-            cv2.putText(x,TASKS[idx],(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(255,0,0),2)
-
-        a = np.concatenate([rind_nms_map_filtered[0],rind_nms_map_filtered[1]],axis=1) #* reflectance , illumination
-        b = np.concatenate([rind_nms_map_filtered[2],rind_nms_map_filtered[3]],axis=1) #* normal  , depth
-        c = np.concatenate([a,b])
-
-        cv2.imwrite(osp.join(save_path,im_name+".png"),np.concatenate([origin_img_max,np.stack([c , c , c] , axis = 2)],axis=0))
-    
-
-    imgs2video(save_path)
+    imgs2video(save_path,fps=30)
 
 
 
@@ -310,15 +318,23 @@ if __name__ == "__main__":
     # draw_grid(origin_path,inference_res_path,origin_img_suffix='jpg',model_res_right=True)
 
 
-    origin_path = osp.join(BASE_PATH,"0000/imgs")
-    inference_res_path = osp.join(BASE_PATH,"0000/nms_res_0")
-    draw_grid(origin_path,inference_res_path,origin_img_suffix='png',model_res_right=True)
+    # origin_path = osp.join(BASE_PATH,"0000/imgs")
+    # inference_res_path = osp.join(BASE_PATH,"0000/nms_res_0")
+    # draw_grid2(origin_path,inference_res_path,origin_img_suffix='png',model_res_right=True)
 
 
-    origin_path = osp.join(BASE_PATH,"KITTI/imgs")
-    inference_res_path = osp.join(BASE_PATH,"KITTI/nms_res_0")
-    draw_grid(origin_path,inference_res_path,origin_img_suffix='png')
+    # origin_path = osp.join(BASE_PATH,"KITTI/imgs")
+    # inference_res_path = osp.join(BASE_PATH,"KITTI/nms_res_0")
+    # draw_grid2(origin_path,inference_res_path,origin_img_suffix='png')
 
+
+
+    origin_path = osp.join(BASE_PATH,"robotics/imgs")
+    inference_res_path = osp.join(BASE_PATH,"robotics/nms_res_0")
+    draw_grid2(origin_path,inference_res_path,origin_img_suffix='png')
+
+
+    
 
 
     

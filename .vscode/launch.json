@@ -8,12 +8,12 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            // "program": "${file}",
+            "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
-            // "console": "integratedTerminal",
+            "console": "integratedTerminal",
             "justMyCode": true,
             //*inference
             // "args": [
@@ -33,7 +33,7 @@
 
             //train  minimize the parameter numebr 
             "args": [
-                "--nproc_per_node=1","--master_port","29510","train2.py",
+                "--nproc_per_node=1","--master_port","29510","train.py",
                 "train",  "-s", "320", "--batch-size", "1",
                  "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
                  "--gpu-ids","1","--constraint-loss"

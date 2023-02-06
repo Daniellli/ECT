@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2022-09-15 08:56:06
+ # @LastEditTime: 2022-09-17 11:09:12
  # @LastEditors: xushaocong
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/test.sh
@@ -46,8 +46,8 @@
 
 #* test one model 
 python -u test.py test  -s 320 \
---resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/all_head_backbone/checkpoints/heads2backone_2_3090.pth.tar \
---batch-size 1 --workers 40 --gpu-ids "5" --run-id 0 --save-file "heads2backone_2_3090" \
+--resume /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus8/checkpoints6/modify_inverse_form_loss.pth.tar \
+--batch-size 1 --workers 40 --gpu-ids "0" --run-id 0 --save-file "modify_inverse_form_loss" \
 2>&1 | tee -a logs/test.log
 
 
