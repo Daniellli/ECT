@@ -8,11 +8,11 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            // "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
+            "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             //*inference
@@ -21,29 +21,25 @@
             //     "--data-dir", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo/demo4/Car2",
             //     "--batch-size", "1","--gpu-ids", "1,2,3" ,"--run-id", "0"
             // ]
+
             // test
-            // "args": [
-            //     "test",  "-s", "320",
-            //      "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar", 
-            //      "--batch-size", "1", "--workers", "40", "--gpu-ids", "1",
-            //      "--run-id", "0", "--save-file","attention_test",
-            // ]
-
-            
-
-            //train  minimize the parameter numebr 
             "args": [
-                "--nproc_per_node=1","--master_port","29510","train.py",
-                "train",  "-s", "320", "--batch-size", "1",
-                 "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
-                 "--gpu-ids","1","--constraint-loss"
+                "test",  "-s", "320",
+                 "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar", 
+                 "--batch-size", "1", "--workers", "40", "--gpu-ids", "1",
+                 "--run-id", "0", "--save-file","debug",
             ]
 
 
-               
-         
-
             
+            // "args": [
+            //     "--nproc_per_node=1","--master_port","29510","train.py",
+            //     "train",  "-s", "320", "--batch-size", "1",
+            //      "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
+            //      "--gpu-ids","1","--constraint-loss"
+            // ]
+
+
               
             
             

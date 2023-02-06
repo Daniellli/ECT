@@ -1,8 +1,8 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2022-09-15 08:32:00
-LastEditors: xushaocong
+LastEditTime: 2023-02-06 20:54:53
+LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test.py
 email: xushaocong@stu.xmu.edu.cn
@@ -86,10 +86,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     logger.info("load model done ")
     model = single_model.cuda()
     model.eval()
-      
-  
-    cudnn.benchmark = True
 
+    cudnn.benchmark = True
     edge_output_dir = os.path.join(output_dir, 'all_edges/met')
     make_dir(edge_output_dir)
 
@@ -106,8 +104,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     make_dir(illumination_output_dir)
 
 
-    attention_output_dir = os.path.join(output_dir, 'attention')
-    make_dir(attention_output_dir)
+    # attention_output_dir = os.path.join(output_dir, 'attention')
+    # make_dir(attention_output_dir)
     
     logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
@@ -121,20 +119,17 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             B,C,H,W = image.shape 
             trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
-            image = trans1(image)#* debug
+            image = trans1(image)
 
-            attention_save_dir = osp.join(attention_output_dir,name)
-
-            make_dir(attention_save_dir)
-
-            # np.savetxt('tmp.txt',attention_save_dir,'%s')
-            with open('tmp.txt' ,'w') as f :
-                f.write(attention_save_dir)
+            # attention_save_dir = osp.join(attention_output_dir,name)
+            # make_dir(attention_save_dir)
+            # with open('tmp.txt' ,'w') as f :
+            #     f.write(attention_save_dir)
 
             
             with torch.no_grad():
                 #!======================
-                model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
                 # vis_att(model,image)
                 #!======================
                 res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
