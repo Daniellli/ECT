@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 11:59:44
-LastEditTime: 2022-09-16 17:54:56
+LastEditTime: 2022-09-16 20:28:40
 LastEditors: xushaocong
 Description: 
-FilePath: /Cerberus-main/model/loss/inverse_loss.py
+FilePath: /cerberus/model/loss/inverse_loss.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -38,8 +38,8 @@ class InverseTransform2D(nn.Module):
     def forward(self, inputs, targets):   
         inputs = F.log_softmax(inputs) #* 先softmax 后取对数 
             
-        inputs = F.interpolate(inputs, size=(self.resized_dim, 2*self.resized_dim), mode='bilinear') #* from [B,C,320,320] to [B,C,672,1344]
-        targets = F.interpolate(targets, size=(self.resized_dim, 2*self.resized_dim), mode='bilinear')#* from [B,C,320,320] to [B,C,672,1344]
+        inputs = F.interpolate(inputs, size=(self.resized_dim, self.resized_dim), mode='bilinear') #* from [B,C,320,320] to [B,C,672,1344]
+        targets = F.interpolate(targets, size=(self.resized_dim, self.resized_dim), mode='bilinear')#* from [B,C,320,320] to [B,C,672,1344]
         
         batch_size = inputs.shape[0]
 
@@ -50,7 +50,7 @@ class InverseTransform2D(nn.Module):
         #* from [1,1,224,244]  to [18,1,224,244], 就是提取一个一个的context patch 
         k=1
         for i in range(0, self.tile_factor):
-            for j in range(0, 2*self.tile_factor):
+            for j in range(0, self.tile_factor):
                 if i+j!=0:
                     tiled_targets = \
                     torch.cat((tiled_targets, targets[:, :, self.tiled_dim*i:self.tiled_dim*(i+1), self.tiled_dim*j:self.tiled_dim*(j+1)]), dim=0)
@@ -60,7 +60,7 @@ class InverseTransform2D(nn.Module):
         #* from [1,1,224,244]  to [18,1,224,244]
         k=1      
         for i in range(0, self.tile_factor):
-            for j in range(0, 2*self.tile_factor):
+            for j in range(0, self.tile_factor):
                 if i+j!=0:
                     tiled_inputs = \
                     torch.cat((tiled_inputs, inputs[:, :, self.tiled_dim*i:self.tiled_dim*(i+1), self.tiled_dim*j:self.tiled_dim*(j+1)]), dim=0)
@@ -73,6 +73,48 @@ class InverseTransform2D(nn.Module):
         mean_square_inverse_loss = (((distance_coeffs*distance_coeffs).sum(dim=1))**0.5).mean() 
         #* 对输出的 [18 * 4] 矩阵 每个元素取平方, 然后求和得 [18]  开根号: [18], 然后取平均 得[1]
         return mean_square_inverse_loss
+
+
+        
+    # def forward(self, inputs, targets):   
+    #     inputs = F.log_softmax(inputs) #* 先softmax 后取对数 
+            
+    #     inputs = F.interpolate(inputs, size=(self.resized_dim, 2*self.resized_dim), mode='bilinear') #* from [B,C,320,320] to [B,C,672,1344]
+    #     targets = F.interpolate(targets, size=(self.resized_dim, 2*self.resized_dim), mode='bilinear')#* from [B,C,320,320] to [B,C,672,1344]
+        
+    #     batch_size = inputs.shape[0]
+
+    #     tiled_inputs = inputs[:,:,:self.tiled_dim,:self.tiled_dim] #* pick up [B,C,224,244]
+    #     tiled_targets = targets[:,:,:self.tiled_dim,:self.tiled_dim]#* pick up [B,C,224,244]
+
+
+    #     #* from [1,1,224,244]  to [18,1,224,244], 就是提取一个一个的context patch 
+    #     k=1
+    #     for i in range(0, self.tile_factor):
+    #         for j in range(0, 2*self.tile_factor):
+    #             if i+j!=0:
+    #                 tiled_targets = \
+    #                 torch.cat((tiled_targets, targets[:, :, self.tiled_dim*i:self.tiled_dim*(i+1), self.tiled_dim*j:self.tiled_dim*(j+1)]), dim=0)
+    #                 k += 1
+
+
+    #     #* from [1,1,224,244]  to [18,1,224,244]
+    #     k=1      
+    #     for i in range(0, self.tile_factor):
+    #         for j in range(0, 2*self.tile_factor):
+    #             if i+j!=0:
+    #                 tiled_inputs = \
+    #                 torch.cat((tiled_inputs, inputs[:, :, self.tiled_dim*i:self.tiled_dim*(i+1), self.tiled_dim*j:self.tiled_dim*(j+1)]), dim=0)
+    #             k += 1
+
+    #     #* feed forward 计算 homography 
+    #     _, _, distance_coeffs = self.inversenet(tiled_inputs, tiled_targets)
+
+        
+    #     mean_square_inverse_loss = (((distance_coeffs*distance_coeffs).sum(dim=1))**0.5).mean() 
+    #     #* 对输出的 [18 * 4] 矩阵 每个元素取平方, 然后求和得 [18]  开根号: [18], 然后取平均 得[1]
+    #     return mean_square_inverse_loss
+
 
 
 

@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-02-06 20:27:12
+ # @LastEditTime: 2023-02-06 20:39:30
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/train.sh
