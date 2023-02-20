@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-20 14:19:37
+LastEditTime: 2023-02-20 14:39:01
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud2.py
@@ -426,9 +426,5 @@ def readtxt(path):
 
 
 if __name__ == "__main__":
-
-
-        
-        
     # Nyud2(gen_edge=True)
     Nyud2(gen_edge=False)
