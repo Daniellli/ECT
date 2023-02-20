@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2022-09-06 13:42:05
-LastEditors: xushaocong
+LastEditTime: 2023-02-19 17:30:14
+LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_main_pic.py
+FilePath: /Cerberus-main/plot/plot_main_pic.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -27,7 +27,7 @@ import scipy.io as scio
 from PIL import Image
 import json
 import shutil
-
+from skimage import morphology
 
 ''' 
 description:  对goal 的非零元素进行扩张, 扩张倍数为10 
@@ -39,10 +39,10 @@ def dilation(goal, times = 2 ):
     selem = skimage.morphology.disk(times)
 
 
-    goal = skimage.morphology.binary_dilation(goal, selem) != True
+    # goal = skimage.morphology.binary_dilation(goal, selem) != True
+    goal = morphology.binary_dilation(goal, selem) != True
     goal = 1 - goal * 1.
     goal*=255
-    
     return goal
 
 

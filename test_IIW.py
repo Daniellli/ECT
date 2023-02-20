@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-09 22:31:45
+LastEditTime: 2023-02-19 19:55:16
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/test.py
+FilePath: /Cerberus-main/test_IIW.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -38,9 +38,10 @@ from loguru import logger
 from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
-from torchvision import transforms
+from dataloaders.datasets.nyud_geonet import NYUD_GeoNet
 from dataloaders.datasets.sbu import SBU
 from dataloaders.datasets.istd import ISTD
+from dataloaders.datasets.iiw_dataset import IIWDataset
 
 from torch.utils.data.distributed import DistributedSampler
 from utils import make_dir,parse_args
@@ -53,11 +54,8 @@ warnings.filterwarnings('ignore')
 from utils.global_var import *
 
 
-'''
-description:  test on other dataset 
-return {*}
-'''
 
+from dataloaders.datasets.nyud2 import Nyud2
 
 
 
@@ -127,22 +125,19 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
-        for i, image in enumerate(tbar):#*  B,C,H,W
-            name = test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
+        for i, (image,name) in enumerate(tbar):#*  B,C,H,W_OK
+
             
+            name= name[0]
             # logger.info(name)
             image = Variable(image, requires_grad=False)
             image = image.cuda()
+            
             B,C,H,W = image.shape 
             # trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
             trans1 = transforms.Compose([transforms.Resize(size=(H//32*32, W//32*32))])
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)
-
-            # attention_save_dir = osp.join(attention_output_dir,name)
-            # make_dir(attention_save_dir)
-            # with open('tmp.txt' ,'w') as f :
-            #     f.write(attention_save_dir)
 
             
             with torch.no_grad():
@@ -159,11 +154,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             edge_pred = out_edge.data.cpu().numpy()
             edge_pred = edge_pred.squeeze()
             sio.savemat(os.path.join(edge_output_dir, '{}.mat'.format(name)), {'result': edge_pred})
-            #!+============
-            # vis_data = out_edge.squeeze(0).max(0)[1].cpu().numpy()
-            # test_visul_label(vis_data,os.path.join(edge_output_dir, '{}.png'.format(name)))
-            #!+============
-
+            
             depth_pred = out_depth.data.cpu().numpy()
             depth_pred = depth_pred.squeeze()
             sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
@@ -185,14 +176,16 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
 
     #* just for attention 
     logger.info("reference done , start to eval ")
-    #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
-    #! 第二个参数给1 就是测试edge
-    os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
-    # test_edge
-    #* 读取评估的结果
-    logger.info("eval done  ")
-    with open (osp.join(output_dir,"eval_res.json"),'r')as f :
-        eval_res = json.load(f)
+    
+    eval_res= None
+    if False:
+        #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
+        #! 第二个参数给1 就是测试edge
+        os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
+        #* 读取评估的结果
+        logger.info("eval done  ")
+        with open (osp.join(output_dir,"eval_res.json"),'r')as f :
+            eval_res = json.load(f)
 
     spend_time =  time.time() - tic
     #* 计算耗时
@@ -309,13 +302,19 @@ def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     #* load data 
-    test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+    #!+=========================================
+    # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+    # test_dataset = NYUD_GeoNet(split='val',root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2',mode='inference')
+    # test_dataset=Nyud2()
+    test_dataset = IIWDataset(data_dir='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/IIW/iiw-dataset',split='test')
 
+    #!+=========================================
 
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, 
                         shuffle=False,num_workers=args.workers,pin_memory=False)
     logger.info(args.run_id)
     logger.info(args.save_file)
+
     test_edge(args.resume,test_loader,args.save_file,args.run_id)#! resume 给的model path需要是绝对路径
     
 if __name__ == '__main__':

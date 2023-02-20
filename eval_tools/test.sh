@@ -1,8 +1,8 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2022-09-06 13:22:40
- # @LastEditors: xushaocong
+ # @LastEditTime: 2023-02-20 14:35:18
+ # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
  # email: xushaocong@stu.xmu.edu.cn
@@ -13,7 +13,7 @@
 
 cd eval_tools;
 #* 这个如果是1 就test,如果是2 就不测试
-echo param == $2,dir == $1;
+echo  dir == $1,param == $2;
 # source activate
 # conda deactivate
 # conda activate matlab #* 不需要切换环境也可以测试
@@ -27,8 +27,25 @@ echo param == $2,dir == $1;
 #     python test.py -d $1;
 # fi;
 
-python test.py -d $1
+# python test.py -d $1
 # python test.py -d $1 --test-edge;
+
+
+#* SBU
+# python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/SBU_0 \
+# --dataset SBU 2>&1 | tee -a ../logs/eval_matlab.log
+
+
+
+# python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/ISTD_0 \
+# --dataset ISTD 2>&1 | tee -a ../logs/eval_matlab.log
+
+
+
+python test.py --eval-data-dir '/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/tmp_0' \
+--dataset NYUD2 2>&1 | tee -a ../logs/eval_matlab.log
+
+
 
 
 

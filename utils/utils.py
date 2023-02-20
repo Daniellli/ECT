@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2023-02-06 23:17:18
+LastEditTime: 2023-02-20 10:37:21
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -9,26 +9,25 @@ email: xushaocong@stu.xmu.edu.cn
 '''
 import torch
 from PIL import Image
-from torch import nn
-# from typing import OrderedDict
-import json
 import math
-from os.path import exists, join, split
+from os.path import  join, split
 import threading
 import shutil
 import numpy as np
-from loguru import logger
 import os
-# from torch.nn.modules import transformer
-# import torch.optim as optim
-# import torch.nn.functional as F
+import torch.nn.functional as F
 import argparse
-import drn
-import sys
+# import drn
+from concurrent import futures
+
 try:
     from modules import batchnormsync
 except ImportError:
     pass
+
+
+
+import sys
 
 
 class AverageMeter(object):
@@ -114,27 +113,6 @@ def fill_up_weights(up):
 
 
 
-'''
-description: 
-param {*} predictions
-param {*} filenames
-param {*} output_dir
-param {*} palettes
-return {*}
-'''
-def save_colorful_images(predictions, filenames, output_dir, palettes):
-   """
-   Saves a given (B x C x H x W) into an image file.
-   If given a mini-batch tensor, will save the tensor as a grid of images.
-   """
-   for ind in range(len(filenames)):
-       im = Image.fromarray(palettes[predictions[ind].squeeze()])
-       fn = os.path.join(output_dir, filenames[ind][:-4] + '.png')
-       out_dir = split(fn)[0]
-       if not exists(out_dir):
-           os.makedirs(out_dir)
-       im.save(fn)
-
 
 
 '''
@@ -205,26 +183,6 @@ def per_class_iu(hist):#? 这是什么
     return np.diag(hist) / (hist.sum(1) + hist.sum(0) - np.diag(hist))
 
 
-'''
-description:  保存图像
-param {*} predictions
-param {*} filenames
-param {*} output_dir
-return {*}
-'''
-def save_output_images(predictions, filenames, output_dir):
-    """
-    Saves a given (B x C x H x W) into an image file.
-    If given a mini-batch tensor, will save the tensor as a grid of images.
-    """
-    # pdb.set_trace()
-    for ind in range(len(filenames)):
-        im = Image.fromarray(predictions[ind].astype(np.uint8))
-        fn = os.path.join(output_dir, filenames[ind][:-4] + '.png')
-        out_dir = split(fn)[0]
-        if not exists(out_dir):
-            os.makedirs(out_dir)
-        im.save(fn)
 
 
 
@@ -348,10 +306,50 @@ def parse_args():
 
                 
     args = parser.parse_args()
-    if args.bn_sync:
-        drn.BatchNorm = batchnormsync.BatchNormSync
+    # if args.bn_sync:
+    #     drn.BatchNorm = batchnormsync.BatchNormSync
 
     return args
+
+
+
+
+
+
+# Print iterations progress (thanks StackOverflow)
+def printProgress(iteration, total, prefix='', suffix='', decimals=1, barLength=100):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        barLength   - Optional  : character length of bar (Int)
+    """
+    formatStr       = "{0:." + str(decimals) + "f}"
+    percents        = formatStr.format(100 * (iteration / float(total)))
+    filledLength    = int(round(barLength * iteration / float(total)))
+    bar             = '' * filledLength + '-' * (barLength - filledLength)
+    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+    if iteration == total:
+        sys.stdout.write('\x1b[2K\r')
+    sys.stdout.flush()
+
+
+def process_mp(function,function_parameter_list,num_threads=64,\
+                prefix='processing with multiple threads:',suffix = "done"):
+
+    num_sample = len(function_parameter_list)
+    with futures.ProcessPoolExecutor(max_workers=num_threads) as executor:
+        
+        fs = [executor.submit(function, parameters) for parameters in function_parameter_list]
+
+        for i, f in enumerate(futures.as_completed(fs)):
+            printProgress(i, num_sample, prefix=prefix, suffix=suffix, barLength=40)
+
+
 
 
 

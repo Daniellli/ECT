@@ -31,16 +31,18 @@ for test_index=1:size(test_list,2)
     nms_dir = fullfile(data_dir, 'nms');
     mkdir(nms_dir)
     
-    files = dir(mat_dir);
-    files = files(3:end,:);  % It means all files except ./.. are considered.
+    files = dir(mat_dir+"/*.mat");
+    % files = files(3:end,:);  % It means all files except ./.. are considered.
+
     mat_names = cell(1,size(files, 1));
     nms_names = cell(1,size(files, 1));
     for i = 1:size(files, 1)
-        mat_names{i} = files(i).name;
+        mat_names{i} = files(i).name;    
         nms_names{i} = [files(i).name(1:end-4), '.png']; % Output PNG files.
     end
     
     for i = 1:size(mat_names,2)
+
         matObj = matfile(fullfile(mat_dir, mat_names{i})); % Read MAT files.
         varlist = who(matObj);
         
@@ -62,7 +64,19 @@ for test_index=1:size(test_list,2)
     
     % Section 2: Evaluate the edges (formerly EvalEdge.m from HED repo).
     disp('Evaluate the edges...');
-    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/testgt/',test_type];
+
+    
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/data/BSDS-RIND/testgt/',test_type];
+    
+    % for SBU shadow edge detection 
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow/SBU-Test/EdgeMapMat'];
+
+    % for ISTD shadow edge detection 
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset/test/EdgeMapMat'];
+
+    % for NYUD2 normal and depth  edge detection 
+    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/cropped/','nyu_',test_type,'_edge_canny_mat'];
+
     resDir = fullfile(data_dir, 'nms');
     edgesEvalDir('resDir',resDir,'gtDir',gtDir, 'thin', 1, 'pDistr',{{'type','parfor'}},'maxDist',0.0075);
     figure; 

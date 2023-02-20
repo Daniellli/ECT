@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-09 22:31:45
+LastEditTime: 2023-02-08 12:14:29
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -38,7 +38,6 @@ from loguru import logger
 from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
-from torchvision import transforms
 from dataloaders.datasets.sbu import SBU
 from dataloaders.datasets.istd import ISTD
 
@@ -48,7 +47,7 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
-
+import json
 
 from utils.global_var import *
 
@@ -127,9 +126,10 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
-        for i, image in enumerate(tbar):#*  B,C,H,W
-            name = test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
+        for i, (image,name) in enumerate(tbar):#*  B,C,H,W
+            # name = test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
             
+            name=name[0]
             # logger.info(name)
             image = Variable(image, requires_grad=False)
             image = image.cuda()
@@ -309,7 +309,13 @@ def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     #* load data 
-    test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+    #!=================
+    # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+
+    # test_dataset = SBU(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow',subset='val')
+    test_dataset = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='test')
+    
+    #!=================
 
 
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, 
