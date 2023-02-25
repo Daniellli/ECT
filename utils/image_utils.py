@@ -19,11 +19,21 @@ from os.path import split,join,exists
 from PIL import Image
 import numpy as np
 
+'''
+description: make sure the type of img is acceptable image  
+param {*} img
+return {*}
+'''
+def check_img(img):
+    img=cv2.cvtColor(img,cv2.COLOR_RGB2BGR)
+    img= cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
+    return img
+
+
 
 
 def convert_image_vertical(img):
 
-    
     #* turn into image 
     im = Image.fromarray(img)
     flip_left_right = im.transpose(Image.FLIP_LEFT_RIGHT)  # 水平翻转
@@ -34,7 +44,7 @@ def convert_image_vertical(img):
 
 
 
-def show_imgs(img_list,gray_mode=None,titles=None,img_name=None):
+def show_imgs(img_list,gray_mode=None,titles=None,img_name=None,fontsize = 5):
     if gray_mode is None :
         print(f" please give the gray mode ")
         return 
@@ -47,7 +57,8 @@ def show_imgs(img_list,gray_mode=None,titles=None,img_name=None):
         
         plt.imshow(img_list[i],cmap='gray' if gray_mode[i] else None)
         if titles is not None:
-            plt.title(titles[i])
+            # plt.title(titles[i],y=0.3,fontsize=5)
+            plt.title(titles[i],fontsize=fontsize) #* y is relative to the image center? or the image bottom 
         plt.xticks([])
         plt.yticks([])
     if img_name is not None:
@@ -409,9 +420,9 @@ def distance(a,b):
 def get_depth_edge_by_edge(depth_map,edge,depth_threshold):
 
     depth_edge = np.zeros(edge.shape[:2])
-    rows,cols=np.where(edge==1)
-
-    for r,c in zip(rows,cols):
+    idx=np.argwhere(edge==255)
+    # print(f"edge pixel number :{idx.shape}")
+    for r,c in idx:
         # neighbors = torch.from_numpy(get_neighbors(r,c,depth_map))   
         # dist = F.mse_loss(neighbors,torch.from_numpy(np.array(depth_map[r,c])).repeat([neighbors.shape[0]]),reduction='none')
         neighbors = get_neighbors_5_5(r,c,depth_map)

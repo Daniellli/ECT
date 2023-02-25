@@ -75,7 +75,11 @@ for test_index=1:size(test_list,2)
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset/test/EdgeMapMat'];
 
     % for NYUD2 normal and depth  edge detection 
-    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/cropped/','nyu_',test_type,'_edge_canny_mat'];
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_canny/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
+    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/tmp/','nyu_',test_type,'_edges_crop_mat'];
+    
+
 
     resDir = fullfile(data_dir, 'nms');
     edgesEvalDir('resDir',resDir,'gtDir',gtDir, 'thin', 1, 'pDistr',{{'type','parfor'}},'maxDist',0.0075);

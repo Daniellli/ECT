@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-11 22:47:30
-LastEditTime: 2023-02-20 10:37:21
+LastEditTime: 2023-02-20 20:52:33
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -27,7 +27,16 @@ except ImportError:
 
 
 
+import scipy.io as scio
 import sys
+
+
+
+def load_mat(path):
+    return scio.loadmat(path)
+
+
+
 
 
 class AverageMeter(object):

@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-20 14:39:01
+LastEditTime: 2023-02-20 16:22:38
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud2.py
@@ -19,7 +19,7 @@ import numpy as np
 
 from tqdm import tqdm
 
-
+import scipy.io as scio
 # from dataloaders.datasets.nyud_geonet import *
 from torchvision import transforms
 
@@ -85,20 +85,24 @@ class Nyud2:
         self.cropped_path = join(self.path,'cropped')
 
         self.__depth_edge_path= join(self.cropped_path,'nyu_depth_edge_canny')
+        self.__depth_edge_path2= join(self.cropped_path,'nyu_depth_edge')
         self.__image_path= join(self.cropped_path,'nyu_images')
         self.__normal_edge_path= join(self.cropped_path,'nyu_normal_edge_canny')
         self.__depth_path= join(self.cropped_path,'nyu_depths')
         self.__normal_path= join(self.cropped_path,'nyu_normals')
 
         self.__depth_edge_mat_path= join(self.cropped_path,'nyu_depth_edge_canny_mat')
+        self.__depth_edge2_mat_path= join(self.cropped_path,'nyu_depth_edge_mat')
         self.__normal_edge_mat_path= join(self.cropped_path,'nyu_normal_edge_canny_mat')
 
         make_dir(self.__depth_edge_path)
+        make_dir(self.__depth_edge_path2)
+        make_dir(self.__depth_edge2_mat_path)
+        
         make_dir(self.__image_path)
         make_dir(self.__normal_edge_path)
         make_dir(self.__depth_path)
         make_dir(self.__normal_path)
-
         make_dir(self.__depth_edge_mat_path)
         make_dir(self.__normal_edge_mat_path)
         
@@ -106,10 +110,10 @@ class Nyud2:
         if gen_edge:
             self.gen_edge_mp()
             self.gen_depth_edge_mp()
-            self.gen_normal_edge_mp()
+            # self.gen_normal_edge_mp()
 
             #* cropped data generation
-            self.gen_cropped_data()
+            # self.gen_cropped_data()
         
         #* generate the normal map, crop the normal edge map of geonet and move them here actually.
         # self.geonet_loader = NYUD_GeoNet(split='val',root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2')
@@ -119,7 +123,7 @@ class Nyud2:
                              transforms.ToTensor(),
                              normalize])  ## pre-process of pre-trained model of pytorch resnet-50
 
-        self.gen_mat_mp()
+        # self.gen_mat_mp()
 
 
 
@@ -143,9 +147,12 @@ class Nyud2:
 
     def gen_mat(self,idx):
 
-        image,depth_map,label,edge,depth_edge,normal_map,normal_edge,name =self.__getitem__(idx)
+        image,depth_map,label,edge,depth_edge,normal_map,normal_edge,name =self.getitem(idx)
         self.save_as_mat(join(self.__depth_edge_mat_path,name.split('.')[0]+'.mat'),depth_edge)
         self.save_as_mat(join(self.__normal_edge_mat_path,name.split('.')[0]+'.mat'),normal_edge)
+
+        imwrite('a.jpg',depth_edge)
+        imwrite('b.jpg',normal_edge)
 
         
     def gen_mat_mp(self):
@@ -226,17 +233,34 @@ class Nyud2:
     param {*} idx
     return {*}
     '''
-    def gen_save_depth_edge(self,idx):
-        depth_threshold = 6
-        save_path =  join(self.depth_edge_path,self.name_list[idx])
+    def gen_save_depth_edge(self,idx,depth_threshold = 2):
+        
+        
+        # save_path =  join(self.depth_edge_path,self.name_list[idx])
+        save_path =  join(self.__depth_edge_path2,self.name_list[idx])
+        mat_save_path =  join(self.__depth_edge2_mat_path,self.name_list[idx].split('.')[0]+'.mat')
+        
 
-        if not  exists(save_path):    
-            _,depth_map,_,edge_map,_,_,_,_=self.__getitem__(idx)
+        if not  exists(save_path) :    
 
-            edge_map= dilation(edge_map,2)/255
+            _,depth_map,_,edge_map,_,_,_,_=self.getitem_no_crop(idx)
+            # image,depth,label,edge,depth_edge,normal_map,normal_edge,self.name_list[idx]
 
-            depth_edge =get_depth_edge_by_edge(depth_map,edge_map,depth_threshold=depth_threshold)
-            imwrite(save_path,depth_edge*255)
+            #* dilation edge,  
+            # edge_map= dilation(edge_map,2)/255
+
+            depth_edge =get_depth_edge_by_edge(depth_map,edge_map,depth_threshold=depth_threshold)*255
+            
+            # imwrite(save_path,depth_edge)
+            #* save the cropped depth edge 
+            crpped = depth_edge[45:471, 41:601]
+            imwrite(save_path,crpped)
+            self.save_as_mat(mat_save_path,crpped)
+
+
+            # imwrite('a.jpg',depth_map)
+            # imwrite('b.jpg',edge_map)
+            # imwrite('c.jpg',crpped)
 
 
     '''
@@ -263,8 +287,8 @@ class Nyud2:
     
 
     def gen_depth_edge_mp(self):
-        # process_mp(self.gen_save_depth_edge,range(self.__len__()),num_threads=256)
-        process_mp(self.gen_save_depth_edge_by_canny,range(self.__len__()),num_threads=1)
+        process_mp(self.gen_save_depth_edge,range(self.__len__()),num_threads=256)
+        # process_mp(self.gen_save_depth_edge_by_canny,range(self.__len__()),num_threads=1)
         
 
     '''
@@ -310,7 +334,7 @@ class Nyud2:
     def gen_save_edge(self,idx):
         save_path =  join(self.edge_path,self.name_list[idx])
 
-        if not  exists(save_path):    
+        if not  exists(save_path) :    
             label = imread(join(self.labels_path,self.name_list[idx]),gray=True)
             edge_map=get_edge_map_from_label(label)
             imwrite(save_path,edge_map*255)
@@ -322,7 +346,7 @@ class Nyud2:
     return {*}
     '''
     def gen_edge_mp(self):
-        process_mp(self.gen_save_edge,range(self.__len__()))
+        process_mp(self.gen_save_edge,range(self.__len__()),num_threads=256)
         
 
     
@@ -332,21 +356,21 @@ class Nyud2:
 
     
 
-    # def __getitem__(self,idx):
+    def getitem_no_crop(self,idx):
         
-    #     # return self.getitem_PIL(idx)
-    #     depth = imread(join(self.depths_path,self.name_list[idx]),gray=True)
-    #     image = imread(join(self.images_path,self.name_list[idx]))
-    #     label = imread(join(self.labels_path,self.name_list[idx]),gray=True)
-    #     edge = imread(join(self.edge_path,self.name_list[idx]),gray=True)
+        # return self.getitem_PIL(idx)
+        depth = imread(join(self.depths_path,self.name_list[idx]),gray=True)
+        image = imread(join(self.images_path,self.name_list[idx]))
+        label = imread(join(self.labels_path,self.name_list[idx]),gray=True)
+        edge = imread(join(self.edge_path,self.name_list[idx]),gray=True)
 
 
-    #     depth_edge = imread(join(self.depth_edge_path,self.name_list[idx]),gray=True)
-    #     normal_map = imread(join(self.normals_path,self.name_list[idx]))
+        depth_edge = imread(join(self.depth_edge_path,self.name_list[idx]),gray=True)
+        normal_map = imread(join(self.normals_path,self.name_list[idx]))
 
-    #     normal_edge  = imread(join(self.normal_edge_path,self.name_list[idx]),gray=True)
+        normal_edge  = imread(join(self.normal_edge_path,self.name_list[idx]),gray=True)
 
-    #     return image,depth,label,edge,depth_edge,normal_map,normal_edge,self.name_list[idx]
+        return image,depth,label,edge,depth_edge,normal_map,normal_edge,self.name_list[idx]
 
 
 
@@ -426,5 +450,5 @@ def readtxt(path):
 
 
 if __name__ == "__main__":
-    # Nyud2(gen_edge=True)
-    Nyud2(gen_edge=False)
+    Nyud2(gen_edge=True)
+    # Nyud2(gen_edge=False)

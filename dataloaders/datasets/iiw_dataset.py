@@ -1,10 +1,10 @@
 '''
 Author: daniel
 Date: 2023-02-08 17:28:27
-LastEditTime: 2023-02-20 13:01:59
+LastEditTime: 2023-02-22 20:53:46
 LastEditors: daniel
 Description: 
-FilePath: /RINDNet-main/dataloaders/datasets/iiw_dataset.py
+FilePath: /Cerberus-main/dataloaders/datasets/iiw_dataset.py
 have a nice day
 '''
 import torch
@@ -120,6 +120,23 @@ class IIWDataset(torch.utils.data.Dataset):
         return tuple(data) 
         # data = tuple(data) 
         # return data[0],data[3]#* return the image and name only
+    
+    def getitem_by_name(self, name):
+        img_name = name + '.png'
+        label_name = name + '.json'
+        data = [Image.open(join(self.image_data_list, img_name))]
+        
+        #get label
+        label_dir = join(self.image_data_list, label_name)
+        points, labels = self.get_label(label_dir) #* the value range of point is between 0 and 1 
+            
+        data = list(self.transforms(data[0],np.array(points))) 
+        # data = list(self.transforms(data[0]),self.transforms(np.array(points))) 
+        data.append(labels) 
+
+        #*  [image, the point  corresponding to the label, the label corresponding to the points, image name, transformation guidance image ]        
+        return tuple(data) 
+
 
     def __len__(self):
         return len(self.image_list)

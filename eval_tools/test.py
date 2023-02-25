@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2023-02-19 16:23:13
+LastEditTime: 2023-02-21 15:20:18
 LastEditors: daniel
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -88,6 +88,7 @@ return {*}
 '''
 def eval_normal_depth(eval_data_dir):
     keys=['normal','depth']
+    # keys=['depth']
     
     eval_res  = eval(eval_data_dir,keys)
     

@@ -17,12 +17,10 @@
             // "console": "integratedTerminal",
             "justMyCode": true,
             //* test
-            "args": [
-            "--eval-data-dir=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/iiw_1"
-
-
-
-            ]
+            // "args": [
+            // "--eval-data-dir=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/iiw_1"
+            // ]
+            
             // "args": [
             //     "test",  "-s", "320",
             //      "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar", 

@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-19 17:25:15
+LastEditTime: 2023-02-21 16:38:49
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test_NYU.py
@@ -54,7 +54,8 @@ from utils.global_var import *
 
 
 
-from dataloaders.datasets.nyud2 import Nyud2
+# from dataloaders.datasets.nyud2 import Nyud2
+from dataloaders.datasets.nyud3 import Nyud3
 
 
 
@@ -124,7 +125,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
-        for i, (image,depth_map,label,edge,depth_edge,normal_map,normal_edge,name) in enumerate(tbar):#*  B,C,H,W_OK
+        for i, (image,name) in enumerate(tbar):#*  B,C,H,W_OK
 
             
             name= name[0]
@@ -304,7 +305,7 @@ def main():
     #!+=========================================
     # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
     # test_dataset = NYUD_GeoNet(split='val',root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2',mode='inference')
-    test_dataset=Nyud2()
+    test_dataset=Nyud3()
     
     #!+=========================================
 

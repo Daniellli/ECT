@@ -22,6 +22,8 @@ import argparse
 
 from utils.utils import * 
 
+from torchvision import transforms
+
 
 
 
@@ -82,12 +84,15 @@ class IIWEvaluator:
             pred_edge_xy = pred_edge_xy[min_border == max_border]
             return pred_edge_xy
 
-        def in_same_line(p1,p2,xy):
+        def in_same_line(p1,p2,xy,error_threshold = 1):
             
             vector1=p1-xy 
             vector2=p2-xy 
-            # if vector1[0]/vector1[1] == vector2[0]/vector2[1]:
-            if abs(vector1[0]*vector2[1] -vector2[0]*vector1[1] ) < 5e+1: #* 1e+1, 4e+1 and 5e+1  the bound inside the line,  
+            # if vector1[0]/(vector1[1]+1e-5)  - vector2[0]/(vector2[1]+1e-5) < 1e-4:
+            #     pass
+            # print(abs(vector1[0]*vector2[1] -vector2[0]*vector1[1] ) / ((p1-p2)**2).sum()**(0.5))
+            if abs(vector1[0]*vector2[1] -vector2[0]*vector1[1] ) / ((p1-p2)**2).sum()**(0.5)  < error_threshold: #* 1e+1, 4e+1 and 5e+1  the bound inside the line,  
+            # if : #* 1e+1, 4e+1 and 5e+1  the bound inside the line,  
                 return True
 
             return False
@@ -95,6 +100,14 @@ class IIWEvaluator:
 
         total_pair = 0
         recall_pair=0
+        #!=============================
+        #? why 
+        pred_xy = np.concatenate([pred_xy[:,1][:,None],pred_xy[:,0][:,None]],axis=1)
+        
+        # for (x,y) in pred_xy:
+        #     self.draw_point(self.tmp_img,(x,y),point_color=self.gen_color(),point_size=1)
+
+        #!=============================
         for idx,(point,label)  in enumerate(zip(labels_points,labels)):
             if label[0] != 'E':
                 total_pair+=1
@@ -105,16 +118,14 @@ class IIWEvaluator:
                 axis_x = p12[:,0]
                 axis_y = p12[:,1]
 
-                # print(label[0],p1,p2)
                 pred_edge_xy= inside_square(axis_x,axis_y,pred_xy.copy())
                 
                 #* debug
                 # self.tmp_img = self.draw_point_pair(self.tmp_img,p1.numpy(),p2.numpy())
-                # cv2.imwrite(self.gen_name()+'.jpg',self.tmp_img)
 
                 for idx in pred_edge_xy:
                     xy = torch.from_numpy(idx).int()
-                    if  in_same_line(p1,p2,xy):
+                    if  in_same_line(p1,p2,xy,1):
                         #* debug
                         # print('xy:',x,y,'\t p1:',p1,'\t p2:',p2)
                         # self.draw_point(self.tmp_img,xy.numpy(),point_color=self.gen_color(),point_size=1)
@@ -124,7 +135,7 @@ class IIWEvaluator:
                         break
 
         #* debug
-        # cv2.imwrite(self.gen_name()+'.jpg',self.tmp_img)  
+        # cv2.imwrite(self.gen_name()+'.jpg',self.tmp_img)
 
         # recall = recall_pair/total_pair
         # print("recall : %.4f \t total_pair : %d \t recall pair : %d "%(recall,total_pair,recall_pair))
@@ -132,16 +143,13 @@ class IIWEvaluator:
 
 
 
-    def check_img(self,img):
-        img=cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-        img= cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
-        return img
+
         
     def draw_label(self,img,label_points,labels):
         if img.max()<=1:
             img = np.array(img*255,dtype=np.uint8)
 
-        img = self.check_img(img)
+        img = check_img(img)
         image_shape=torch.from_numpy(np.array(img.shape[:-1]))
 
         for idx,(points,label) in enumerate(zip(label_points,labels)):#* value range is between 0 and 1 
@@ -163,7 +171,7 @@ class IIWEvaluator:
         return (np.random.random((1,3))*255).astype(np.int32)[0].tolist() # BGR
 
     def draw_point_pair(self,img,p1,p2):
-        img = self.check_img(img)
+        img = check_img(img)
         point_color = self.gen_color()
         self.draw_point(img,p1,point_color)
         self.draw_point(img,p2,point_color)
@@ -203,50 +211,57 @@ class IIWEvaluator:
             print(f"there is not positive pair in {name}.json")
             return 
 
-        # self.draw_label(normalize(image.permute(1,2,0).clone()),labels_points,labels)
+        
         inference_res = self.load_mat(join(self.eval_dir,name+'.mat'))
 
         #* threshold  from 0.01 to 0.99
+        # thresholds=np.arange(0.5,1,0.01)
         thresholds=np.arange(0.01,1,0.01)
+        # thresholds=[0.5]
         recall_dict = {}
+
+        # self.tmp_img = np.array(transforms.ToPILImage()(normalize(image)))
+        # imwrite('origin_image.jpg',self.tmp_img)
         
         for threshold in thresholds:
             
             pred_edge_xy =  np.argwhere(inference_res > threshold)#* 1 if the response value large than threshold else 0
-
+            
             #* debug 
-            # self.draw_image(np.array(inference_res > threshold).astype(np.int32),mode=1)
+            # imwrite('edge_with_%d_threshold.jpg'%(threshold*100),np.array((inference_res > threshold)*255,dtype=np.uint8))
             # print(threshold,pred_edge_xy.shape)
-            # self.tmp_img= (normalize(image.clone())*255).permute(1,2,0).numpy().astype(np.uint8)
-
+            
             recall = self.eval_one_threshold(pred_edge_xy,labels_points,labels,np.array(inference_res.shape))
+
             # recall_list.append(recall)
             recall_dict[threshold]=recall
+
 
         dump_json(join(self.eval_json_root,name+".json"),recall_dict)
         
 
     def eval(self):
         
+        #* calculate recall for each image 
         tic = time.time()
         process_mp(self.eval_one_image,range(self.dataloader.__len__()),num_threads=256)
+        #* debug 
+        # self.eval_one_image(10)
         print('spend time : ',time.strftime("%H:%M:%S",time.gmtime(time.time()- tic)))
 
+        #* compute the mean recall 
         eval_dict={}
         for name in self.dataloader.image_list:
-            # eval_dict[name] = load_json(join(self.eval_root,name+'.json'))
             data = load_json(join(self.eval_json_root,name+'.json'))
             if len(data) == 0 :
                 print(name,'is None')
                 continue
-
             eval_dict[name] = np.array(list(data.values())).mean()
-   
-        
+     
+
         m_recall = np.array(list(eval_dict.values())).mean()
 
         print(f'mean recall : {m_recall}')
-        
         dump_json(join(self.eval_root ,'eval.json'),eval_dict)
         dump_json(join(self.eval_root ,'eval_res.json'),{'mean_recall':m_recall})
         

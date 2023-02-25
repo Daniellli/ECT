@@ -45,6 +45,8 @@ from utils.check_model_consistent import is_model_consistent
 from model.loss.inverse_loss import InverseTransform2D
 
 
+import torch.functional
+
 import cv2 
 
 from test import edge_validation
@@ -437,19 +439,11 @@ def train_seg_cerberus(args):
     train_dataset = Mydataset(root_path=args.train_dir, split='trainval', crop_size=args.crop_size)
 
     #!========================
-    sample = train_dataset.__getitem__(0)
-    cv2.imwrite('im.jpg',sample[0].permute(1,2,0).numpy()*255)
-    
-    
-    cv2.imwrite('label1.jpg',sample[1].numpy()[0,:,:]*255)
-
-
-    
-
-    
-
-
+    # sample = train_dataset.__getitem__(0)
+    # cv2.imwrite('im.jpg',sample[0].permute(1,2,0).numpy()*255)
+    # cv2.imwrite('label1.jpg',sample[1].numpy()[0,:,:]*255)
     #!========================
+
     train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,batch_size=args.batch_size, num_workers=args.workers,
@@ -609,7 +603,7 @@ def adjust_learning_rate(args, optimizer, epoch):
 def main():
     args = parse_args()
     
-    project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+    project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
     args.save_dir=osp.join(project_dir,'checkpoints')
     
     
