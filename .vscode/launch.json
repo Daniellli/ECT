@@ -8,19 +8,31 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            // "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             // "console": "integratedTerminal",
+
             "justMyCode": true,
-            //* test
-            // "args": [
-            // "--eval-data-dir=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/iiw_1"
-            // ]
+
+        
             
+            // --gpu-ids '1' --bg-weight 0.5 --rind-weight 1 \
+            // --extra-loss-weight 1e+3 --edge-loss-gamma 0.3 --edge-loss-beta 1 \
+            // --rind-loss-gamma 0.3  --rind-loss-beta 5 --constraint-loss \
+            
+            "args": [
+                "--nproc_per_node=1","--master_port","29511","train_SE.py",
+                "train",  "-s", "320", "--batch-size", "2",
+                 "--epochs","300","--lr","1e-5",
+                 "--gpu-ids","1","--constraint-loss"
+            ]
+
+
+            //* edge cerberus
             // "args": [
             //     "test",  "-s", "320",
             //      "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar", 
@@ -38,16 +50,6 @@
             // ]
 
 
-              
-            
-            
-
-            //* ddp debug 
-            // "args": ["--nproc_per_node=1", "--master_port","29511","train2.py",
-            // "train","-s","320","--batch-size","1","--epochs","300","--lr","1e-5",
-            // "--momentum","0.9","--lr-mode","poly","--workers", "12","--gpu-ids","2","--save-dir","hello"
-            // "--resume","/data3/xusc/exp/cerberus/networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1657761722/checkpoints/ckpt_rank000_ep0100.pth.tar"
-            // ],
 
 
         }

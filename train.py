@@ -26,7 +26,11 @@ from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
 from torch.utils.data.distributed import DistributedSampler
-from utils import save_checkpoint,AverageMeter,parse_args,calculate_param_num
+from utils import save_checkpoint,AverageMeter,calculate_param_num
+from utils.edge_option import parse_args
+
+
+
 import json
 
 import warnings
