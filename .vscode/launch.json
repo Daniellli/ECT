@@ -9,9 +9,9 @@
             "type": "python",
             "request": "launch",
             // "program": "${file}",
-            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             "console": "integratedTerminal",
@@ -28,7 +28,7 @@
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
                 "train",  "-s", "640", "--batch-size=1",
                  "--epochs","300","--lr","1e-5","--dataset=cityscapes",
-                 "--gpu-ids","1","--inverseform-loss","--data-dir=data/cityscapes/data_proc"
+                 "--gpu-ids","0","--inverseform-loss","--data-dir=data/cityscapes/data_proc"
             ]
 
 

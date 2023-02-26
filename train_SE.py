@@ -46,7 +46,7 @@ from dataloaders.semantic_edge import get_edge_dataset
 from model.edge_model import EdgeCerberus
 from model.semantic_edge_model import SEdgeCerberus
 
-
+from torchsummary import summary
 
 
 warnings.filterwarnings('ignore')
@@ -94,8 +94,7 @@ class SETrainer:
         self.init_model() #* todo 
         self.inti_criterion()
         self.inti_dataloader()
-        self.optimizer = torch.optim.SGD(self.model.parameters(),self.args.lr,
-                                    momentum=self.args.momentum,weight_decay=self.args.weight_decay)
+        
         
 
         if not hasattr(self,'start_epoch'):#* perhaps be init during  resuming
@@ -149,11 +148,31 @@ class SETrainer:
             single_model = EdgeCerberus(backbone="vitb_rn50_384")
 
 
+        params_list = [{'params': single_model.pretrained.parameters(), 'lr': self.args.lr},
+                        {'params': single_model.scratch.parameters(), 'lr': self.args.lr * 10},
+                        {'params': single_model.edge_query_embed.parameters(), 'lr': self.args.lr * 10},
+                        {'params': single_model.decoder.parameters(), 'lr': self.args.lr * 10},
+
+                        {'params': single_model.final_norm1.parameters(), 'lr': self.args.lr * 10},
+                        {'params': single_model.final_dropout1.parameters(), 'lr': self.args.lr * 10},
+                        {'params': single_model.final_rcu.parameters(), 'lr': self.args.lr * 10}]
+
+
+                           
+        # self.optimizer = torch.optim.SGD(self.model.parameters(),self.args.lr,
+        #                             momentum=self.args.momentum,\
+        #                                 weight_decay=self.args.weight_decay)
+
+        self.optimizer = torch.optim.SGD(params_list,self.args.lr,
+                                    momentum=self.args.momentum,\
+                                    weight_decay=self.args.weight_decay)
+
 
         #*========================================================
         #* calc parameter numbers 
-        total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
-        self.log(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
+        # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
+        # self.log(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
+        print(summary(single_model))
         #*========================================================
 
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))

@@ -3,10 +3,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2022-06-21 18:06:08
- # @LastEditors: xushaocong
+ # @LastEditTime: 2023-02-26 15:54:51
+ # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/install.sh
+ # @FilePath: /Cerberus-main/install.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -72,3 +72,6 @@ python -c "import torch; print(torch.cuda.is_available(), 'cuda version : ',torc
 # pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 
 python -c "import sys; print(sys.path)"
+
+
+pip install torch-summary

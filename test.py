@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-09 22:31:45
+LastEditTime: 2023-02-26 15:01:43
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -22,7 +22,7 @@ import torch.backends.cudnn as cudnn
 from torchvision import  transforms
 from torch.autograd import Variable
 
-import data_transforms as transforms
+# import data_transforms as transforms
 from model.models import  CerberusSegmentationModelMultiHead
 from model.edge_model import  EdgeCerberus
 import torch 
