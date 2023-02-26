@@ -11,11 +11,10 @@
             // "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
-            // "console": "integratedTerminal",
-
+            "console": "integratedTerminal",
             "justMyCode": true,
 
         
@@ -23,12 +22,13 @@
             // --gpu-ids '1' --bg-weight 0.5 --rind-weight 1 \
             // --extra-loss-weight 1e+3 --edge-loss-gamma 0.3 --edge-loss-beta 1 \
             // --rind-loss-gamma 0.3  --rind-loss-beta 5 --constraint-loss \
-            
+
+            //* cityscape  cerberus
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "train",  "-s", "320", "--batch-size", "2",
-                 "--epochs","300","--lr","1e-5",
-                 "--gpu-ids","1","--constraint-loss"
+                "train",  "-s", "640", "--batch-size=1",
+                 "--epochs","300","--lr","1e-5","--dataset=cityscapes",
+                 "--gpu-ids","1","--inverseform-loss","--data-dir=data/cityscapes/data_proc"
             ]
 
 

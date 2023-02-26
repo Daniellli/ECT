@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 22:24:07
-LastEditTime: 2022-08-09 22:05:07
-LastEditors: xushaocong
+LastEditTime: 2023-02-26 08:51:25
+LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/utils/edge_loss2.py
+FilePath: /cerberus/utils/edge_loss2.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 import numpy as np
@@ -20,7 +20,7 @@ def clip_by_value(t, t_min, t_max):
     return result
 
 '''
-description: 
+description:  #? why sum ?
 param undefined
 param undefined
 return {*}
@@ -39,6 +39,26 @@ def attention_loss2(output,target,beta=4,gamma = 0.5):
     loss = torch.sum(loss)
     return loss
 
+
+'''
+description:  for match the scale of inverform loss and semantic edge loss
+param undefined
+param undefined
+return {*}
+'''
+def attention_loss(output,target,beta=4,gamma = 0.5):
+    num_pos = torch.sum(target == 1).float()
+    num_neg = torch.sum(target == 0).float()
+    alpha = num_neg / (num_pos + num_neg) * 1.0#* 对应loss 公式的alpha ,正负样本均衡的作用
+    eps = 1e-14 
+    p_clip = torch.clamp(output, min=eps, max=1.0 - eps) #* map  the output into the range [min,max]
+    weight = target * alpha * (beta ** ((1.0 - p_clip) ** gamma)) + \
+             (1.0 - target) * (1.0 - alpha) * (beta ** (p_clip ** gamma))
+
+    weight=weight.detach()
+    loss = F.binary_cross_entropy(output, target, weight, reduction='none')
+    loss = torch.mean(loss)
+    return loss
 
 
 '''
@@ -66,13 +86,14 @@ class AttentionLoss2(nn.Module):
             o = output[i].reshape(batch_size,height,width) #* [B,H,W]
             l = label[:,i,:,:] #*[C,H,W]
 
-            loss_focal = attention_loss2(o, l,
-                                        beta=self.beta,
-                                        gamma=self.gamma)
+            # loss_focal = attention_loss2(o, l,beta=self.beta,gamma=self.gamma)
+            loss_focal = attention_loss(o, l,beta=self.beta,gamma=self.gamma)
 
             total_loss = total_loss + loss_focal
         total_loss = total_loss / batch_size
         return total_loss
+
+
 
 
 class AttentionLossSingleMap(nn.Module):

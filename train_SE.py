@@ -1,53 +1,61 @@
+
+
 import os
 import time
-from cv2 import threshold
 import numpy as np
-import sys
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn.functional as F
+import torch.distributed as dist
+from torch.utils.data.distributed import DistributedSampler
 from torch.autograd import Variable
+import torchvision.transforms as transform
 
 
-import copy
-from model.edge_model import EdgeCerberus
+#* utils 
 import os.path as osp
-
 from os.path import join,split, isdir,isfile, exists
-
 import random
 import wandb
-
 from loguru import logger
-from utils.loss import SegmentationLosses
-from utils.edge_loss2 import AttentionLoss2
-from dataloaders.datasets.bsds_hd5 import Mydataset
-from torch.utils.data.distributed import DistributedSampler
-from utils import save_checkpoint,AverageMeter,calculate_param_num
-
-
-
-from utils.semantic_edge_option import parse_args
-
-from utils.utils import *
-
-
-import json
 import warnings
-warnings.filterwarnings('ignore')
 
-import torch.distributed as dist
-import torch.multiprocessing as mp
-import json
 
+from utils import save_checkpoint,AverageMeter,calculate_param_num
+from utils.semantic_edge_option import parse_args
+from utils.utils import *
 from utils.global_var import *
 
 
-from utils.check_model_consistent import is_model_consistent
+
+
+#* loss  function 
 from model.loss.inverse_loss import InverseTransform2D
+from utils.loss import SegmentationLosses
+from utils.edge_loss2 import AttentionLoss2
+from utils.DFF_losses import EdgeDetectionReweightedLossesSingle,EdgeDetectionReweightedLosses
 
-import torch.nn.functional as F
-import cv2 
 
+
+#* dataloader 
+from dataloaders.datasets.bsds_hd5 import Mydataset
+from dataloaders.semantic_edge import get_edge_dataset
+
+
+#* model 
+from model.edge_model import EdgeCerberus
+from model.semantic_edge_model import SEdgeCerberus
+
+
+
+
+warnings.filterwarnings('ignore')
+
+def namestr(obj, namespace):
+    for name in namespace:
+        if namespace[name] is obj:
+            return name 
+    return None
 
 
 
@@ -66,8 +74,7 @@ class SETrainer:
 
         os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids        
         
-            
-        if self.args.wandb:
+        if self.args.wandb and self.args.local_rank ==0:
             self.init_wandb()
 
         
@@ -79,11 +86,24 @@ class SETrainer:
         # os.environ['MASTER_ADDR'] = 'localhost'
         # os.environ['MASTER_PORT'] = str(port)
         # logger.info(f"node number == {args.nprocs}")
+
+        self.init_distributed()
+        self.init_model() #* todo 
+        self.inti_criterion()
+        self.inti_dataloader()
+        self.optimizer = torch.optim.SGD(self.model.parameters(),self.args.lr,
+                                    momentum=self.args.momentum,weight_decay=self.args.weight_decay)
+        
+
+        if not hasattr(self,'start_epoch'):#* perhaps be init during  resuming
+            self.start_epoch = 0
+
+
         
         
         
     def wandb_log(self,message):
-        if self.args.wandb and hasattr(self,'wandb_init') and self.local_rank==0:
+        if self.args.wandb and hasattr(self,'wandb_init') and self.args.local_rank==0:
             wandb.log(message)
 
             
@@ -91,101 +111,7 @@ class SETrainer:
         if self.args.local_rank == 0:
             logger.info(message)
         
-    '''
-    description: 
-    criterion2 : 
-    return {*}
-    '''
-    def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
-        
-        task_list_array = [['background'],['depth'],
-                        ['normal'],['reflectance'],
-                        ['illumination']]
-        root_task_list_array = ['background','depth',  'normal',"reflectance",'illumination']
-
-        batch_time_list = list()
-        data_time_list = list()
-        losses_list = list()
-        losses_array_list = list()
-        scores_list = list()
-
-        for i in range(5):
-            batch_time_list.append(AverageMeter())
-            data_time_list.append(AverageMeter())
-            losses_list.append(AverageMeter())
-            losses_array = list()
-            for it in task_list_array[i]:
-                losses_array.append(AverageMeter())
-            losses_array_list.append(losses_array)
-            scores_list.append(AverageMeter())
-
-        self.model.train()
-
-        for i, in_tar_name_pair in enumerate(self.train_loader):#* 一个一个batch取数据
-
-            input = torch.autograd.Variable(in_tar_name_pair[0].cuda(self.args.local_rank) )
-            target= torch.autograd.Variable( in_tar_name_pair[1].cuda(self.args.local_rank))
-
-            output = self.model(input)
-            
-            '''
-            description:  edge detection branch output 共两类 , 
-            1.  一类 01map也就是 0,1  , header 最后接的是sigmoid   , 输出就是每个像素点是边缘的概率
-            2. 一类就是unet ,header 最后是ReLU, 并且需要改成5类,  求最后结果的时候对对第一维求最大值, 就得到model 对5个类别的分类结果
-            return {*}
-            '''
-            loss = None
-            b_loss=None
-            if edge_branch_out == "edge":
-                b_loss = self.edge_atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-            elif edge_branch_out == "unet" :
-                b_loss = self.focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
-            else :
-                raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
-            
-            rind_loss = self.rind_atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-
-            if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
-                self.log("nan")
-                self.log('b_loss is: {0}'.format(b_loss))
-                self.log('rind_loss is: {0}'.format(rind_loss)) 
-                exit(0)
-
-            
-            if self.inverse_form_criterion is not None: 
-                #?  background_out 是否需要clone? 
-                #*  after detach , performance is better.
-                background_out= output[0].clone().detach()
-                rind_out = output[1:]
-                rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-                extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
-                # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
-                # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
-                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss   + self.args.extra_loss_weight * extra_loss
-            else :
-                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss  
-
-
-
-            self.optimizer.zero_grad()
-            loss.backward()#* warning exists
-            self.optimizer.step()
-
-            #* print status 
-            if  i % self.args.print_freq == 0 and self.args.local_rank == 0:#* for debug 
-
-                if self.inverse_form_criterion is not None: 
-                    all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss,"extra_loss":extra_loss}
-                else :
-                    all_need_upload = { "b_loss":b_loss,"rind_loss":rind_loss,"total_loss":loss}
-                
-                self.wandb_log(all_need_upload)
-
-                tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank)
-                tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                self.log(tmp)
-
-            
+  
 
 
 
@@ -198,10 +124,11 @@ class SETrainer:
 
         
     def init_wandb(self):
-        wandb.init(project="train_cerberus") 
+        wandb.init(project="semantic_edge_cerberus") 
+
         for k, v in self.args.__dict__.items():
             setattr(wandb.config,k,v)
-        setattr(wandb.config,"extra_loss_weight",self.args.extra_loss_weight)
+
         self.wandb_init =True
 
 
@@ -212,7 +139,14 @@ class SETrainer:
     def init_model(self):
         #* construct model 
         # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-        single_model = EdgeCerberus(backbone="vitb_rn50_384")
+        
+        if self.args.dataset == 'cityscapes':
+            single_model = SEdgeCerberus(backbone="vitb_rn50_384")
+        elif self.args.dataset == 'bsds' :
+            single_model = EdgeCerberus(backbone="vitb_rn50_384")
+
+
+
         #*========================================================
         #* calc parameter numbers 
         total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
@@ -259,36 +193,75 @@ class SETrainer:
         
 
     def inti_criterion(self):
-        self.edge_atten_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
-        self.rind_atten_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
-        self.focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
+
+        self.edge_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
+
+        if self.args.dataset == 'cityscapes':
+            self.class_num = 19
+            self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
+        elif self.args.dataset == 'bsds':
+            self.class_num = 1
+            self.hard_edge_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
+        elif self.args.dataset == 'sbd':
+            self.class_num = 20
+            self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
 
 
-        if self.args.constraint_loss:
+        # self.focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
+        if self.args.inverseform_loss:
             self.inverse_form_criterion = InverseTransform2D()
         else :
             self.inverse_form_criterion =None
 
     def inti_dataloader(self):
-            
-        train_dataset = Mydataset(root_path=self.args.train_dir, split='trainval', crop_size=self.args.crop_size)
+
+        if self.args.dataset == 'bsds':
+            train_dataset = Mydataset(root_path=self.args.train_dir, \
+                split='trainval', crop_size=self.args.crop_size)
+            test_dataset = Mydataset(root_path=self.args.test_dir, split='test', crop_size=self.args.crop_size)
+
+        elif self.args.dataset == 'cityscapes':
+             
+            input_transform = transform.Compose([
+                transform.ToTensor(),
+                transform.Normalize([.485, .456, .406], [.229, .224, .225])])
+
+            #* the meaning of scale : 'choose to use random scale transform(0.75-2),default:multi scale')
+            data_kwargs = {'transform': input_transform, 'base_size': self.args.crop_size,
+                            'crop_size': self.args.crop_size, 'logger': logger,
+                            'scale': True,"root":self.args.data_dir}
+
+            train_dataset  = get_edge_dataset(self.args.dataset, split='train', mode='train',
+                                                **data_kwargs)
+
+            val_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='val',**data_kwargs)
+
+            test_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='testval',**data_kwargs)
+
+            self.test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.args.batch_size, shuffle=False,
+                                      num_workers=self.args.workers)
+
+
+        def wrapper_loader(dataset,batch_size,workers):
+            sampler = DistributedSampler(dataset)
+            loader = torch.utils.data.DataLoader(
+                dataset,batch_size=batch_size, num_workers=workers,
+                    pin_memory=True, drop_last=True, sampler=sampler) 
+            return loader,sampler
+        
+        
+        self.train_loader,self.train_sampler = wrapper_loader(train_dataset,
+                                    self.args.batch_size,self.args.workers)
+
+
+        self.val_loader,self.val_sampler = wrapper_loader(val_dataset,
+                                    self.args.batch_size,self.args.workers)
 
         #!========================
         # sample = train_dataset.__getitem__(0)
         # cv2.imwrite('im.jpg',sample[0].permute(1,2,0).numpy()*255)
         # cv2.imwrite('label1.jpg',sample[1].numpy()[0,:,:]*255)
         #!========================
-        self.train_sampler = DistributedSampler(train_dataset)
-
-        self.train_loader = torch.utils.data.DataLoader(
-            train_dataset,batch_size=self.args.batch_size, num_workers=self.args.workers,
-                pin_memory=True, drop_last=True, sampler=self.train_sampler) 
-
-        #* load test data =====================
-        test_dataset = Mydataset(root_path=self.args.test_dir, split='test', crop_size=self.args.crop_size)
-        self.test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=1, 
-                                shuffle=False,num_workers=self.args.workers,pin_memory=False)
-        
         
 
     '''
@@ -299,26 +272,20 @@ class SETrainer:
     return {*}
     '''
     def train(self):
-        self.init_distributed()
-        
-        self.init_model() #* todo 
-        self.inti_criterion()
-        self.inti_dataloader()
-        self.optimizer = torch.optim.SGD(self.model.parameters(),self.args.lr,
-                                    momentum=self.args.momentum,weight_decay=self.args.weight_decay)
-        
-        if not hasattr(self,'start_epoch'):#* perhaps be init during  resuming
-            self.start_epoch = 0
-
 
         for epoch in range(self.start_epoch, self.args.epochs):
-            lr = self.adjust_learning_rate(epoch)
 
+            lr = self.adjust_learning_rate(epoch)
             self.log('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
 
             self.train_sampler.set_epoch(epoch)        
+            self.val_sampler.set_epoch(epoch) 
 
+            
             self.train_epoch(epoch)
+
+            if epoch % self.args.val_freq == 0:
+                self.validate_epoch(epoch)
 
             self.save_ckpt(epoch)
 
@@ -361,7 +328,197 @@ class SETrainer:
         self.optimizer.param_groups[-1]['lr'] = lr * 0.01
 
         return lr
+
+    def validate_epoch(self,epoch):
+        self.model.eval()
+
+        for i, (input, target) in enumerate(self.val_loader):#* 一个一个batch取数据
+
+            input = input.cuda()
+            target = target.cuda()
+
+            with torch.no_grad():
+                # output = self.model(input)
+                output = self.model(input.type(torch.FloatTensor))
+            
+                #* for cityscapes
+                if self.args.dataset == 'cityscapes':
+                    generic_edge,indices = torch.max(target[:,1:,:,:],1)
+                    pred_edge = F.sigmoid(output[0])
+                    # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
+                    b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                else:
+                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
         
+                if self.args.dataset == 'cityscapes':
+                    # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+                    hard_prediction_maps = torch.cat(output[1:],dim=1)
+                    rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+                elif self.args.dataset == 'bsds':
+                    rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+
+                
+                if self.inverse_form_criterion is not None: 
+                    #?  background_out 是否需要clone? 
+                    #*  after detach , performance is better.
+                    #* why detach?  using as 
+                    if self.args.dataset == 'cityscapes':
+                        background_out = pred_edge.clone().detach()
+                        hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
+                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                        inverse_form_loss =  inverse_form_loss1
+
+                    elif self.args.dataset == 'bsds':
+                        background_out= output[0].clone().detach()
+                        rind_out = output[1:]
+                        rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+                        inverse_form_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
+
+                    loss =  b_loss + rind_loss +inverse_form_loss
+                else :
+                    loss =  b_loss+ rind_loss  
+
+
+                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
+
+
+                if 'inverse_form_loss1' in locals():
+                    all_need_upload['val_inverse_form_loss1'] = inverse_form_loss1.item()
+
+                    
+                self.wandb_log(all_need_upload)
+
+                tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
+                            "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
+                self.log(tmp)
+
+    
+    
+    def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
+        
+        # task_list_array = [['background'],['depth'],
+        #                 ['normal'],['reflectance'],
+        #                 ['illumination']]
+        # root_task_list_array = ['background','depth',  'normal',"reflectance",'illumination']
+
+        # batch_time_list = list()
+        # data_time_list = list()
+        # losses_list = list()
+        # losses_array_list = list()
+        # scores_list = list()
+
+        # for i in range(5):
+        #     batch_time_list.append(AverageMeter())
+        #     data_time_list.append(AverageMeter())
+        #     losses_list.append(AverageMeter())
+        #     losses_array = list()
+        #     for it in task_list_array[i]:
+        #         losses_array.append(AverageMeter())
+        #     losses_array_list.append(losses_array)
+        #     scores_list.append(AverageMeter())
+
+        self.model.train()
+
+        for i, in_tar_name_pair in enumerate(self.train_loader):#* 一个一个batch取数据
+
+            input = torch.autograd.Variable(in_tar_name_pair[0].cuda(self.args.local_rank) )
+            target= torch.autograd.Variable( in_tar_name_pair[1].cuda(self.args.local_rank))
+            
+            # output = self.model(input)
+            output = self.model(input.type(torch.FloatTensor))
+            
+            
+            '''
+            description:  edge detection branch output 共两类 , 
+            1.  一类 01map也就是 0,1  , header 最后接的是sigmoid   , 输出就是每个像素点是边缘的概率
+            2. 一类就是unet ,header 最后是ReLU, 并且需要改成5类,  求最后结果的时候对对第一维求最大值, 就得到model 对5个类别的分类结果
+            return {*}
+            '''
+            if edge_branch_out == "edge":
+                #* for cityscapes
+                if self.args.dataset == 'cityscapes':
+                    generic_edge,indices = torch.max(target[:,1:,:,:],1)
+                    pred_edge = F.sigmoid(output[0])
+                    # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
+                    b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                else:
+                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+
+            elif edge_branch_out == "unet" :
+                b_loss = self.focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
+            else :
+                raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
+            
+            if self.args.dataset == 'cityscapes':
+                # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+                hard_prediction_maps = torch.cat(output[1:],dim=1)
+                rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+            elif self.args.dataset == 'bsds':
+                rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+
+            if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
+                self.log("nan")
+                self.log('b_loss is: {0}'.format(b_loss))
+                self.log('rind_loss is: {0}'.format(rind_loss)) 
+                exit(0)
+
+            
+            if self.inverse_form_criterion is not None: 
+                #?  background_out 是否需要clone? 
+                #*  after detach , performance is better.
+                #* why detach?  using as 
+                if self.args.dataset == 'cityscapes':
+                    background_out = pred_edge.clone().detach()
+                    hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
+                    inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+
+                    # hard_edge_merged2= torch.mean(hard_prediction_maps,1)
+                    # inverse_form_loss2 = self.inverse_form_criterion(hard_edge_merged2.unsqueeze(1),background_out)
+                    #?  why extra_loss == extra_loss2??
+                    # inverse_form_loss = inverse_form_loss2 + inverse_form_loss1
+                    inverse_form_loss =  inverse_form_loss1
+
+                elif self.args.dataset == 'bsds':
+                    background_out= output[0].clone().detach()
+                    rind_out = output[1:]
+                    rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+                    extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
+                #* mean for merge hard task output 
+                # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
+                # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
+
+                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss \
+                         + self.args.inverseform_loss_weight * inverse_form_loss
+            else :
+                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss  
+
+
+
+            self.optimizer.zero_grad()
+            loss.backward()#* warning exists
+            self.optimizer.step()
+
+            #* print status 
+            if  i % self.args.print_freq == 0 and self.args.local_rank == 0:#* for debug 
+
+                all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item()}
+
+                # locals() : 基于字典的访问局部变量的方式。键是变量名，值是变量值。
+                # globals() : 基于字典的访问全局变量的方式。键是变量名，值是变量值。
+
+                if 'inverse_form_loss1' in locals():
+                    all_need_upload['inverse_form_loss1'] = inverse_form_loss1.item()
+
+                if 'inverse_form_loss2' in locals():
+                    all_need_upload['inverse_form_loss2'] = inverse_form_loss2.item()
+                    
+                self.wandb_log(all_need_upload)
+
+                tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
+                            "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
+                self.log(tmp)
+
+          
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -374,6 +531,7 @@ def setup_seed(seed):
 if __name__ == '__main__':
 
     setup_seed(20)
+
     trainer = SETrainer()
     trainer.train()
 

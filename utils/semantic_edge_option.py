@@ -1,10 +1,10 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:23:24
-LastEditTime: 2023-02-25 21:24:40
+LastEditTime: 2023-02-26 10:01:38
 LastEditors: daniel
 Description:  for semantic edge 
-FilePath: /Cerberus-main/utils/semantic_edge_option.py
+FilePath: /cerberus/utils/semantic_edge_option.py
 have a nice day
 '''
 
@@ -46,15 +46,16 @@ def parse_args():
                         default='', type=str, metavar='PATH',
                         help='use pre-trained model')
     parser.add_argument('-j', '--workers', type=int, default=12)
-    parser.add_argument("--extra-loss-weight", type=float,default=0.1,help="for evaluation ")
+    parser.add_argument("--inverseform-loss-weight", type=float,default=0.1,help="for evaluation ")
     parser.add_argument("--bg-weight", type=float,default=1,help=" background weight  ")
     parser.add_argument("--rind-weight", type=float,default=1,help=" rind weight  ")
     parser.add_argument("--edge-loss-gamma", type=float,default=0.5,help="for loss ")
     parser.add_argument("--edge-loss-beta", type=float,default=4,help="for loss ")
     parser.add_argument("--rind-loss-gamma", type=float,default=0.5,help="for loss ")
     parser.add_argument("--rind-loss-beta", type=float,default=4,help="for loss ")
-    parser.add_argument('--constraint-loss', action='store_true',help='using constraint loss or not')
+    parser.add_argument('--inverseform-loss', action='store_true',help='using constraint loss or not')
     
+    parser.add_argument('--val-freq', default=1, type=int)
 
     #* for distributed train            
     parser.add_argument('--bn-sync', action='store_true')#* 暂时没用
@@ -66,6 +67,7 @@ def parse_args():
 
 
     #* for dataset
+    parser.add_argument('--dataset', default='bsds',choices=['cityscapes','sbd','bsds'])
     parser.add_argument('-d', '--data-dir', default='./dataset/BSDS_RIND_mine')
     parser.add_argument('-s', '--crop-size', default=320, type=int)
     parser.add_argument("--train-dir",type=str,default="data/BSDS-RIND/BSDS-RIND/Augmentation/",
@@ -77,6 +79,7 @@ def parse_args():
 
     #* for log 
     parser.add_argument('--print-freq', default=10, type=int)
+    
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
     parser.add_argument("--save-dir",type=str,default=None,help="save path")
     parser.add_argument('--wandb', action='store_true',help=' using wandb for log')    
