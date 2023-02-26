@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:23:24
-LastEditTime: 2023-02-26 10:01:38
+LastEditTime: 2023-02-26 12:59:49
 LastEditors: daniel
 Description:  for semantic edge 
 FilePath: /cerberus/utils/semantic_edge_option.py
@@ -79,7 +79,7 @@ def parse_args():
 
     #* for log 
     parser.add_argument('--print-freq', default=10, type=int)
-    
+    parser.add_argument('--save-freq', default=1, type=int)
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
     parser.add_argument("--save-dir",type=str,default=None,help="save path")
     parser.add_argument('--wandb', action='store_true',help=' using wandb for log')    

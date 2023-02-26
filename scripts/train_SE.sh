@@ -37,7 +37,7 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
---dataset $dataset  --val-freq 1 2>&1 | tee -a logs/train.log
+--dataset $dataset  --val-freq 1 --save-freq 3 2>&1 | tee -a logs/train.log
 
 
 

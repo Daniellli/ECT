@@ -290,25 +290,23 @@ class SETrainer:
             if epoch % self.args.val_freq == 0:
                 self.validate_epoch(epoch)
 
-            self.save_ckpt(epoch)
+            if((epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ) \
+                and self.args.local_rank == 0):
+                self.save_ckpt(epoch)
 
         self.log("train finish!!!! ")
 
         
 
     def save_ckpt(self,epoch):
-        #* 要么就每30epoch 保存一次 
-        if((epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ) 
-            and self.args.local_rank == 0):
-            
-            checkpoint_path = osp.join(self.save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(self.args.local_rank,epoch))
-            save_checkpoint({
-                'epoch': epoch + 1,
-                'arch': self.args.arch,
-                'state_dict': self.model.state_dict(),
-                'best_prec1': None,
-            }, True, filename=checkpoint_path)
-        
+        checkpoint_path = osp.join(self.save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(self.args.local_rank,epoch))
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': self.args.arch,
+            'state_dict': self.model.state_dict(),
+            'best_prec1': None,
+        }, True, filename=checkpoint_path)
+    
 
 
         
