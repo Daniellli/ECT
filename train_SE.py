@@ -64,13 +64,17 @@ class SETrainer:
 
     def __init__(self):
         self.args = parse_args()    
-        self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
-        self.save_dir = osp.join(self.project_dir,'checkpoints')
-    
+
+
+        if self.args.local_rank==0:
+            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            self.save_dir = osp.join(self.project_dir,'checkpoints')
+            if not osp.exists(self.save_dir):
+                os.makedirs(self.save_dir)
+            self.log(f'save path : {self.save_dir}')
         cudnn.benchmark = self.args.cudnn_benchmark
 
-        if not osp.exists(self.save_dir):
-            os.makedirs(self.save_dir)
+       
 
         os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids        
         
@@ -78,7 +82,6 @@ class SETrainer:
             self.init_wandb()
 
         
-        self.log(f'save path : {self.save_dir}')
         self.log(f"bg_weight = {self.args.bg_weight},rind_weight = {self.args.rind_weight} ")
    
         # port = int(1e4+np.random.randint(1,10000,1)[0])

@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-02-26 10:08:04
+ # @LastEditTime: 2023-02-26 10:24:29
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /cerberus/scripts/train_SE.sh
@@ -16,7 +16,8 @@ gpuids="0,1,2,3";
 gpu_number=4;
 
 
-lr=1e-5;
+# lr=1e-5;
+lr=1e-3;
 batch_size=1;
 epoch=200;
 bg_weights=0.5;
