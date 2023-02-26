@@ -172,7 +172,7 @@ class SETrainer:
         #* calc parameter numbers 
         # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
         # self.log(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
-        print(summary(single_model))
+        self.log(summary(single_model))
         #*========================================================
 
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))

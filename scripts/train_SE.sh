@@ -17,7 +17,7 @@ gpu_number=4;
 
 
 # lr=1e-5;
-lr=1e-2;
+lr=0.08;
 batch_size=4;
 epoch=200;
 bg_weights=0.5;
