@@ -18,7 +18,7 @@
 %   [thinpb]    : Option to apply morphological thinning on evaluated boundaries; namely, let the boundaries become thiner 
 % --------------------------------------------------------
 
-function evaluation(file_list, gt_dir, eval_dir, result_dir, categories, margin, nthresh, thinpb, maxDist)
+function result_f = evaluation(file_list, gt_dir, eval_dir, result_dir, categories, margin, nthresh, thinpb, maxDist)
 
 if(nargin<6), margin = 0; end;
 if(nargin<7), nthresh = 99; end;
