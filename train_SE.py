@@ -9,7 +9,12 @@ import torch.nn.functional as F
 import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.autograd import Variable
-import torchvision.transforms as transform
+import torchvision.transforms as transforms
+from tqdm import tqdm
+from skimage import img_as_ubyte
+import cv2
+
+
 
 
 #* utils 
@@ -49,6 +54,8 @@ from model.semantic_edge_model import SEdgeCerberus
 from torchsummary import summary
 
 
+
+from IPython import embed 
 warnings.filterwarnings('ignore')
 
 def namestr(obj, namespace):
@@ -63,26 +70,16 @@ def namestr(obj, namespace):
 class SETrainer:
 
     def __init__(self):
-        self.args = parse_args()    
-
-
+        self.args = parse_args()
         if self.args.local_rank==0:
             self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
             self.save_dir = osp.join(self.project_dir,'checkpoints')
             if not osp.exists(self.save_dir):
                 os.makedirs(self.save_dir)
             self.log(f'save path : {self.save_dir}')
+        
         cudnn.benchmark = self.args.cudnn_benchmark
-
-       
-
         os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids        
-        
-        if self.args.wandb and self.args.local_rank ==0:
-            self.init_wandb()
-
-        
-        self.log(f"bg_weight = {self.args.bg_weight},rind_weight = {self.args.rind_weight} ")
    
         # port = int(1e4+np.random.randint(1,10000,1)[0])
         # logger.info(f"port == {port}")
@@ -92,15 +89,21 @@ class SETrainer:
 
         self.init_distributed()
         self.init_model() #* todo 
-        self.inti_criterion()
         self.inti_dataloader()
-        
-        
+        if self.args.cmd=='test':
+            return 
 
+        self.inti_criterion()
         if not hasattr(self,'start_epoch'):#* perhaps be init during  resuming
             self.start_epoch = 0
 
+        if self.args.wandb and self.args.local_rank ==0:
+            self.init_wandb()
 
+
+    def get_mode(self):
+
+        return self.args.cmd
         
         
         
@@ -130,12 +133,9 @@ class SETrainer:
 
         for k, v in self.args.__dict__.items():
             setattr(wandb.config,k,v)
+        setattr(wandb.config,'save_directory',self.save_dir)
 
         self.wandb_init =True
-
-
-
-
 
 
     def init_model(self):
@@ -172,7 +172,7 @@ class SETrainer:
         #* calc parameter numbers 
         # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
         # self.log(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
-        self.log(summary(single_model))
+        # self.log(summary(single_model))
         #*========================================================
 
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))
@@ -182,7 +182,7 @@ class SETrainer:
 
         if self.args.resume:
             if os.path.isfile(self.args.resume):
-                checkpoint = torch.load(self.args.resume,map_location=torch.device(self.args.local_rank))
+                checkpoint = torch.load(self.args.resume,map_location=torch.device('cpu'))
                 self.start_epoch = checkpoint['epoch']
                 best_prec1 = checkpoint['best_prec1']
                 
@@ -244,24 +244,30 @@ class SETrainer:
 
         elif self.args.dataset == 'cityscapes':
              
-            input_transform = transform.Compose([
-                transform.ToTensor(),
-                transform.Normalize([.485, .456, .406], [.229, .224, .225])])
+            input_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize([.485, .456, .406], [.229, .224, .225])])
 
             #* the meaning of scale : 'choose to use random scale transform(0.75-2),default:multi scale')
             data_kwargs = {'transform': input_transform, 'base_size': self.args.crop_size,
                             'crop_size': self.args.crop_size, 'logger': logger,
                             'scale': True,"root":self.args.data_dir}
 
-            train_dataset  = get_edge_dataset(self.args.dataset, split='train', mode='train',
-                                                **data_kwargs)
-
-            val_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='val',**data_kwargs)
+            
 
             test_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='testval',**data_kwargs)
 
             self.test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.args.batch_size, shuffle=False,
                                       num_workers=self.args.workers)
+            
+
+            if self.args.cmd == 'test':
+                return 
+
+            train_dataset  = get_edge_dataset(self.args.dataset, split='train', mode='train',
+                                                **data_kwargs)
+
+            val_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='val',**data_kwargs)
 
 
         def wrapper_loader(dataset,batch_size,workers):
@@ -537,6 +543,60 @@ class SETrainer:
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
                             "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 self.log(tmp)
+    def test(self):
+
+        self.model.eval()
+
+        
+        outdir_list_fuse = []
+        for i in range(self.test_loader.dataset.num_class):
+            outdir_fuse = '%s/%s/%s_val/fuse/class_%03d'%(self.args.dataset, 'cerberus','cerberus', i+1)
+            # if not os.path.exists(outdir_fuse):
+            if os.path.exists(outdir_fuse):
+                shutil.rmtree(outdir_fuse)
+            os.makedirs(outdir_fuse)
+            outdir_list_fuse.append(outdir_fuse)
+        
+        
+        tbar = tqdm(self.test_loader, desc='\r')
+
+        for i, (image, im_paths, im_sizes)  in enumerate(tbar):#* 一个一个batch取数据
+
+            # if self.args.dataset != 'cityscapes':
+            #     W,H =im_sizes.squeeze()
+            #     trans1 = transforms.Compose([transforms.Resize(size=(H//8*8, W//8*8))])
+            #     trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
+            #     image = trans1(image)
+            
+            image = image.type(torch.FloatTensor)
+            
+            with torch.no_grad():    
+                fuses = self.model(image)
+
+            fuses = torch.cat(fuses[1:],dim=1)#* filter the background edge 
+                
+            def save_one_prediction(predictions,out_cls_dir,impath):
+                for i in range(predictions.shape[0]):
+                    path = os.path.join(out_cls_dir[i], impath)
+                    cv2.imwrite(path, img_as_ubyte(predictions[i]))
+
+            # if self.args.dataset != 'cityscapes':
+            #     side5s = trans2(side5s)
+            #     fuses = trans2( fuses)
+
+                    
+            #* traverse each batch size 
+            for idx in range(im_sizes.shape[0]): 
+                fuse = fuses[idx]
+                
+                fuse =  fuse.squeeze_().sigmoid_().cpu().numpy()    
+                # to_imger = transforms.ToPILImage()
+                # to_imger(normalize(trans2(image[idx]))).save('img.jpg')
+                # save_prediction_for_debug(side5,suffix='side5')
+                # save_prediction_for_debug(fuse,suffix='fuse')
+
+                impath = im_paths[idx]
+                save_one_prediction(fuse,outdir_list_fuse,impath)
 
           
 
@@ -551,9 +611,13 @@ def setup_seed(seed):
 if __name__ == '__main__':
 
     setup_seed(20)
-
     trainer = SETrainer()
-    trainer.train()
+    
+    if trainer.get_mode() == 'test':
+        trainer.test()
+    elif trainer.get_mode() == 'train':
+        trainer.train()
+    
 
 
     

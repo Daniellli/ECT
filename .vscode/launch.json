@@ -16,32 +16,27 @@
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             "console": "integratedTerminal",
             "justMyCode": true,
+   
+                    
 
-        
-            
-            // --gpu-ids '1' --bg-weight 0.5 --rind-weight 1 \
-            // --extra-loss-weight 1e+3 --edge-loss-gamma 0.3 --edge-loss-beta 1 \
-            // --rind-loss-gamma 0.3  --rind-loss-beta 5 --constraint-loss \
 
-            //* cityscape  cerberus
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "train",  "-s", "640", "--batch-size=1",
-                 "--epochs","300","--lr","1e-5","--dataset=cityscapes",
-                 "--gpu-ids","0","--inverseform-loss","--data-dir=data/cityscapes/data_proc"
+                "test", "-s", "640", "--batch-size=1","--gpu-ids=0",
+                 "--dataset=cityscapes","--data-dir=data/cityscapes/data_proc",
+                 "--resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0015.pth.tar"
             ]
 
-
-            //* edge cerberus
+            //* cityscape  cerberus
             // "args": [
-            //     "test",  "-s", "320",
-            //      "--resume", "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar", 
-            //      "--batch-size", "1", "--workers", "40", "--gpu-ids", "1",
-            //      "--run-id", "0", "--save-file","tmp",
+            //     "--nproc_per_node=1","--master_port","29511","train_SE.py",
+            //     "train",  "-s", "640", "--batch-size=1",
+            //      "--epochs","300","--lr","1e-5","--dataset=cityscapes",
+            //      "--gpu-ids","0","--inverseform-loss","--data-dir=data/cityscapes/data_proc"
             // ]
 
 
-            
+            //* edge cerberus
             // "args": [
             //     "--nproc_per_node=1","--master_port","29510","train.py",
             //     "train",  "-s", "320", "--batch-size", "2",
