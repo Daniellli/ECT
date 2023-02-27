@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-22 17:28:35
+LastEditTime: 2023-02-27 15:42:13
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud3.py
@@ -105,7 +105,7 @@ class Nyud3:
         # self.edge_for_depth_normal='depth_normal_edges_canny'
         # self.strategy = 'threashold_decay'
         # self.strategy = 'local_neighbors'
-        self.strategy = 'tmp'
+        self.strategy = 'range123'
         
         
         # strategy = 'local_neighbors'
@@ -133,16 +133,17 @@ class Nyud3:
                              normalize])  ## pre-process of pre-trained model of pytorch resnet-50
 
         
-        process_mp(self.gen_edge,range(self.__len__()),num_threads=256)
-        print(f"edge generation done ")
+        # process_mp(self.gen_edge,range(self.__len__()),num_threads=256)
+        # print(f"edge generation done ")
 
         if gen_edge:
             
             # self.gen_depth_normal_edge(0)
             # process_mp(self.gen_depth_normal_edge_threshold_decay,range(self.__len__()),num_threads=512)
             #* tmp actually.
-            process_mp(self.gen_depth_normal_edge_local_neighbors,range(self.__len__()),num_threads=256)
+            # process_mp(self.gen_depth_normal_edge_local_neighbors,range(self.__len__()),num_threads=256)
             # self.gen_depth_normal_edge_local_neighbors(0)
+            pass
 
         
         # process_mp(self.fix_bug,range(self.__len__()),num_threads=512)
@@ -498,6 +499,6 @@ class Nyud3:
 
 
 if __name__ == "__main__":
-    Nyud3(gen_edge=True)
-    # Nyud3()
+    # Nyud3(gen_edge=True)
+    Nyud3()
     

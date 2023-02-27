@@ -29,7 +29,7 @@ assert(iscell(result_dir), 'result_dir must be a cell array!')
 assert(length(eval_dir) == length(result_dir), 'size of eval_dir and result_dir must be equal!')
 
 %% Setup Parallel Pool
-num_worker = 6; %12;
+num_worker = 128; %12;
 delete(gcp('nocreate'));
 parpool('local', num_worker);
 

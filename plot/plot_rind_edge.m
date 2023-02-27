@@ -24,13 +24,13 @@ colors = {
 };
 
 lines = {'-','-','-','-','-','-','-','-','-','--','--','--','--','--','--','--','--','--'};
-
+%change the 'RINDNet-ResNet50' to 'RINDNet'
 names = {
     %'EdgeCerberus'
     'Ours'
     % 'RINDNet-ResNeXt101'
     % 'RINDNet-ResNet101'
-    'RINDNet-ResNet50'
+    'RINDNet'
     % 'RINDNet-ResNeXt50'  
     'DFF'
     'RCF'
@@ -43,7 +43,7 @@ names = {
     % '*OFNet'
     % '*DOOBNet'
     % '*DeepLabV3+'
-    'CED'
+    %'CED'
     % 'DexiNed'
 };
 
@@ -64,7 +64,7 @@ years = {
     % ' (2019)'
     % ' (2019)'
     % ' (2018)'
-    ' (2017)'
+    %' (2017)'
     % ' (2020)'
 };
 
