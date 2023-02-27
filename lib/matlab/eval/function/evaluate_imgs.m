@@ -12,19 +12,30 @@ num_file = size(file_list, 2); %1
 result_img = cell(num_file, 1);
 %parfor_progress(num_file);
 parfor idx_file = 1:num_file %parfor
+    % comment by daniel 
     %display(['Evaluating image ' num2str(idx_file) ' : ' file_list{1, idx_file}]); %file_list{idx_file, 1}
-    
+
+    % 65536 == 2^16
     %edge_pred = double(imread([result_dir '/class_' num2str(idx_cls, '%03d') '/' file_list{1, idx_file} '.png']))./65536; %./255; %file_list{idx_file, 1}
-    edge_pred = double(imread([result_dir '/class_' num2str(idx_cls, '%03d') '/' file_list{1, idx_file} '.png']))./255; %file_list{idx_file, 1}
+    edge_pred = double(imread([result_dir '/class_' num2str(idx_cls, '%03d') '/' file_list{1, idx_file} '.png'])) ./255; %file_list{idx_file, 1}
 
     %disp("hello world")
-    %disp([gt_dir '/' 'cls/' file_list{1, idx_file} '.mat']);
+    %disp([result_dir '/class_' num2str(idx_cls, '%03d') '/' file_list{1, idx_file} '.png']);
+    %disp([gt_dir '/' 'inst/' file_list{1, idx_file} '.mat']);
 
     gt_load = load([gt_dir '/' file_list{1, idx_file} '.mat']); %file_list{idx_file, 1}
+    
     gt_fields = fieldnames(gt_load);
     gt = gt_load.(gt_fields{1});
     edge_gt = full(double(gt.Boundaries{idx_cls}));
     edge_pred = imresize(edge_pred, size(edge_gt));
+
+    %disp(size(edge_gt));
+    %disp(size(edge_pred));
+    %save('/data3/xusc/exp/rindnet/edge_pred.mat','edge_pred') % save as mat file 
+    %writematrix(edge_pred,'/data3/xusc/exp/rindnet/edge_pred.txt')
+    
+    
     if(margin>0)
         edge_pred = edge_pred(1+margin:end-margin, 1+margin:end-margin);
         edge_gt = edge_gt(1+margin:end-margin, 1+margin:end-margin);

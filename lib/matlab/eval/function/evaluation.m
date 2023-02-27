@@ -15,10 +15,10 @@
 %   [margin]    : Size of margin to be ignored
 %   [nthresh]   : Number of points in PR curve
 %   [MaxDist]   : Edge misalignment tolerance threshold
-%   [thinpb]    : Option to apply morphological thinning on evaluated boundaries
+%   [thinpb]    : Option to apply morphological thinning on evaluated boundaries; namely, let the boundaries become thiner 
 % --------------------------------------------------------
 
-function result_f=evaluation(file_list, gt_dir, eval_dir, result_dir, categories, margin, nthresh, thinpb, maxDist)
+function evaluation(file_list, gt_dir, eval_dir, result_dir, categories, margin, nthresh, thinpb, maxDist)
 
 if(nargin<6), margin = 0; end;
 if(nargin<7), nthresh = 99; end;
@@ -29,7 +29,9 @@ assert(iscell(result_dir), 'result_dir must be a cell array!')
 assert(length(eval_dir) == length(result_dir), 'size of eval_dir and result_dir must be equal!')
 
 %% Setup Parallel Pool
+%num_worker = 6; %12;
 num_worker = 128; %12;
+%num_worker = 256; %12;
 delete(gcp('nocreate'));
 parpool('local', num_worker);
 
@@ -47,9 +49,15 @@ for idx_dir = 1:length(eval_dir)
     end
     num_cls = length(categories);
     for idx_cls = 1:num_cls %%1
+        save_name=[result_dir{idx_dir} '/class_' num2str(idx_cls) '.mat'];
+        if (exist(save_name,'file'))
+            %disp([save_name,' exists']);
+            continue;
+        end
+        
         fprintf('Benchmarking boundaries for category %d: %s\n', idx_cls, categories{idx_cls});
         result_cls = benchmark_category(list_eval, eval_dir{idx_dir}, gt_dir, idx_cls, margin, nthresh, thinpb, maxDist);
-        save([result_dir{idx_dir} '/class_' num2str(idx_cls) '.mat'], 'result_cls');
+        save(save_name, 'result_cls');
     end
     
     % Summarize evaluation results
