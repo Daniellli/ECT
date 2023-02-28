@@ -91,6 +91,7 @@ class SETrainer:
 
         #* record the performance on val subset 
         self.last_se_edge_loss = 1e+6
+        self.current_se_edge_loss = 1e+6
 
         self.init_distributed()
         self.init_model() #* todo 
