@@ -49,9 +49,6 @@ def draw_arraw(src,p1,p2,color=(0,0,255),thickness=2,line_type=0,shift=0,tipLeng
     # int shift #箭头位置平移系数
     # double tipLength  #箭头大小缩放系数
     """
-    
-    
-    
     # Mask = 255*np.ones((100,100,3), dtype=np.int)
     # Mask = np.array(Mask, dtype='uint8')
     cv2.arrowedLine(src,p1, p2, color,thickness,line_type,shift,tipLength)

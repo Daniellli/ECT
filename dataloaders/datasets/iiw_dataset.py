@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-08 17:28:27
-LastEditTime: 2023-02-28 14:20:23
+LastEditTime: 2023-02-28 23:09:30
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/iiw_dataset.py
@@ -136,6 +136,7 @@ class IIWDataset(torch.utils.data.Dataset):
 
         #*  [image, the point  corresponding to the label, the label corresponding to the points, image name, transformation guidance image ]        
         return tuple(data) 
+    
     
     def getitem_all(self, index):
         img_name = self.image_list[index] + '.png'
