@@ -436,7 +436,7 @@ class SETrainer:
                     all_need_upload['val_inverse_form_loss1'] = inverse_form_loss1.item()
 
                     
-                if i % self.args.print_freq  == 0 :
+                if (i+1) % self.args.print_freq  == 0 :
 
                     self.wandb_log(all_need_upload)
 
