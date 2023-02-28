@@ -67,7 +67,7 @@ data_size=640;
 
 gpuids='0,1,2,3';
 port=29550;
-bs=16;
+bs=32;
 python -m torch.distributed.launch --nproc_per_node=4 --master_port $port \
 train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
 --data-dir $data_dir --dataset $dataset \

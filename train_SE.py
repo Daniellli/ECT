@@ -459,22 +459,23 @@ class SETrainer:
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
 
-        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-5:]
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-10:]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
         for model_file in tqdm(all_models):
 
             self.update_model(model_file)
-
+            tic = time.time()
             self.validate_epoch(self.start_epoch)
+            spend_time = time.strftime("%H:%M:%s",time.gmtime(time.time()-tic))
             
             val_loss = self.current_se_edge_loss
 
+            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val mean loss : {val_loss} \t spend time : {spend_time}")
+
             if self.last_se_edge_loss > self.current_se_edge_loss:
                 self.log('current model  is better')
-
-            logger.info(f" ckpt :  {model_file.split('/')[-1]}; val mean loss : {val_loss}")
 
 
     def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
