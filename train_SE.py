@@ -91,7 +91,7 @@ class SETrainer:
         # logger.info(f"node number == {args.nprocs}")
 
         #* record the performance on val subset 
-        self.last_se_edge_loss = 1e+6
+        self.best_se_edge_loss  = 1e+6
         self.current_se_edge_loss = 1e+6
 
         self.init_distributed()
@@ -226,9 +226,9 @@ class SETrainer:
             # best_prec1 = checkpoint['best_prec1']
             for name, param in checkpoint['state_dict'].items():
                 self.model.state_dict()[name].copy_(param)
-            self.log("model update successful => loaded checkpoint '{}' (epoch {})".format(self.args.resume, checkpoint['epoch']))
+            self.log("model update successful => loaded checkpoint '{}' (epoch {})".format(file, checkpoint['epoch']))
         else:
-            self.log("=> no checkpoint found at '{}'".format(self.args.resume))
+            self.log("=> no checkpoint found at '{}'".format(file))
 
             
 
@@ -348,7 +348,7 @@ class SETrainer:
             'arch': self.args.arch,
             'state_dict': self.model.state_dict(),
             'best_prec1': self.current_se_edge_loss,
-        }, self.current_se_edge_loss < self.last_se_edge_loss, 
+        }, self.is_best, 
         filename=checkpoint_path)
 
 
@@ -432,7 +432,7 @@ class SETrainer:
 
                 se_loss+=rind_loss.item()
 
-                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'step':self.epoch*len(self.val_loader)+i}
+                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'step':epoch*len(self.val_loader)+i}
 
 
                 if 'inverse_form_loss1' in locals():
@@ -447,9 +447,15 @@ class SETrainer:
                                 "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                     self.log(tmp)
 
-        self.last_se_edge_loss = self.current_se_edge_loss
-        self.current_se_edge_loss = se_loss
 
+        self.current_se_edge_loss = se_loss
+        if self.current_se_edge_loss < self.best_se_edge_loss:
+            self.best_se_edge_loss = self.current_se_edge_loss
+            self.is_best = True
+        else:
+            self.is_best = False
+            
+            
 
     
     def validate_all_model(self):
@@ -462,7 +468,7 @@ class SETrainer:
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
 
-        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-10:]
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-5:]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
@@ -471,14 +477,14 @@ class SETrainer:
             self.update_model(model_file)
             tic = time.time()
             self.validate_epoch(self.start_epoch)
-            spend_time = time.strftime("%H:%M:%s",time.gmtime(time.time()-tic))
+            spend_time = time.strftime("%H:%M:%S",time.gmtime(time.time()-tic))
+
+            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {self.current_se_edge_loss} \t spend time : {spend_time}")
             
-            val_loss = self.current_se_edge_loss
-
-            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {val_loss} \t spend time : {spend_time}")
-
-            if self.last_se_edge_loss > self.current_se_edge_loss:
+            
+            if self.is_best:
                 self.log('current model  is better')
+            self.log("==============================================================================================================================================")
 
 
     def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):

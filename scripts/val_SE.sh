@@ -65,14 +65,17 @@ data_size=640;
 
 #* validate all model 
 
-gpuids='0,1,2,3';
+gpuids='0,1,2,4,5,7';
+gpu_num=6;
 port=29550;
-bs=32;
-python -m torch.distributed.launch --nproc_per_node=4 --master_port $port \
+bs=4;
+
+python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
 train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
 --data-dir $data_dir --dataset $dataset \
---resume-model-dir '/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/' \
+--resume-model-dir '/DATA2/xusc/cerberus/networks/2023-02-28-01:45:1677519956/checkpoints/' \
 2>&1 | tee -a logs/validate.log
+
 
 
 # python -c "import torch; print(torch.cuda.is_available(),torch.version.cuda);"
