@@ -381,6 +381,8 @@ class SETrainer:
         self.model.eval()
         se_loss = 0
         
+        
+        
         for i, (input, target) in enumerate(self.val_loader):#* 一个一个batch取数据
 
             input = input.cuda()
@@ -429,7 +431,7 @@ class SETrainer:
 
                 se_loss+=rind_loss.item()
 
-                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
+                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'step':self.epoch*len(self.val_loader)+i}
 
 
                 if 'inverse_form_loss1' in locals():
