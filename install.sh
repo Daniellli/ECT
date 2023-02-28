@@ -75,3 +75,5 @@ python -c "import sys; print(sys.path)"
 
 
 pip install torch-summary
+
+conda activate /DATA2/envs/mdetr
