@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-27 15:42:13
+LastEditTime: 2023-02-28 10:56:04
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud3.py
@@ -447,6 +447,9 @@ class Nyud3:
         return len(self.name_list)
 
     
+
+
+
     def getitem(self,idx):
         
         
@@ -460,7 +463,7 @@ class Nyud3:
 
 
         return image,label,edge,depth_map,normal_map,self.name_list[idx]
-
+    
 
     def getitem_all(self,idx):
         
@@ -485,6 +488,26 @@ class Nyud3:
         
         return image,label,edge,depth_map,depth_edge,normal_map,normal_edge,self.name_list[idx]
 
+    def getitem_by_name(self,name):
+        image = imread(join(self.images_path,name))
+        label = imread(join(self.labels_path,name),gray=True)
+        # edge = imread(join(self.edge_path,name),gray=True)
+
+        if self.edge_for_depth_normal=='depth_normal_edges_canny':
+            edge = imread(join(self.edge_path,name),gray=True)
+        else :
+            edge = imread(join(self.edge_3x3_path,name),gray=True)
+
+        
+
+        depth_map = imread(join(self.depths_path,name),gray=True)
+        normal_map = imread(join(self.normals_path,name))
+
+        depth_edge = imread(join(self.depth_edge_path,name),gray=True)
+        normal_edge = imread(join(self.normal_edge_path,name),gray=True)
+
+
+        return image,label,edge,depth_map,depth_edge,normal_map,normal_edge,name
 
 
 

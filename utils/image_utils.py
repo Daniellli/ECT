@@ -62,7 +62,7 @@ def show_imgs(img_list,gray_mode=None,titles=None,img_name=None,fontsize = 5):
         plt.xticks([])
         plt.yticks([])
     if img_name is not None:
-        plt.savefig(img_name)
+        plt.savefig(img_name,bbox_inches='tight')
     else:
         plt.show()
     
