@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-08 17:28:27
-LastEditTime: 2023-02-22 20:53:46
+LastEditTime: 2023-02-28 14:20:23
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/iiw_dataset.py
@@ -136,6 +136,19 @@ class IIWDataset(torch.utils.data.Dataset):
 
         #*  [image, the point  corresponding to the label, the label corresponding to the points, image name, transformation guidance image ]        
         return tuple(data) 
+    
+    def getitem_all(self, index):
+        img_name = self.image_list[index] + '.png'
+        label_name = self.image_list[index] + '.json'
+        data = [Image.open(join(self.image_data_list, img_name))]
+
+        #get label
+        label_dir = join(self.image_data_list, label_name)
+        points, labels = self.get_label(label_dir) #* the value range of point is between 0 and 1 
+
+        # data = list(self.transforms(data[0],np.array(points))) 
+        # return data[0],self.image_list[index]#* return the image and name only
+        return data,points, labels
 
 
     def __len__(self):
