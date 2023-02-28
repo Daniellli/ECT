@@ -53,6 +53,8 @@ from model.semantic_edge_model import SEdgeCerberus
 
 from torchsummary import summary
 
+from  glob import glob
+
 
 
 from IPython import embed 
@@ -86,6 +88,10 @@ class SETrainer:
         # os.environ['MASTER_ADDR'] = 'localhost'
         # os.environ['MASTER_PORT'] = str(port)
         # logger.info(f"node number == {args.nprocs}")
+
+        #* record the performance on val subset 
+        self.last_se_edge_loss = 1e+6
+        self.current_se_edge_loss = 1e+6
 
         self.init_distributed()
         self.init_model() #* todo 
@@ -180,6 +186,7 @@ class SETrainer:
                             find_unused_parameters=True,broadcast_buffers = True) 
         
 
+
         if self.args.resume:
             if os.path.isfile(self.args.resume):
                 checkpoint = torch.load(self.args.resume,map_location=torch.device('cpu'))
@@ -209,13 +216,22 @@ class SETrainer:
             else:
                 self.log("=> no checkpoint found at '{}'".format(self.args.resume))
         
-        
-
         self.model = model
-        
+
+    def update_model(self,file):
+        if os.path.isfile(file):
+            checkpoint = torch.load(file,map_location=torch.device('cpu'))
+            self.start_epoch = checkpoint['epoch']
+            # best_prec1 = checkpoint['best_prec1']
+            for name, param in checkpoint['state_dict'].items():
+                self.model.state_dict()[name].copy_(param)
+            self.log("model update successful => loaded checkpoint '{}' (epoch {})".format(self.args.resume, checkpoint['epoch']))
+        else:
+            self.log("=> no checkpoint found at '{}'".format(self.args.resume))
+
+            
 
     def inti_criterion(self):
-
         self.edge_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
 
         if self.args.dataset == 'cityscapes':
@@ -315,9 +331,9 @@ class SETrainer:
             if epoch % self.args.val_freq == 0:
                 self.validate_epoch(epoch)
 
-            if((epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ) \
-                and self.args.local_rank == 0):
-                self.save_ckpt(epoch)
+                if((epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ) \
+                    and self.args.local_rank == 0):
+                    self.save_ckpt(epoch)
 
         self.log("train finish!!!! ")
 
@@ -325,12 +341,18 @@ class SETrainer:
 
     def save_ckpt(self,epoch):
         checkpoint_path = osp.join(self.save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(self.args.local_rank,epoch))
+        
         save_checkpoint({
             'epoch': epoch + 1,
             'arch': self.args.arch,
             'state_dict': self.model.state_dict(),
-            'best_prec1': None,
-        }, True, filename=checkpoint_path)
+            'best_prec1': self.current_se_edge_loss,
+        }, self.current_se_edge_loss < self.last_se_edge_loss, 
+        filename=checkpoint_path)
+
+
+        
+        
     
 
 
@@ -357,7 +379,8 @@ class SETrainer:
 
     def validate_epoch(self,epoch):
         self.model.eval()
-
+        se_loss = 0
+        
         for i, (input, target) in enumerate(self.val_loader):#* 一个一个batch取数据
 
             input = input.cuda()
@@ -404,6 +427,7 @@ class SETrainer:
                 else :
                     loss =  b_loss+ rind_loss  
 
+                se_loss+=rind_loss.item()
 
                 all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
 
@@ -412,14 +436,48 @@ class SETrainer:
                     all_need_upload['val_inverse_form_loss1'] = inverse_form_loss1.item()
 
                     
-                self.wandb_log(all_need_upload)
+                if (i+1) % self.args.print_freq  == 0 :
 
-                tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
-                            "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                self.log(tmp)
+                    self.wandb_log(all_need_upload)
+
+                    tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
+                                "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
+                    self.log(tmp)
+
+        self.last_se_edge_loss = self.current_se_edge_loss
+        self.current_se_edge_loss = se_loss
+
 
     
-    
+    def validate_all_model(self):
+        
+
+        if self.args.resume_model_dir == None:
+            self.log('please give the ckpt directory ')
+            return 
+        
+        # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
+        
+
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-10:]
+        self.log(all_models)
+        self.args.print_freq = 1e+10
+
+        for model_file in tqdm(all_models):
+
+            self.update_model(model_file)
+            tic = time.time()
+            self.validate_epoch(self.start_epoch)
+            spend_time = time.strftime("%H:%M:%s",time.gmtime(time.time()-tic))
+            
+            val_loss = self.current_se_edge_loss
+
+            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {val_loss} \t spend time : {spend_time}")
+
+            if self.last_se_edge_loss > self.current_se_edge_loss:
+                self.log('current model  is better')
+
+
     def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
         
         # task_list_array = [['background'],['depth'],
@@ -543,14 +601,14 @@ class SETrainer:
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
                             "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 self.log(tmp)
+
     def test(self):
 
         self.model.eval()
-
         
         outdir_list_fuse = []
         for i in range(self.test_loader.dataset.num_class):
-            outdir_fuse = '%s/%s/%s_val/fuse/class_%03d'%(self.args.dataset, 'cerberus','cerberus', i+1)
+            outdir_fuse = '%s/%s/%s/class_%03d'%(self.args.dataset,'cerberus',time.strftime("%H:%M:%s",time.gmtime(time.time())), i+1)
             # if not os.path.exists(outdir_fuse):
             if os.path.exists(outdir_fuse):
                 shutil.rmtree(outdir_fuse)
@@ -617,6 +675,9 @@ if __name__ == '__main__':
         trainer.test()
     elif trainer.get_mode() == 'train':
         trainer.train()
+
+    elif trainer.get_mode() == 'val':
+        trainer.validate_all_model()
     
 
 

@@ -51,10 +51,30 @@ data_size=640;
 
 
 
-resume_model=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0039.pth.tar;
-#* test 
-gpuids=3;
-python -m torch.distributed.launch --nproc_per_node=1 --master_port 29510 \
-train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 1 \
---data-dir $data_dir --dataset $dataset   --resume $resume_model \
-2>&1 | tee -a logs/test.log
+
+
+
+
+
+# #* test 
+# gpuids=3;
+# python -m torch.distributed.launch --nproc_per_node=1 --master_port 29510 \
+# train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 1 \
+# --data-dir $data_dir --dataset $dataset   --resume $resume_model \
+# 2>&1 | tee -a logs/test.log
+
+#* validate all model 
+
+gpuids='0,1,2,3';
+port=29550;
+bs=32;
+python -m torch.distributed.launch --nproc_per_node=4 --master_port $port \
+train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
+--data-dir $data_dir --dataset $dataset \
+--resume-model-dir '/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/' \
+2>&1 | tee -a logs/validate.log
+
+
+# python -c "import torch; print(torch.cuda.is_available(),torch.version.cuda);"
+
+

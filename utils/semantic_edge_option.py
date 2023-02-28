@@ -24,7 +24,7 @@ def parse_args():
     # Training settings
     parser = argparse.ArgumentParser(description='')
     
-    parser.add_argument('cmd', choices=['train', 'test'])
+    parser.add_argument('cmd', choices=['train', 'test','val'])
     #* for training procedure
     parser.add_argument('--step', type=int, default=200)
     parser.add_argument('--arch',type=str, default="test_arch",help='save_name dir ')
@@ -42,6 +42,13 @@ def parse_args():
 
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
+    
+    
+
+
+    parser.add_argument('--resume-model-dir', default=None, type=str, metavar='PATH',
+                        help='path to checkpoint directory (default: none)')
+    
     parser.add_argument('--pretrained-model', dest='pretrained_model',
                         default='', type=str, metavar='PATH',
                         help='use pre-trained model')
