@@ -472,7 +472,7 @@ class SETrainer:
             
             val_loss = self.current_se_edge_loss
 
-            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val mean loss : {val_loss} \t spend time : {spend_time}")
+            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {val_loss} \t spend time : {spend_time}")
 
             if self.last_se_edge_loss > self.current_se_edge_loss:
                 self.log('current model  is better')
