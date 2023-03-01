@@ -41,9 +41,12 @@ def parse_args():
                         metavar='W', help='weight decay (default: 1e-4)')
                         
     parser.add_argument('--lr-scheduler', type=str, default='step',
-                        choices=["step", "cosine"])
+                        choices=["step", "cosine",'step2'])
     parser.add_argument('--lr-decay-epochs', type=int, default=[280, 340],
                         nargs='+', help='when to decay lr, can be a list')
+    
+    parser.add_argument('--lr-decay-rate', type=float, default=0.1,
+                        help='for step scheduler. decay rate for lr')
 
 
 

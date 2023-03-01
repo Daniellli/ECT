@@ -13,7 +13,9 @@ have a nice day
 # Licensed under the MIT License.
 # ------------------------------------------------------------------------
 # noinspection PyProtectedMember
-from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR
+from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR,StepLR
+from IPython import embed 
+
 
 
 # noinspection PyAttributeOutsideInit
@@ -81,15 +83,27 @@ def get_scheduler(optimizer, n_iter_per_epoch, args):
         scheduler = CosineAnnealingLR(
             optimizer=optimizer,
             eta_min=0.000001,
-            T_max=(args.max_epoch - args.warmup_epoch) * n_iter_per_epoch)
-    elif "step" in args.lr_scheduler:
+            #*  change the warmup_epoch to -1 as I have not  warm up epoch
+            T_max=(args.epochs +1) * n_iter_per_epoch)
+    elif "step" == args.lr_scheduler:
         if isinstance(args.lr_decay_epochs, int):
             args.lr_decay_epochs = [args.lr_decay_epochs]
+        
         scheduler = MultiStepLR(
-            optimizer=optimizer,
-            gamma=args.lr_decay_rate,
-            #* milestones=[(m - args.warmup_epoch) * n_iter_per_epoch for m in args.lr_decay_epochs]), change the warmup_epoch to -1 as i have not  warm up epoch
-            milestones=[(m +1) * n_iter_per_epoch for m in args.lr_decay_epochs])
+                optimizer=optimizer,
+                gamma=args.lr_decay_rate,
+                #* milestones=[(m - args.warmup_epoch) * n_iter_per_epoch for m in args.lr_decay_epochs]), change the warmup_epoch to -1 as i have not  warm up epoch
+                milestones=[(m +1) * n_iter_per_epoch for m in args.lr_decay_epochs],
+                # verbose=True
+            )
+        # milestones=[(m +1) * n_iter_per_epoch for m in args.lr_decay_epochs]
+        print('scheduler step counter : ',scheduler._step_count,'last epoch : ',scheduler.last_epoch,'milestones',scheduler.milestones)
+        
+    elif "step2" == args.lr_scheduler :
+        scheduler = StepLR(optimizer, step_size=1, gamma=args.lr_decay_rate)
+        
+        print('scheduler step counter : ',scheduler._step_count,'last epoch : ',
+                scheduler.last_epoch)
     else:
         raise NotImplementedError(f"scheduler {args.lr_scheduler} not supported")
 

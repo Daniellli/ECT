@@ -50,8 +50,8 @@ from dataloaders.semantic_edge import get_edge_dataset
 
 #* model 
 from model.edge_model import EdgeCerberus
-# from model.semantic_edge_model import SEdgeCerberus
-from model.semantic_edge_model2 import SEdgeCerberus
+from model.semantic_edge_model import SEdgeCerberus
+# from model.semantic_edge_model2 import SEdgeCerberus
 
 from torchsummary import summary
 
@@ -138,9 +138,14 @@ class SETrainer:
         
         
         
-    def wandb_log(self,message):
+    def wandb_log(self,message,step=None):
         if self.args.wandb and hasattr(self,'wandb_init') and self.args.local_rank==0:
-            wandb.log(message)
+            if step is not None:
+                # wandb.log(message,step = step)
+                message.update({'step':step})
+                wandb.log(message)
+            else:
+                wandb.log(message)
 
             
     def log(self,message):
@@ -177,7 +182,6 @@ class SETrainer:
                         {'params': single_model.scratch.parameters(), 'lr': self.args.lr * 10},
                         {'params': single_model.edge_query_embed.parameters(), 'lr': self.args.lr * 10},
                         {'params': single_model.decoder.parameters(), 'lr': self.args.lr * 10},
-
                         {'params': single_model.final_norm1.parameters(), 'lr': self.args.lr * 10},
                         {'params': single_model.final_dropout1.parameters(), 'lr': self.args.lr * 10},
                         {'params': single_model.final_rcu.parameters(), 'lr': self.args.lr * 10}]
@@ -191,14 +195,22 @@ class SETrainer:
         self.optimizer = torch.optim.SGD(params_list,self.args.lr,
                                     momentum=self.args.momentum,\
                                     weight_decay=self.args.weight_decay)
-        self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), args)
+        
+        self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), self.args)
 
         #*========================================================
         #* calc parameter numbers 
         # self.log(summary(single_model))
         #*========================================================
 
-
+        
+        #* distributed train 
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))
+        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[self.args.local_rank],
+                            find_unused_parameters=True,broadcast_buffers = True) 
+        
+        self.model = model
+        
         if self.args.resume:
             if os.path.isfile(self.args.resume):
                 self.load_checkpoint(self.args.resume)
@@ -219,11 +231,6 @@ class SETrainer:
             torch.cuda.empty_cache()
 
 
-        #* distributed train 
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))
-        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[self.args.local_rank],
-                            find_unused_parameters=True,broadcast_buffers = True) 
-        self.model = model
 
 
     def load_checkpoint(self, ckpt_path):
@@ -255,27 +262,6 @@ class SETrainer:
         del checkpoint
         torch.cuda.empty_cache()
 
-
-
-
-    '''
-    description:  for validate  debug 
-    param {*} self
-    param {*} file
-    return {*}
-    '''
-    def update_model(self,file):
-        if os.path.isfile(file):
-            checkpoint = torch.load(file,map_location=torch.device('cpu'))
-            self.start_epoch = checkpoint['epoch']
-            # best_prec1 = checkpoint['best_prec1']
-            for name, param in checkpoint['state_dict'].items():
-                self.model.state_dict()[name].copy_(param)
-            self.log("model update successful => loaded checkpoint '{}' (epoch {})".format(file, checkpoint['epoch']))
-        else:
-            self.log("=> no checkpoint found at '{}'".format(file))
-
-            
 
     def inti_criterion(self):
         self.edge_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
@@ -324,8 +310,8 @@ class SETrainer:
 
             #* the meaning of scale : 'choose to use random scale transform(0.75-2),default:multi scale')
             #* if test the SBD, the crop_size should be set as  512, otherwise  origin size for cityscapes
-            testset = get_edge_dataset(self.args.dataset,  split='val', mode='testval',
-                                    transform=input_transform, crop_size=args.crop_size,root=self.args.data_dir)
+            test_dataset = get_edge_dataset(self.args.dataset,  split='val', mode='testval',
+                                    transform=input_transform, crop_size=self.args.crop_size,root=self.args.data_dir)
 
             self.test_loader = torch.utils.data.DataLoader(test_dataset, 
                                     batch_size=self.args.batch_size, shuffle=False,
@@ -351,9 +337,9 @@ class SETrainer:
                                     self.args.batch_size,self.args.workers)
 
 
-        self.val_loader,self.val_sampler = wrapper_loader(val_dataset,
-                                    self.args.batch_size,self.args.workers)
-
+        self.val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=self.args.batch_size, 
+                                                      shuffle=False, num_workers=self.args.workers)
+            
         #!========================
         # sample = train_dataset.__getitem__(0)
         # cv2.imwrite('im.jpg',sample[0].permute(1,2,0).numpy()*255)
@@ -372,20 +358,18 @@ class SETrainer:
 
         for epoch in range(self.start_epoch, self.args.epochs):
 
-            lr = self.adjust_learning_rate(epoch)
-            self.log('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
-
             self.train_sampler.set_epoch(epoch)        
-            self.val_sampler.set_epoch(epoch) 
-
-            
             self.train_epoch(epoch)
-
-            if epoch % self.args.val_freq == 0:
+            
+            if epoch >= 60:
+                self.args.val_freq  = 1
+                self.args.save_freq = 1   
+                self.log('update val_freq and save freq')
+                
+            if epoch % self.args.val_freq == 0 and self.args.local_rank == 0 :
                 self.validate_epoch(epoch)
 
-                if((epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ) \
-                    and self.args.local_rank == 0):
+                if (epoch % self.args.save_freq == 0 or  epoch+1 == self.args.epochs ):
                     self.save_ckpt(epoch)
 
         self.log("train finish!!!! ")
@@ -431,6 +415,7 @@ class SETrainer:
 
         #adjust the learning rate of sigma
         self.optimizer.param_groups[-1]['lr'] = lr * 0.01
+        # self.optimizer.param_groups[-1]['lr']
         return lr
 
     def validate_epoch(self,epoch):
@@ -487,7 +472,8 @@ class SETrainer:
 
                 se_loss+=rind_loss.item()
 
-                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'step':epoch*len(self.val_loader)+i}
+                # all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'val_step':epoch*len(self.val_loader)+i}
+                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
 
 
                 if 'inverse_form_loss1' in locals():
@@ -496,7 +482,7 @@ class SETrainer:
                     
                 if (i+1) % self.args.print_freq  == 0 :
 
-                    self.wandb_log(all_need_upload)
+                    self.wandb_log(all_need_upload,step=epoch*len(self.val_loader)+i)
 
                     tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
                                 "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
@@ -514,7 +500,6 @@ class SETrainer:
 
     
     def validate_all_model(self):
-        
 
         if self.args.resume_model_dir == None:
             self.log('please give the ckpt directory ')
@@ -522,22 +507,21 @@ class SETrainer:
         
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
-
-        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-5:]
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-10:]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
         for model_file in tqdm(all_models):
 
-            self.update_model(model_file)
-            tic = time.time()
-            self.validate_epoch(self.start_epoch)
-            spend_time = time.strftime("%H:%M:%S",time.gmtime(time.time()-tic))
-
-            self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {self.current_se_edge_loss} \t spend time : {spend_time}")
+            self.load_checkpoint(model_file)
+            self.log(f'current loss : {self.current_se_edge_loss }')
             
+            # tic = time.time()
+            # self.validate_epoch(self.start_epoch)
+            # spend_time = time.strftime("%H:%M:%S",time.gmtime(time.time()-tic))
+            # self.log(f" ckpt :  {model_file.split('/')[-1]} \t val loss : {self.current_se_edge_loss} \t spend time : {spend_time}")
             
-            if self.is_best:
+            if hasattr(self,'is_best') and self.is_best :
                 self.log('current model  is better')
             self.log("==============================================================================================================================================")
 
@@ -566,6 +550,7 @@ class SETrainer:
         #     scores_list.append(AverageMeter())
 
         self.model.train()
+        
 
         for i, in_tar_name_pair in enumerate(self.train_loader):#* 一个一个batch取数据
 
@@ -574,7 +559,6 @@ class SETrainer:
             
             # output = self.model(input)
             output = self.model(input.type(torch.FloatTensor))
-            
             
             '''
             description:  edge detection branch output 共两类 , 
@@ -601,7 +585,9 @@ class SETrainer:
                 # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                 hard_prediction_maps = torch.cat(output[1:],dim=1)
                 rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+                
             elif self.args.dataset == 'bsds':
+                
                 rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
@@ -639,17 +625,23 @@ class SETrainer:
                          + self.args.inverseform_loss_weight * inverse_form_loss
             else :
                 loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss  
-
+                
+            
 
 
             self.optimizer.zero_grad()
             loss.backward()#* warning exists
             self.optimizer.step()
             self.scheduler.step()
+            # self.scheduler.step(epoch)
 
             #* print status 
             if  i % self.args.print_freq == 0 and self.args.local_rank == 0:#* for debug 
+                # embed()
                 
+                # self.log(f'scheduler step counter : {self.scheduler._step_count} last epoch: {self.scheduler.last_epoch} milestones: {self.scheduler.milestones} current lr: {self.scheduler.get_last_lr()[0]};')
+                
+                #* get_last_lr return the learning rate of each parameter group
                 all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item(),'lr':self.scheduler.get_last_lr()[0]}
                 
 
@@ -662,6 +654,9 @@ class SETrainer:
                 if 'inverse_form_loss2' in locals():
                     all_need_upload['inverse_form_loss2'] = inverse_form_loss2.item()
                     
+                
+                
+                # self.wandb_log(all_need_upload,step=epoch*len(self.train_loader)+i)
                 self.wandb_log(all_need_upload)
 
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \

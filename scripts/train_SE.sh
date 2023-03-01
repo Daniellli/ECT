@@ -12,13 +12,13 @@
 
 
 
-gpuids="0,1,2,3,4,5,6,7";
-gpu_number=8;
+gpuids="0,1,2,3,4,6,7";
+gpu_number=7;
 
 
 # lr=1e-5;
 lr=0.08;
-batch_size=1;
+batch_size=2;
 epoch=200;
 bg_weights=0.5;
 rind_weights=1;
@@ -33,14 +33,24 @@ dataset='cityscapes';
 data_size=640;
 
 scheduler='step';
-decay_epoch="1000 1001"
+
+decay_epoch="100 200"
+
+print_freq=20;
+val_freq=5;
+save_freq=5;
+
+# model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-14:37:1677652667/checkpoints/ckpt_rank000_ep0002.pth.tar;
+
 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
---inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --wandb \
---dataset $dataset  --val-freq 1 --save-freq 3 --print-freq 1 2>&1 | tee -a logs/train.log
+--inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
+--lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.5 --weight-decay 1e-4 \
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
+2>&1 | tee -a logs/train.log
 
 
 
@@ -56,6 +66,7 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 
 
 # resume_model=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0015.pth.tar;
+
 #* test 
 # gpuids=3;
 # python -m torch.distributed.launch --nproc_per_node=1 --master_port 29510 \
