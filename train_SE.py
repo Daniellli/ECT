@@ -31,6 +31,7 @@ from utils.semantic_edge_option import parse_args
 from utils.utils import *
 from utils.global_var import *
 
+from utils.lr_scheduler import get_scheduler
 
 
 
@@ -61,11 +62,28 @@ from  glob import glob
 from IPython import embed 
 warnings.filterwarnings('ignore')
 
+
+
+
 def namestr(obj, namespace):
     for name in namespace:
         if namespace[name] is obj:
             return name 
     return None
+
+
+def detach_module(model):
+    if len(list(model.keys())[0].split('.')) <=6:
+        return model
+
+    new_state_dict = OrderedDict()
+    for k, v in model.items():
+        name = k[7:] # module字段在最前面，从第7个字符开始就可以去掉module
+        new_state_dict[name] = v #新字典的key值对应的value一一对应
+
+    return new_state_dict 
+
+
 
 
 
@@ -82,7 +100,11 @@ class SETrainer:
             self.log(f'save path : {self.save_dir}')
         
         cudnn.benchmark = self.args.cudnn_benchmark
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids        
+        os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids    
+        
+        dist.init_process_group(backend='nccl')
+        torch.cuda.set_device(self.args.local_rank) 
+        torch.autograd.set_detect_anomaly(True)     
    
         # port = int(1e4+np.random.randint(1,10000,1)[0])
         # logger.info(f"port == {port}")
@@ -94,9 +116,11 @@ class SETrainer:
         self.best_se_edge_loss  = 1e+6
         self.current_se_edge_loss = 1e+6
 
-        self.init_distributed()
-        self.init_model() #* todo 
+        
         self.inti_dataloader()
+        self.init_model() #* todo 
+        
+        
         if self.args.cmd=='test':
             return 
 
@@ -124,17 +148,6 @@ class SETrainer:
             logger.info(message)
         
   
-
-
-
-    def init_distributed(self):
-        
-        dist.init_process_group(backend='nccl')
-        torch.cuda.set_device(self.args.local_rank) 
-        torch.autograd.set_detect_anomaly(True) 
-        
-
-        
     def init_wandb(self):
         wandb.init(project="semantic_edge_cerberus") 
 
@@ -145,6 +158,11 @@ class SETrainer:
         self.wandb_init =True
 
 
+    '''
+    description:  inti model with schedule and optimizer 
+    param {*} self
+    return {*}
+    '''
     def init_model(self):
         #* construct model 
         # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
@@ -173,52 +191,79 @@ class SETrainer:
         self.optimizer = torch.optim.SGD(params_list,self.args.lr,
                                     momentum=self.args.momentum,\
                                     weight_decay=self.args.weight_decay)
-
+        self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), args)
 
         #*========================================================
         #* calc parameter numbers 
-        # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
-        # self.log(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
         # self.log(summary(single_model))
         #*========================================================
-
-        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))
-        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[self.args.local_rank],
-                            find_unused_parameters=True,broadcast_buffers = True) 
-        
 
 
         if self.args.resume:
             if os.path.isfile(self.args.resume):
-                checkpoint = torch.load(self.args.resume,map_location=torch.device('cpu'))
-                self.start_epoch = checkpoint['epoch']
-                best_prec1 = checkpoint['best_prec1']
-                
-                for name, param in checkpoint['state_dict'].items():
-                    # name = name[7:]
-                    model.state_dict()[name].copy_(param)
-                self.log("=> loaded checkpoint '{}' (epoch {})".format(self.args.resume, checkpoint['epoch']))
+                self.load_checkpoint(self.args.resume)
             else:
                 self.log("=> no checkpoint found at '{}'".format(self.args.resume))
-
-
         elif self.args.pretrained_model:
             if os.path.isfile(self.args.pretrained_model):
-
                 checkpoint = torch.load(self.args.pretrained_model,map_location='cpu')
                 for name, param in checkpoint['state_dict'].items():
                     if name[:5] == 'sigma':
                         pass
-                        # model.state_dict()[name].copy_(param)
                     else:
-                        model.state_dict()[name].copy_(param)
-
+                        self.model.state_dict()[name].copy_(param)
                 self.log("=> loaded model checkpoint '{}' (epoch {})".format(self.args.pretrained_model, checkpoint['epoch']))
             else:
                 self.log("=> no checkpoint found at '{}'".format(self.args.resume))
-        
+            del checkpoint
+            torch.cuda.empty_cache()
+
+
+        #* distributed train 
+        model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(self.args.local_rank))
+        model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[self.args.local_rank],
+                            find_unused_parameters=True,broadcast_buffers = True) 
         self.model = model
 
+
+    def load_checkpoint(self, ckpt_path):
+        """Load from checkpoint."""
+        
+        checkpoint = torch.load(ckpt_path, map_location='cpu')
+        
+        self.start_epoch = int(checkpoint['epoch']) + 1 #* train next epoch 
+        
+        #todo checkpoint['model']  delete ".module"
+        # if distributed2common:
+            # common_model = detach_module(checkpoint['model'])
+        # list(common_model.keys())[0]
+            # self.model.load_state_dict(common_model, True)
+        # else :
+        #     model.load_state_dict(checkpoint['model'], True)
+
+        self.model.load_state_dict(checkpoint['model'], True)
+
+        self.optimizer.load_state_dict(checkpoint['optimizer'])
+        self.scheduler.load_state_dict(checkpoint['scheduler'])
+        self.best_se_edge_loss  =checkpoint['val_se_edge_loss']
+        self.current_se_edge_loss = checkpoint['val_se_edge_loss']
+
+        self.log("=> loaded successfully '{}' (epoch {})".format(
+            ckpt_path, checkpoint['epoch']
+        ))
+        
+        del checkpoint
+        torch.cuda.empty_cache()
+
+
+
+
+    '''
+    description:  for validate  debug 
+    param {*} self
+    param {*} file
+    return {*}
+    '''
     def update_model(self,file):
         if os.path.isfile(file):
             checkpoint = torch.load(file,map_location=torch.device('cpu'))
@@ -254,39 +299,6 @@ class SETrainer:
 
     def inti_dataloader(self):
 
-        if self.args.dataset == 'bsds':
-            train_dataset = Mydataset(root_path=self.args.train_dir, \
-                split='trainval', crop_size=self.args.crop_size)
-            test_dataset = Mydataset(root_path=self.args.test_dir, split='test', crop_size=self.args.crop_size)
-
-        elif self.args.dataset == 'cityscapes':
-             
-            input_transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize([.485, .456, .406], [.229, .224, .225])])
-
-            #* the meaning of scale : 'choose to use random scale transform(0.75-2),default:multi scale')
-            data_kwargs = {'transform': input_transform, 'base_size': self.args.crop_size,
-                            'crop_size': self.args.crop_size, 'logger': logger,
-                            'scale': True,"root":self.args.data_dir}
-
-            
-
-            test_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='testval',**data_kwargs)
-
-            self.test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=self.args.batch_size, shuffle=False,
-                                      num_workers=self.args.workers)
-            
-
-            if self.args.cmd == 'test':
-                return 
-
-            train_dataset  = get_edge_dataset(self.args.dataset, split='train', mode='train',
-                                                **data_kwargs)
-
-            val_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='val',**data_kwargs)
-
-
         def wrapper_loader(dataset,batch_size,workers):
             sampler = DistributedSampler(dataset)
             loader = torch.utils.data.DataLoader(
@@ -294,6 +306,46 @@ class SETrainer:
                     pin_memory=True, drop_last=True, sampler=sampler) 
             return loader,sampler
         
+
+        if self.args.dataset == 'bsds':
+            train_dataset = Mydataset(root_path=self.args.train_dir, \
+                split='trainval', crop_size=self.args.crop_size)
+            test_dataset = Mydataset(root_path=self.args.test_dir, split='test', crop_size=self.args.crop_size)
+
+        elif self.args.dataset == 'cityscapes':
+            input_transform = transforms.Compose([
+                            transforms.ToTensor(),
+                            transforms.Normalize(
+                                [.485, .456, .406],
+                                [.229, .224, .225]
+                            )
+                        ]
+                    )
+
+            #* the meaning of scale : 'choose to use random scale transform(0.75-2),default:multi scale')
+            #* if test the SBD, the crop_size should be set as  512, otherwise  origin size for cityscapes
+            testset = get_edge_dataset(self.args.dataset,  split='val', mode='testval',
+                                    transform=input_transform, crop_size=args.crop_size,root=self.args.data_dir)
+
+            self.test_loader = torch.utils.data.DataLoader(test_dataset, 
+                                    batch_size=self.args.batch_size, shuffle=False,
+                                    num_workers=self.args.workers)
+            
+            if self.args.cmd == 'test':
+                return 
+
+            #* not base size need
+            data_kwargs = {'transform': input_transform, 'base_size': self.args.crop_size,
+                'crop_size': self.args.crop_size, 'logger': logger,
+                'scale': True,"root":self.args.data_dir}
+
+            train_dataset  = get_edge_dataset(self.args.dataset, split='train', mode='train',
+                                                **data_kwargs)
+
+            val_dataset  = get_edge_dataset(self.args.dataset, split='val', mode='val',**data_kwargs)
+
+
+
         
         self.train_loader,self.train_sampler = wrapper_loader(train_dataset,
                                     self.args.batch_size,self.args.workers)
@@ -344,23 +396,27 @@ class SETrainer:
         checkpoint_path = osp.join(self.save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(self.args.local_rank,epoch))
         
         save_checkpoint({
-            'epoch': epoch + 1,
-            'arch': self.args.arch,
-            'state_dict': self.model.state_dict(),
-            'best_prec1': self.current_se_edge_loss,
+            'args': self.args,
+            'epoch': epoch,
+            'model': self.model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            'scheduler': self.scheduler.state_dict(),
+            'val_se_edge_loss': self.current_se_edge_loss,
         }, self.is_best, 
         filename=checkpoint_path)
 
 
         
         
-    
 
 
-        
-
+    '''
+    description:   the  funciton of  this block has been replaced by schedule
+    param {*} self
+    param {*} epoch
+    return {*}
+    '''
     def adjust_learning_rate(self, epoch):
-
         """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
 
         if self.args.lr_mode == 'step':
@@ -375,7 +431,6 @@ class SETrainer:
 
         #adjust the learning rate of sigma
         self.optimizer.param_groups[-1]['lr'] = lr * 0.01
-
         return lr
 
     def validate_epoch(self,epoch):
@@ -590,11 +645,13 @@ class SETrainer:
             self.optimizer.zero_grad()
             loss.backward()#* warning exists
             self.optimizer.step()
+            self.scheduler.step()
 
             #* print status 
             if  i % self.args.print_freq == 0 and self.args.local_rank == 0:#* for debug 
-
-                all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item()}
+                
+                all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item(),'lr':self.scheduler.get_last_lr()[0]}
+                
 
                 # locals() : 基于字典的访问局部变量的方式。键是变量名，值是变量值。
                 # globals() : 基于字典的访问全局变量的方式。键是变量名，值是变量值。
@@ -616,6 +673,7 @@ class SETrainer:
         self.model.eval()
         
         outdir_list_fuse = []
+        #* only one gpu is needed during inference, otherwise the code below would be error 
         for i in range(self.test_loader.dataset.num_class):
             outdir_fuse = '%s/%s/%s/class_%03d'%(self.args.dataset,'cerberus',time.strftime("%H:%M:%s",time.gmtime(time.time())), i+1)
             # if not os.path.exists(outdir_fuse):
@@ -654,9 +712,12 @@ class SETrainer:
                     
             #* traverse each batch size 
             for idx in range(im_sizes.shape[0]): 
+                im_sizes[idx]
                 fuse = fuses[idx]
                 
                 fuse =  fuse.squeeze_().sigmoid_().cpu().numpy()    
+                fuse = fuse[:,0:im_size[1],0:im_size[0]]
+                
                 # to_imger = transforms.ToPILImage()
                 # to_imger(normalize(trans2(image[idx]))).save('img.jpg')
                 # save_prediction_for_debug(side5,suffix='side5')

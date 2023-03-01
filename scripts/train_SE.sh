@@ -2,10 +2,10 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-02-26 10:24:29
+ # @LastEditTime: 2023-03-01 18:27:05
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/scripts/train_SE.sh
+ # @FilePath: /Cerberus-main/scripts/train_SE.sh
  # have a nice day
 ### 
 
@@ -32,11 +32,14 @@ data_dir=data/cityscapes/data_proc;
 dataset='cityscapes';
 data_size=640;
 
+scheduler='step';
+decay_epoch="1000 1001"
+
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
---inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
+--inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --wandb \
 --dataset $dataset  --val-freq 1 --save-freq 3 --print-freq 1 2>&1 | tee -a logs/train.log
 
 

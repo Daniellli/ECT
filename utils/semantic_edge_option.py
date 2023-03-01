@@ -1,10 +1,10 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:23:24
-LastEditTime: 2023-02-26 12:59:49
+LastEditTime: 2023-03-01 18:50:57
 LastEditors: daniel
 Description:  for semantic edge 
-FilePath: /cerberus/utils/semantic_edge_option.py
+FilePath: /Cerberus-main/utils/semantic_edge_option.py
 have a nice day
 '''
 
@@ -39,6 +39,13 @@ def parse_args():
                         help='SGD momentum (default: 0.9)')
     parser.add_argument('--weight-decay', '--wd', default=1e-5, type=float,
                         metavar='W', help='weight decay (default: 1e-4)')
+                        
+    parser.add_argument('--lr-scheduler', type=str, default='step',
+                        choices=["step", "cosine"])
+    parser.add_argument('--lr-decay-epochs', type=int, default=[280, 340],
+                        nargs='+', help='when to decay lr, can be a list')
+
+
 
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
