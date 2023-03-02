@@ -12,12 +12,12 @@
 
 
 
-gpuids="0,1,2,3,4,6,7";
+gpuids="0,1,2,3,4,5,7";
 gpu_number=7;
 
 
-lr=1e-5;
-batch_size=2;
+lr=0.05;
+batch_size=8;
 epoch=200;
 bg_weights=0.5;
 rind_weights=1;
