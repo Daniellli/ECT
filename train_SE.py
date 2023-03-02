@@ -50,8 +50,8 @@ from dataloaders.semantic_edge import get_edge_dataset
 
 #* model 
 from model.edge_model import EdgeCerberus
-# from model.semantic_edge_model import SEdgeCerberus
-from model.semantic_edge_model2 import SEdgeCerberus
+from model.semantic_edge_model import SEdgeCerberus
+# from model.semantic_edge_model2 import SEdgeCerberus
 
 from torchsummary import summary
 

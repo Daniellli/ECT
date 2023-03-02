@@ -41,7 +41,7 @@ val_freq=5;
 save_freq=5;
 
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
-
+# --resume $model2resume --change-decay-epoch 
 #* train 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
@@ -49,7 +49,7 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
 --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
---dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --resume $model2resume --change-decay-epoch \
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
 2>&1 | tee -a logs/train_cityscapes.log
 
 
