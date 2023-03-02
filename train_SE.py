@@ -229,6 +229,26 @@ class SETrainer:
                 self.log("=> no checkpoint found at '{}'".format(self.args.resume))
             del checkpoint
             torch.cuda.empty_cache()
+            
+            
+            
+        #* update lr decay milestones
+        #* load model 之后 schedule 也变了 , 变成上次训练的,这次的就不见了, 重新加载
+        if self.args.change_decay_epoch :#* update lr decay epoch 
+            #* last epoch == last counter (bug)...
+            self.log(f"scheduler.milestones : {self.scheduler.milestones} \t current step :{self.scheduler._step_count} \t last epoch {self.scheduler.last_epoch} ")
+            self.log(f"args.lr_decay_epochs :{self.args.lr_decay_epochs} \t len(train_loader):{len(self.train_loader)}")
+            
+            self.scheduler.milestones ={len(self.train_loader)*( l+1 - self.start_epoch )+self.scheduler.last_epoch : 1 for l in self.args.lr_decay_epochs}
+            
+            self.log(f"scheduler.milestones : {self .scheduler.milestones} \t current step :{self.scheduler._step_count} \t last epoch {self.scheduler.last_epoch} ")
+            
+            
+            self.log(f"scheduler.gamma : {self.scheduler.gamma} ")
+            self.scheduler.gamma = self.args.lr_decay_rate
+            self.log(f"scheduler.gamma : {self.scheduler.gamma} ")
+            
+                
 
 
 
@@ -252,6 +272,9 @@ class SETrainer:
 
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
+        
+  
+                
         self.best_se_edge_loss  =checkpoint['val_se_edge_loss']
         self.current_se_edge_loss = checkpoint['val_se_edge_loss']
 
@@ -360,6 +383,7 @@ class SETrainer:
 
             self.train_sampler.set_epoch(epoch)        
             self.train_epoch(epoch)
+            
             
             if epoch >= 60:
                 self.args.val_freq  = 1
@@ -472,8 +496,8 @@ class SETrainer:
 
                 se_loss+=rind_loss.item()
 
-                # all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'val_step':epoch*len(self.val_loader)+i}
-                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
+                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'val_step':epoch*len(self.val_loader)+i}
+                # all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
 
 
                 if 'inverse_form_loss1' in locals():
@@ -482,7 +506,8 @@ class SETrainer:
                     
                 if (i+1) % self.args.print_freq  == 0 :
 
-                    self.wandb_log(all_need_upload,step=epoch*len(self.val_loader)+i)
+                    # self.wandb_log(all_need_upload,step=epoch*len(self.val_loader)+i)
+                    self.wandb_log(all_need_upload)
 
                     tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
                                 "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
@@ -642,7 +667,8 @@ class SETrainer:
                 # self.log(f'scheduler step counter : {self.scheduler._step_count} last epoch: {self.scheduler.last_epoch} milestones: {self.scheduler.milestones} current lr: {self.scheduler.get_last_lr()[0]};')
                 
                 #* get_last_lr return the learning rate of each parameter group
-                all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item(),'lr':self.scheduler.get_last_lr()[0]}
+                all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item(),
+                                    'lr':self.scheduler.get_last_lr()[0],'train_step':epoch*len(self.train_loader)+i}
                 
 
                 # locals() : 基于字典的访问局部变量的方式。键是变量名，值是变量值。
@@ -656,7 +682,7 @@ class SETrainer:
                     
                 
                 
-                # self.wandb_log(all_need_upload,step=epoch*len(self.train_loader)+i)
+                # self.wandb_log(all_need_upload,step=)
                 self.wandb_log(all_need_upload)
 
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
@@ -735,7 +761,6 @@ if __name__ == '__main__':
 
     setup_seed(20)
     trainer = SETrainer()
-    
     if trainer.get_mode() == 'test':
         trainer.test()
     elif trainer.get_mode() == 'train':

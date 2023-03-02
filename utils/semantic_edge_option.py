@@ -47,6 +47,8 @@ def parse_args():
     
     parser.add_argument('--lr-decay-rate', type=float, default=0.1,
                         help='for step scheduler. decay rate for lr')
+    
+    parser.add_argument('--change-decay-epoch', action='store_true',help=' for resume, change the milestone of loaded schedule ')    
 
 
 

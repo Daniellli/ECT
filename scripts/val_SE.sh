@@ -65,13 +65,15 @@ data_size=640;
 
 #* validate all model 
 
-gpuids='0,1,2,4,5,7';
-gpu_num=6;
+gpuids='0,1,2,3,4,6,7';
+gpu_num=1;
 port=29550;
-bs=4;
+bs=16;
 
 # val_dir='/DATA2/xusc/cerberus/networks/2023-02-28-01:45:1677519956/checkpoints/'
-val_dir=/DATA2/xusc/cerberus/networks/2023-03-01-14:37:1677652667/checkpoints;
+# val_dir=/DATA2/xusc/cerberus/networks/2023-03-01-14:37:1677652667/checkpoints;
+val_dir=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints;
+
 
 python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
 train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
