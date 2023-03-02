@@ -281,14 +281,14 @@ class SETrainer:
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.scheduler.load_state_dict(checkpoint['scheduler'])
         
-  
-                
+        
         self.best_se_edge_loss  =checkpoint['val_se_edge_loss']
         self.current_se_edge_loss = checkpoint['val_se_edge_loss']
 
         self.log("=> loaded successfully '{}' (epoch {})".format(
             ckpt_path, checkpoint['epoch']
         ))
+        self.log(f" loaded schedule lr : {self.scheduler.get_last_lr()[0]}")
         
         del checkpoint
         torch.cuda.empty_cache()
@@ -540,7 +540,8 @@ class SETrainer:
         
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
-        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))[-10:]
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
+        # all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
@@ -548,6 +549,7 @@ class SETrainer:
 
             self.load_checkpoint(model_file)
             self.log(f'current loss : {self.current_se_edge_loss }')
+            
             
             # tic = time.time()
             # self.validate_epoch(self.start_epoch)
@@ -780,7 +782,6 @@ if __name__ == '__main__':
         trainer.test()
     elif trainer.get_mode() == 'train':
         trainer.train()
-
     elif trainer.get_mode() == 'val':
         trainer.validate_all_model()
     

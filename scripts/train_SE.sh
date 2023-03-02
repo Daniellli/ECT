@@ -18,7 +18,7 @@ gpu_number=7;
 
 # lr=1e-5;
 lr=0.08;
-batch_size=2;
+batch_size=1;
 epoch=200;
 bg_weights=0.5;
 rind_weights=1;
@@ -33,8 +33,8 @@ dataset='cityscapes';
 data_size=640;
 scheduler='step';
 
-# decay_epoch="67 100 150"
-decay_epoch="100 200"
+decay_epoch="70 100 150"
+# decay_epoch="100 200"
 
 print_freq=20;
 val_freq=5;
@@ -42,34 +42,22 @@ save_freq=5;
 
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
 
-
+#* train 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
 --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
---dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
-2>&1 | tee -a logs/train.log
-# --resume $model2resume --change-decay-epoch
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --resume $model2resume --change-decay-epoch \
+2>&1 | tee -a logs/train_cityscapes.log
 
 
 
-
-# python  -m torch.distributed.launch --nproc_per_node=1   --master_port 29511 \
-# train_SE.py train  -s 320 --batch-size 4  --epochs 300 --lr 1e-5 \
-# --gpu-ids '1' --bg-weight 0.5 --rind-weight 1 \
-# --extra-loss-weight 1e+3 --edge-loss-gamma 0.3 --edge-loss-beta 1 \
-# --rind-loss-gamma 0.3  --rind-loss-beta 5 --constraint-loss \
-# 2>&1 | tee -a logs/train.log
-
-
-
-# resume_model=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0015.pth.tar;
-
-#* test 
+# model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-01:35:1677692146/checkpoints/model_best.pth.tar;
+# #* test 
 # gpuids=3;
 # python -m torch.distributed.launch --nproc_per_node=1 --master_port 29510 \
-# train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 1 \
-# --data-dir $data_dir --dataset $dataset   --resume $resume_model \
-# 2>&1 | tee -a logs/test.log
+# train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 8 \
+# --data-dir $data_dir --dataset $dataset --resume $model2resume \
+# 2>&1 | tee -a logs/test_cityscapes.log
