@@ -1,3 +1,12 @@
+'''
+Author: daniel
+Date: 2023-03-02 22:11:02
+LastEditTime: 2023-03-02 22:27:55
+LastEditors: daniel
+Description: 
+FilePath: /cerberus/utils/polynomial_lr.py
+have a nice day
+'''
 
 
 
@@ -13,12 +22,11 @@ class PolynomialLR:
 
     def step(self,epoch):
         for idx,param_group in enumerate(self.orgin_lr):
-            self.optimizer.param_groups[idx]['lr'] = param_group['lr'] * \
-                    (1 - epoch / self.total_iters) ** self.power
+            self.optimizer.param_groups[idx]['lr'] = param_group['lr'] * pow((1 - epoch / self.total_iters),self.power)
     
         
-    def get_lr(self):
-        return self.optimizer.param_groups[0]['lr']
+    def get_last_lr(self):
+        return [parameter['lr'] for parameter in self.optimizer.param_groups]
     
     
     def load_state_dict(self,state_dict):

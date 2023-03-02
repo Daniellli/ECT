@@ -1,10 +1,10 @@
 '''
 Author: daniel
 Date: 2023-03-01 18:18:57
-LastEditTime: 2023-03-01 18:24:31
+LastEditTime: 2023-03-02 22:38:37
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/utils/lr_scheduler.py
+FilePath: /cerberus/utils/lr_scheduler.py
 have a nice day
 '''
 # ------------------------------------------------------------------------
@@ -13,7 +13,7 @@ have a nice day
 # Licensed under the MIT License.
 # ------------------------------------------------------------------------
 # noinspection PyProtectedMember
-from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR
+from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR,ReduceLROnPlateau
 from .polynomial_lr import PolynomialLR
 
 
@@ -122,6 +122,8 @@ def get_scheduler(optimizer, n_iter_per_epoch, args):
                                 total_iters = args.epochs,
                                 power = args.lr_decay_rate) #* 
         
+        
+        print('PolynomialLR schedule  total epoch :',args.epochs,' power : ',args.lr_decay_rate)
         
     # elif "step2" == args.lr_scheduler :
     #     scheduler = StepLR(optimizer, step_size=1, gamma=args.lr_decay_rate)

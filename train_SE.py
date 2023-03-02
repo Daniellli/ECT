@@ -53,7 +53,7 @@ from model.edge_model import EdgeCerberus
 from model.semantic_edge_model import SEdgeCerberus
 # from model.semantic_edge_model2 import SEdgeCerberus
 
-from torchsummary import summary
+# from torchsummary import summary
 
 from  glob import glob
 
@@ -206,6 +206,7 @@ class SETrainer:
         
         self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), self.args)
 
+ 
         #*========================================================
         #* calc parameter numbers 
         # self.log(summary(single_model))
@@ -388,8 +389,10 @@ class SETrainer:
 
             self.train_sampler.set_epoch(epoch)        
             self.train_epoch(epoch)
-            
-            
+
+            self.scheduler.step(epoch)
+            self.log(f"after update, lr == {self.scheduler.get_last_lr()[0]}")
+        
             if epoch >= 60:
                 self.args.val_freq  = 1
                 self.args.save_freq = 1   
@@ -674,7 +677,7 @@ class SETrainer:
             self.optimizer.zero_grad()
             loss.backward()#* warning exists
             self.optimizer.step()
-            self.scheduler.step()
+            # self.scheduler.step()
             # self.scheduler.step(epoch)
 
             #* print status 
@@ -685,7 +688,7 @@ class SETrainer:
                 
                 #* get_last_lr return the learning rate of each parameter group
                 all_need_upload = { "generic_edge_loss":b_loss.item(),"hard_edge_loss":rind_loss.item(),"total_loss":loss.item(),
-                                    'lr':self.scheduler.get_last_lr()[0],'train_step':epoch*len(self.train_loader)+i}
+                                    'lr':self.scheduler.get_last_lr()[0],'train_step':epoch*len(self.train_loader)+i,'epoch':epoch}
                 
 
                 # locals() : 基于字典的访问局部变量的方式。键是变量名，值是变量值。

@@ -11,7 +11,8 @@
             // "program": "${file}",
             // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            "program": "/DATA2/envs/mdetr/lib/python3.8/site-packages/torch/distributed/launch.py",
+            // "program": "/DATA2/envs/mdetr/lib/python3.8/site-packages/torch/distributed/launch.py",
+            "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             "console": "integratedTerminal",
@@ -19,12 +20,9 @@
 
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "train", "-s", "640", "--batch-size=1","--gpu-ids=0","--lr=8e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
+                "train", "-s", "640", "--batch-size=1","--gpu-ids=0","--lr=1e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
                  "--dataset=cityscapes","--data-dir=data/cityscapes-preprocess/data_proc",
             ]
-
-                    
-
 
             // "args": [
             //     "--nproc_per_node=1","--master_port","29511","train_SE.py",
