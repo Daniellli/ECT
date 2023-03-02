@@ -12,8 +12,8 @@
 
 
 
-gpuids="0,1,2,3,4,6,7";
-gpu_number=7;
+gpuids="0,1,2,3";
+gpu_number=4;
 
 
 # lr=1e-5;
@@ -50,7 +50,7 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
 --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
 --dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
-2>&1 | tee -a logs/train.log
+2>&1 | tee -a logs/train_cityscapes.log
 # --resume $model2resume --change-decay-epoch
 
 

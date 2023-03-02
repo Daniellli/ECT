@@ -50,8 +50,8 @@ from dataloaders.semantic_edge import get_edge_dataset
 
 #* model 
 from model.edge_model import EdgeCerberus
-from model.semantic_edge_model import SEdgeCerberus
-# from model.semantic_edge_model2 import SEdgeCerberus
+# from model.semantic_edge_model import SEdgeCerberus
+from model.semantic_edge_model2 import SEdgeCerberus
 
 from torchsummary import summary
 
@@ -172,10 +172,18 @@ class SETrainer:
         #* construct model 
         # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
         
-        if self.args.dataset == 'cityscapes':
-            single_model = SEdgeCerberus(backbone="vitb_rn50_384")
-        elif self.args.dataset == 'bsds' :
+        
+        if self.args.dataset == 'bsds':
             single_model = EdgeCerberus(backbone="vitb_rn50_384")
+            self.class_num = 4
+        elif self.args.dataset == 'cityscapes' :
+            self.class_num = 19
+            single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+        elif self.args.dataset == 'sbd':
+            self.class_num = 20
+            single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+            
+            
 
 
         params_list = [{'params': single_model.pretrained.parameters(), 'lr': self.args.lr},
@@ -290,13 +298,10 @@ class SETrainer:
         self.edge_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
 
         if self.args.dataset == 'cityscapes':
-            self.class_num = 19
             self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
         elif self.args.dataset == 'bsds':
-            self.class_num = 1
             self.hard_edge_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
         elif self.args.dataset == 'sbd':
-            self.class_num = 20
             self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
 
 
@@ -321,7 +326,7 @@ class SETrainer:
                 split='trainval', crop_size=self.args.crop_size)
             test_dataset = Mydataset(root_path=self.args.test_dir, split='test', crop_size=self.args.crop_size)
 
-        elif self.args.dataset == 'cityscapes':
+        elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
             input_transform = transforms.Compose([
                             transforms.ToTensor(),
                             transforms.Normalize(
@@ -458,37 +463,40 @@ class SETrainer:
                 output = self.model(input.type(torch.FloatTensor))
             
                 #* for cityscapes
-                if self.args.dataset == 'cityscapes':
+               
+                if self.args.dataset == 'bsds':
+                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
                     generic_edge,indices = torch.max(target[:,1:,:,:],1)
                     pred_edge = F.sigmoid(output[0])
                     # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
                     b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-                else:
-                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
         
-                if self.args.dataset == 'cityscapes':
+             
+                if self.args.dataset == 'bsds':
+                    rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
                     # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                     hard_prediction_maps = torch.cat(output[1:],dim=1)
                     rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
-                elif self.args.dataset == 'bsds':
-                    rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
 
                 
                 if self.inverse_form_criterion is not None: 
                     #?  background_out 是否需要clone? 
                     #*  after detach , performance is better.
                     #* why detach?  using as 
-                    if self.args.dataset == 'cityscapes':
-                        background_out = pred_edge.clone().detach()
-                        hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
-                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
-                        inverse_form_loss =  inverse_form_loss1
+                    
 
-                    elif self.args.dataset == 'bsds':
+                    if self.args.dataset == 'bsds':
                         background_out= output[0].clone().detach()
                         rind_out = output[1:]
                         rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
                         inverse_form_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
+                    elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
+                        background_out = pred_edge.clone().detach()
+                        hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
+                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                        inverse_form_loss =  inverse_form_loss1
 
                     loss =  b_loss + rind_loss +inverse_form_loss
                 else :
@@ -593,27 +601,30 @@ class SETrainer:
             '''
             if edge_branch_out == "edge":
                 #* for cityscapes
-                if self.args.dataset == 'cityscapes':
+                
+            
+                if self.args.dataset == 'bsds' :
+                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+
+                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
                     generic_edge,indices = torch.max(target[:,1:,:,:],1)
                     pred_edge = F.sigmoid(output[0])
                     # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
                     b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-                else:
-                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                
 
             elif edge_branch_out == "unet" :
                 b_loss = self.focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
             else :
                 raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
-            
-            if self.args.dataset == 'cityscapes':
+         
+            if self.args.dataset == 'bsds':
+                rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
                 # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                 hard_prediction_maps = torch.cat(output[1:],dim=1)
                 rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
                 
-            elif self.args.dataset == 'bsds':
-                
-                rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
                 self.log("nan")
@@ -626,7 +637,16 @@ class SETrainer:
                 #?  background_out 是否需要clone? 
                 #*  after detach , performance is better.
                 #* why detach?  using as 
-                if self.args.dataset == 'cityscapes':
+             
+
+                if self.args.dataset == 'bsds':
+                    background_out= output[0].clone().detach()
+                    rind_out = output[1:]
+                    rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+                    extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
+
+                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
+
                     background_out = pred_edge.clone().detach()
                     hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
                     inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
@@ -637,11 +657,6 @@ class SETrainer:
                     # inverse_form_loss = inverse_form_loss2 + inverse_form_loss1
                     inverse_form_loss =  inverse_form_loss1
 
-                elif self.args.dataset == 'bsds':
-                    background_out= output[0].clone().detach()
-                    rind_out = output[1:]
-                    rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-                    extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
                 #* mean for merge hard task output 
                 # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
                 # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
