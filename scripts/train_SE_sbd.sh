@@ -47,9 +47,9 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir \
 --lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
---dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
-2>&1 | tee -a logs/train_cityscapes.log
-# --wandb 
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --wandb \
+2>&1 | tee -a logs/train_sbds.log
+
 
 
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-01:35:1677692146/checkpoints/model_best.pth.tar;

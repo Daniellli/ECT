@@ -18,7 +18,6 @@ import os.path as osp
 
 
 import random
-
 import wandb
 
 from loguru import logger
@@ -32,7 +31,6 @@ from utils.edge_option import parse_args
 
 
 import json
-
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -45,12 +43,10 @@ from utils.global_var import *
 
 
 from utils.check_model_consistent import is_model_consistent
-
 from model.loss.inverse_loss import InverseTransform2D
 
 
 import torch.functional
-
 import cv2 
 
 from test import edge_validation

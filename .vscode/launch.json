@@ -9,23 +9,29 @@
             "type": "python",
             "request": "launch",
             // "program": "${file}",
-            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
-            // "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/DATA2/envs/mdetr/lib/python3.8/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-   
-                    
-
 
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "test", "-s", "640", "--batch-size=1","--gpu-ids=0",
-                 "--dataset=cityscapes","--data-dir=data/cityscapes/data_proc",
-                 "--resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0015.pth.tar"
+                "train", "-s", "640", "--batch-size=1","--gpu-ids=0","--lr=8e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
+                 "--dataset=cityscapes","--data-dir=data/cityscapes-preprocess/data_proc",
             ]
+
+                    
+
+
+            // "args": [
+            //     "--nproc_per_node=1","--master_port","29511","train_SE.py",
+            //     "test", "-s", "640", "--batch-size=1","--gpu-ids=0",
+            //      "--dataset=cityscapes","--data-dir=data/cityscapes/data_proc",
+            //      "--resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_rank000_ep0015.pth.tar"
+            // ]
 
             //* cityscape  cerberus
             // "args": [

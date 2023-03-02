@@ -16,8 +16,13 @@ gpuids="0,1,2,3,4,6,7";
 gpu_number=7;
 
 
-# lr=1e-5;
-lr=0.08;
+
+# lr=8e-2;
+#* for CNN
+# lr=8e-2;
+#* for transformer
+lr=8e-3;
+
 batch_size=1;
 epoch=200;
 bg_weights=0.5;
@@ -31,25 +36,30 @@ rind_loss_gamma=0.3;
 data_dir=data/cityscapes-preprocess/data_proc;
 dataset='cityscapes';
 data_size=640;
-scheduler='step';
+#* for PolynomialLR
+scheduler='poly';
 
-decay_epoch="70 100 150"
+#* for MultiStepLR
+# scheduler='step';
+# decay_epoch="70 110 160";
+# decay_rate=0.5;
 # decay_epoch="100 200"
 
 print_freq=20;
 val_freq=5;
 save_freq=5;
 
-# model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
-# --resume $model2resume --change-decay-epoch 
+model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
+
+
 #* train 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
---lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
---dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
+--lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate $decay_rate --weight-decay 1e-4 \
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --resume $model2resume --change-decay-epoch \
 2>&1 | tee -a logs/train_cityscapes.log
 
 

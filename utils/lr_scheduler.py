@@ -13,7 +13,11 @@ have a nice day
 # Licensed under the MIT License.
 # ------------------------------------------------------------------------
 # noinspection PyProtectedMember
-from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR,StepLR
+from torch.optim.lr_scheduler import _LRScheduler, MultiStepLR, CosineAnnealingLR
+from .polynomial_lr import PolynomialLR
+
+
+
 from IPython import embed 
 
 
@@ -80,15 +84,23 @@ class GradualWarmupScheduler(_LRScheduler):
 
 def get_scheduler(optimizer, n_iter_per_epoch, args):
     if "cosine" in args.lr_scheduler:
+        """
+            not used parameter : 
+                1. lr_decay_rate
+                2.lr_decay_epochs
+                
+            hyperparameter meaning:
+                1. T_max: the step number optimizer need to step. 
+        """
         scheduler = CosineAnnealingLR(
             optimizer=optimizer,
-            eta_min=0.000001,
+            eta_min=0.000001, #* the  minimun learning rate , 0 by default
             #*  change the warmup_epoch to -1 as I have not  warm up epoch
-            T_max=(args.epochs +1) * n_iter_per_epoch)
+            T_max=(args.epochs +1) * n_iter_per_epoch) 
     elif "step" == args.lr_scheduler:
         if isinstance(args.lr_decay_epochs, int):
             args.lr_decay_epochs = [args.lr_decay_epochs]
-        
+            
         scheduler = MultiStepLR(
                 optimizer=optimizer,
                 gamma=args.lr_decay_rate,
@@ -96,14 +108,25 @@ def get_scheduler(optimizer, n_iter_per_epoch, args):
                 milestones=[(m +1) * n_iter_per_epoch for m in args.lr_decay_epochs],
                 # verbose=True
             )
-        # milestones=[(m +1) * n_iter_per_epoch for m in args.lr_decay_epochs]
         print('scheduler step counter : ',scheduler._step_count,'last epoch : ',scheduler.last_epoch,'milestones',scheduler.milestones)
         
-    elif "step2" == args.lr_scheduler :
-        scheduler = StepLR(optimizer, step_size=1, gamma=args.lr_decay_rate)
+    elif 'poly' in args.lr_scheduler:
+        """
+            not used parameter : 
+                1. lr_decay_rate
+                2.lr_decay_epochs
+            lr_decay_rate should be set as 0.9
+        """
         
-        print('scheduler step counter : ',scheduler._step_count,'last epoch : ',
-                scheduler.last_epoch)
+        scheduler = PolynomialLR(optimizer = optimizer,
+                                total_iters = args.epochs,
+                                power = args.lr_decay_rate) #* 
+        
+        
+    # elif "step2" == args.lr_scheduler :
+    #     scheduler = StepLR(optimizer, step_size=1, gamma=args.lr_decay_rate)
+    #     print('scheduler step counter : ',scheduler._step_count,'last epoch : ',
+    #             scheduler.last_epoch)
     else:
         raise NotImplementedError(f"scheduler {args.lr_scheduler} not supported")
 
