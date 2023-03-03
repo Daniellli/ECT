@@ -12,8 +12,8 @@
 
 
 
-gpuids="0,1,2,3";
-gpu_number=4;
+gpuids="0,1,2,3,4,5,7";
+gpu_number=7;
 
 
 
@@ -21,9 +21,9 @@ gpu_number=4;
 #* for CNN
 # lr=8e-2;
 #* for transformer
-lr=8e-3;
+lr=7e-3;
 
-batch_size=1;
+batch_size=2;
 epoch=200;
 bg_weights=0.5;
 rind_weights=1;

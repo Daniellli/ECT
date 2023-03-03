@@ -16,7 +16,7 @@ gpuids="0,1,2,3,4,5,7";
 gpu_number=7;
 
 
-lr=0.05;
+lr=5e-3;
 batch_size=8;
 epoch=200;
 bg_weights=0.5;

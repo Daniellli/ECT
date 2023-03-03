@@ -200,11 +200,12 @@ class SETrainer:
         #                             momentum=self.args.momentum,\
         #                                 weight_decay=self.args.weight_decay)
 
-        self.optimizer = torch.optim.SGD(params_list,self.args.lr,
-                                    momentum=self.args.momentum,\
-                                    weight_decay=self.args.weight_decay)
-        
-        self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), self.args)
+        if self.args.cmd != 'test':
+            self.optimizer = torch.optim.SGD(params_list,self.args.lr,
+                                        momentum=self.args.momentum,\
+                                        weight_decay=self.args.weight_decay)
+            
+            self.scheduler = get_scheduler(self.optimizer, len(self.train_loader), self.args)
 
  
         #*========================================================
@@ -278,9 +279,11 @@ class SETrainer:
         #     model.load_state_dict(checkpoint['model'], True)
 
         self.model.load_state_dict(checkpoint['model'], True)
-
-        self.optimizer.load_state_dict(checkpoint['optimizer'])
-        self.scheduler.load_state_dict(checkpoint['scheduler'])
+        
+        if self.args.cmd != 'test':
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
+            self.log(f" loaded schedule lr : {self.scheduler.get_last_lr()[0]}")
         
         
         self.best_se_edge_loss  =checkpoint['val_se_edge_loss']
@@ -289,7 +292,7 @@ class SETrainer:
         self.log("=> loaded successfully '{}' (epoch {})".format(
             ckpt_path, checkpoint['epoch']
         ))
-        self.log(f" loaded schedule lr : {self.scheduler.get_last_lr()[0]}")
+        
         
         del checkpoint
         torch.cuda.empty_cache()
@@ -543,8 +546,8 @@ class SETrainer:
         
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
-        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
-        # all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
+        # all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
+        all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
@@ -753,7 +756,7 @@ class SETrainer:
                     
             #* traverse each batch size 
             for idx in range(im_sizes.shape[0]): 
-                im_sizes[idx]
+                im_size = im_sizes[idx]
                 fuse = fuses[idx]
                 
                 fuse =  fuse.squeeze_().sigmoid_().cpu().numpy()    

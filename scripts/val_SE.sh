@@ -34,25 +34,27 @@ data_size=640;
 
 
 #* validate all model 
-gpuids='0,1,2,3,4,6,7';
+gpuids='6';
 gpu_num=1;
 port=29550;
 bs=16;
 
-# val_dir='/DATA2/xusc/cerberus/networks/2023-02-28-01:45:1677519956/checkpoints/'
-# val_dir=/DATA2/xusc/cerberus/networks/2023-03-01-14:37:1677652667/checkpoints;
-# val_dir=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints;
-val_dir=/DATA2/xusc/cerberus/networks/2023-03-02-01:35:1677692146/checkpoints;
-
-
-
-python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
-train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
---data-dir $data_dir --dataset $dataset --resume-model-dir $val_dir \
-2>&1 | tee -a logs/validate.log
+# val_dir='/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/'
+# python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
+# train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
+# --data-dir $data_dir --dataset $dataset --resume-model-dir $val_dir \
+# 2>&1 | tee -a logs/validate.log
 
 
 
 # python -c "import torch; print(torch.cuda.is_available(),torch.version.cuda);"
 
 
+
+model2resume=model_v1_poly_ep79.pth.tar;
+#* test 
+gpuids=6;
+python -m torch.distributed.launch --nproc_per_node=1 --master_port $port \
+train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 8 \
+--data-dir $data_dir --dataset $dataset --resume $model2resume \
+2>&1 | tee -a logs/test_cityscapes.log
