@@ -7,11 +7,9 @@ addpath(path)
 categories = categories_city();
 % Original GT (Thin)
 
-model_name='cerberus';
+%model_name='cerberus';
 %disp(eval_dir);
 %disp(result_dir);
-
-
 % eval_dir = {['../../../cityscapes/',model_name,'/',model_name,'_val/fuse']};
 % result_dir = {['../../../cityscapes/result/',model_name,'/evaluation/test/inst/gt_orig_thin/dff']};
 
