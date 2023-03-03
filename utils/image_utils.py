@@ -44,7 +44,7 @@ def convert_image_vertical(img):
 
 
 
-def show_imgs(img_list,gray_mode=None,titles=None,img_name=None,fontsize = 5):
+def show_imgs(img_list,gray_mode=None,titles=None,img_name=None,fontsize = 5,axis=0):
     if gray_mode is None :
         print(f" please give the gray mode ")
         return 
@@ -52,7 +52,11 @@ def show_imgs(img_list,gray_mode=None,titles=None,img_name=None,fontsize = 5):
     num = len(img_list)
     for i in range(num):
         # ax = plt.subplot(1,num,i+1)
-        plt.subplot(1,num,i+1)
+        if axis == 0:
+            plt.subplot(1,num,i+1)
+        elif axis ==1 : 
+            plt.subplot(num,1,i+1)
+
         # ax.legend(..., fontsize=1)
         
         plt.imshow(img_list[i],cmap='gray' if gray_mode[i] else None)
