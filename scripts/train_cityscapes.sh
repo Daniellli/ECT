@@ -16,9 +16,8 @@ gpuids="0,1,2,3";
 gpu_number=4;
 
 
-# lr=1e-5;
-lr=0.08;
-batch_size=2;
+lr=8e-4;
+batch_size=4;
 epoch=200;
 bg_weights=0.5;
 rind_weights=1;
@@ -31,10 +30,15 @@ rind_loss_gamma=0.3;
 data_dir=data/cityscapes-preprocess/data_proc;
 dataset='cityscapes';
 data_size=640;
-scheduler='step';
 
+scheduler='poly';
+decay_rate=0.9; #* power 
+
+# scheduler='step';
 # decay_epoch="67 100 150"
-decay_epoch="100 200"
+# decay_epoch="100 200"
+# decay_rate=0.1
+# --lr-decay-epochs $decay_epoch
 
 print_freq=20;
 val_freq=5;
@@ -47,10 +51,13 @@ python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port
 train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
---inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir --wandb \
---lr-scheduler $scheduler --lr-decay-epochs $decay_epoch --lr-decay-rate 0.1 --weight-decay 1e-4 \
+--inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir \
+--lr-scheduler $scheduler  --lr-decay-rate $decay_rate --weight-decay 1e-4 --wandb \
 --dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
 2>&1 | tee -a logs/train_cityscapes.log
+
+
+
 # --resume $model2resume --change-decay-epoch
 
 
