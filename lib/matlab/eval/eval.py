@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-27 22:26:35
-LastEditTime: 2023-03-03 19:40:30
+LastEditTime: 2023-03-03 19:58:54
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/lib/matlab/eval/eval.py
@@ -56,10 +56,13 @@ def eval_sbd(dirname='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/sbd/cerbe
     eval_dir = [dirname]
     results_dir = []
     
+    
     if results_dir_name is not None:
         results_dir.append(join(dirname,results_dir_name))
     else:     
         results_dir.append(join(dirname,'eval_res'))
+
+    # logger.info(dirname)
 
     eng = matlab.engine.start_matlab()
     eval_res = eng.demoBatchEvalSBD(eval_dir,results_dir) #* 评估完会返回一串 string 
