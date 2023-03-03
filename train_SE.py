@@ -546,8 +546,8 @@ class SETrainer:
         
         # example_dir = "/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-02-26-13:27:1677389259/checkpoints/ckpt_*"
         
-        # all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
-        all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
+        all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
+        # all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
         self.log(all_models)
         self.args.print_freq = 1e+10
 
