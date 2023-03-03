@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2023-02-19 17:30:14
+LastEditTime: 2023-03-03 23:00:22
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/plot/plot_main_pic.py
@@ -910,6 +910,8 @@ if __name__=="__main__":
         "FN":(255,10,10),#* 蓝色
         "FP":(7,255,252),
     }
+
+    
 
     TASKS = ["reflectance","illumination","normal","depth","all_edges"]
 

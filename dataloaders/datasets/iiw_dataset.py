@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-08 17:28:27
-LastEditTime: 2023-02-28 23:09:30
+LastEditTime: 2023-03-03 20:50:30
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/iiw_dataset.py
@@ -14,10 +14,14 @@ import numpy as np
 import json
 import os 
 from os.path import join,split,exists
-# import data_transforms as transforms
-import utils.data_transforms as transforms
 
+# import data_transforms as transforms
+
+import utils.data_transforms as transforms
 import cv2
+
+
+
 class IIWDataset(torch.utils.data.Dataset):
     def __init__(self,data_transforms=None, data_dir = '/DATA2/cxx/IIW/IIW/IIW/iiw-dataset/',
                  split = 'train',out_name = True, guidance = True):
@@ -65,7 +69,9 @@ class IIWDataset(torch.utils.data.Dataset):
             comparison_label.append([pair['darker'],pair['darker_score']])
         return comparison_point, comparison_label      
     
-
+    def name2idx(self,name):
+        return self.image_list.index(name)
+    
     def __getitem__(self, index):
         img_name = self.image_list[index] + '.png'
         label_name = self.image_list[index] + '.json'
@@ -163,17 +169,20 @@ class IIWDataset(torch.utils.data.Dataset):
 
 
 if __name__ == '__main__':
+
     data_root= "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/IIW/iiw-dataset"
     info = json.load(open(join(data_root, 'info.json'), 'r'))
     
     normalize = transforms.Normalize(mean=info['mean'],
                                      std=info['std'])
     crop_size = 512
+
     naive_t = [transforms.Resize(crop_size),
             transforms.ToTensorMultiHead(),
             normalize]
     
     trainset = IIWDataset(data_transforms=transforms.Compose(naive_t),data_dir=data_root)
+
     max_point_num = 0
     sample = trainset.__getitem__(0)
     # print(all_data)

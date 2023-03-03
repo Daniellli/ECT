@@ -1,8 +1,8 @@
 '''
 Author: xushaocong
 Date: 2022-09-06 13:40:43
-LastEditTime: 2022-09-23 13:44:26
-LastEditors: xushaocong
+LastEditTime: 2023-03-03 23:05:32
+LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/plot/draw_inference.py
 email: xushaocong@stu.xmu.edu.cn
@@ -326,8 +326,6 @@ if __name__ == "__main__":
     # origin_path = osp.join(BASE_PATH,"KITTI/imgs")
     # inference_res_path = osp.join(BASE_PATH,"KITTI/nms_res_0")
     # draw_grid2(origin_path,inference_res_path,origin_img_suffix='png')
-
-
 
     origin_path = osp.join(BASE_PATH,"robotics/imgs")
     inference_res_path = osp.join(BASE_PATH,"robotics/nms_res_0")
