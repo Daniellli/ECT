@@ -73,7 +73,7 @@ def parse_args():
     parser.add_argument("--rind-loss-beta", type=float,default=4,help="for loss ")
     parser.add_argument('--inverseform-loss', action='store_true',help='using constraint loss or not')
     
-    parser.add_argument('--val-freq', default=1, type=int)
+    
 
     #* for distributed train            
     parser.add_argument('--bn-sync', action='store_true')#* 暂时没用
@@ -97,6 +97,8 @@ def parse_args():
 
     #* for log 
     parser.add_argument('--print-freq', default=10, type=int)
+    parser.add_argument('--val-freq', default=1, type=int)
+    parser.add_argument('--val-all-in', default=60, type=int)
     parser.add_argument('--save-freq', default=1, type=int)
     parser.add_argument("--run-id", type=int,default=None,help="for evaluation ")
     parser.add_argument("--save-dir",type=str,default=None,help="save path")

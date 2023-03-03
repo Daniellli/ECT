@@ -396,11 +396,13 @@ class SETrainer:
             self.scheduler.step(epoch)
             self.log(f"after update, lr == {self.scheduler.get_last_lr()[0]}")
         
-            if epoch >= 60:
+            
+            if epoch >= self.args.val_all_in:
                 self.args.val_freq  = 1
                 self.args.save_freq = 1   
                 self.log('update val_freq and save freq')
                 
+
             if epoch % self.args.val_freq == 0 and self.args.local_rank == 0 :
                 self.validate_epoch(epoch)
 

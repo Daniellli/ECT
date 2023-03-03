@@ -13,14 +13,14 @@
 
 
 gpuids="0,1,2,3";
-gpu_number=4;
+gpu_number=1;
+
 
 lr=5e-3;
 batch_size=16;
 epoch=100;
 bg_weights=0.5;
 rind_weights=1;
-# inverseform_loss_weight=1e+3;
 inverseform_loss_weight=1;
 edge_loss_beta=1;
 edge_loss_gamma=0.3;
@@ -34,17 +34,16 @@ data_size=352;
 scheduler='poly';
 decay_rate=0.9; #* power 
 
-
 # scheduler='step';
 # decay_epoch="100 200"
 # decay_rate=0.1; #* power 
 # --lr-decay-epochs $decay_epoch 
 
-print_freq=20;
-val_freq=5;
-save_freq=5;
+print_freq=10;
+val_freq=2;
+save_freq=2;
 
-# model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-14:37:1677652667/checkpoints/ckpt_rank000_ep0002.pth.tar;
+model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-02-15:34:1677742465/checkpoints/ckpt_rank000_ep0020.pth.tar;
 
 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
@@ -52,9 +51,11 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir \
---lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --wandb \
---dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
+--lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --val-all-in 15 --wandb \
+--dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --resume $model2resume \
 2>&1 | tee -a logs/train_sbd.log
+
+
 
 
 
