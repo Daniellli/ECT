@@ -532,6 +532,7 @@ class SETrainer:
         if self.current_se_edge_loss < self.best_se_edge_loss:
             self.best_se_edge_loss = self.current_se_edge_loss
             self.is_best = True
+            self.wandb_log({'best_model_epoch':epoch})
         else:
             self.is_best = False
             

@@ -39,12 +39,12 @@ gpu_num=1;
 port=29550;
 bs=16;
 
-# val_dir='/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/'
+val_dir='/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/'
 
-# python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
-# train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
-# --data-dir $data_dir --dataset $dataset --resume-model-dir $val_dir \
-# 2>&1 | tee -a logs/validate.log
+python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
+train_SE.py val  -s $data_size --batch-size $bs --gpu-ids $gpuids --workers 8 \
+--data-dir $data_dir --dataset $dataset --resume-model-dir $val_dir \
+2>&1 | tee -a logs/validate.log
 
 
 
@@ -52,11 +52,11 @@ bs=16;
 
 
 
-model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/ckpt_rank000_ep0106.pth.tar;
+# model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/ckpt_rank000_ep0106.pth.tar;
 
-#* test 
-gpuids=6;
-python -m torch.distributed.launch --nproc_per_node=1 --master_port $port \
-train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 8 \
---data-dir $data_dir --dataset $dataset --resume $model2resume \
-2>&1 | tee -a logs/test_cityscapes.log
+# #* test 
+# gpuids=6;
+# python -m torch.distributed.launch --nproc_per_node=1 --master_port $port \
+# train_SE.py test  -s $data_size --batch-size 2 --gpu-ids $gpuids --workers 8 \
+# --data-dir $data_dir --dataset $dataset --resume $model2resume \
+# 2>&1 | tee -a logs/test_cityscapes.log
