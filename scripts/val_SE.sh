@@ -53,7 +53,7 @@ port=29550;
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/ckpt_rank000_ep0106.pth.tar;
 
 
-model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-02-15:34:1677742465/checkpoints/ckpt_rank000_ep0020.pth.tar;
+model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-03-16:20:1677831605/checkpoints/model_best.pth.tar;
 
 #* for sbd 
 data_dir=data/sbd-preprocess/data_proc;
@@ -62,8 +62,13 @@ data_size=512;
 batch_size=32;
 
 
+
+gpuids="4";
+gpu_number=1;
+
+
 # #* test 
-python -m torch.distributed.launch --nproc_per_node=$gpu_num --master_port $port \
+python -m torch.distributed.launch --nproc_per_node=$gpu_number --master_port $port \
 train_SE.py test  -s $data_size --batch-size $batch_size --gpu-ids $gpuids --workers 8 \
 --data-dir $data_dir --dataset $dataset --resume $model2resume \
 2>&1 | tee -a logs/test_cityscapes.log
