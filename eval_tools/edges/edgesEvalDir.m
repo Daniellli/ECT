@@ -53,16 +53,23 @@ evalDir=[resDir '-eval/']; if(~exist(evalDir,'dir')), mkdir(evalDir); end
 
 % check if results already exist, if so load and return
 fNm = fullfile(evalDir,'eval_bdry.txt');
-if(exist(fNm,'file')), R=dlmread(fNm); R=mat2cell2(R,[1 8]);
-  varargout=R([4 3 2 1 7 6 5 8]); if(nargout<=8), return; end;
-  R=dlmread(fullfile(evalDir,'eval_bdry_thr.txt')); P=R(:,3); R=R(:,2);
-  [~,o]=unique(P); R50=interp1(P(o),R(o),max(P(o(1)),.5));
-  varargout=[varargout R50]; return;
-end
+%if(exist(fNm,'file')), R=dlmread(fNm); R=mat2cell2(R,[1 8]);
+%  varargout=R([4 3 2 1 7 6 5 8]); if(nargout<=8), return; end;
+%  R=dlmread(fullfile(evalDir,'eval_bdry_thr.txt')); P=R(:,3); R=R(:,2);
+%  [~,o]=unique(P); R50=interp1(P(o),R(o),max(P(o(1)),.5));
+%  varargout=[varargout R50]; return;
+%end
 
 % perform evaluation on each image (this part can be very slow)
 assert(exist(resDir,'dir')==7); assert(exist(gtDir,'dir')==7);
 ids=dir(fullfile(gtDir,'*.mat')); ids={ids.name}; n=length(ids);
+
+%disp(ids);
+%save('image_list.mat','ids','-nocompression');
+%disp("save  successfully");
+%exit();
+%return;
+
 do=false(1,n); jobs=cell(1,n); res=cell(1,n);
 for i=1:n, id=ids{i}(1:end-4);
   res{i}=fullfile(evalDir,[id '_ev1.txt']); do(i)=~exist(res{i},'file');
@@ -86,6 +93,7 @@ for i=1:n
   if sum(cntP1)==0
       [~,k]=min(sumP1);
   end
+  %oisT1 == ois threshold, which is the best threshold in i-th image. 
   [oisR1,oisP1,oisF1,oisT1] = findBestRPF(T,R,P);
   scores(i,:) = [i oisT1 oisR1 oisP1 oisF1];
   % oisCnt/Sum will be used to compute dataset OIS scores

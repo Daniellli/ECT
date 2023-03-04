@@ -1,9 +1,9 @@
 '''
 Author: xushaocong
 Date: 2022-09-06 13:40:43
-LastEditTime: 2023-03-03 23:05:32
+LastEditTime: 2023-03-04 09:34:51
 LastEditors: daniel
-Description: 
+Description: inference video and save 
 FilePath: /Cerberus-main/plot/draw_inference.py
 email: xushaocong@stu.xmu.edu.cn
 '''

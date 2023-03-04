@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-26 15:01:43
+LastEditTime: 2023-03-04 19:34:54
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test.py
@@ -43,7 +43,9 @@ from dataloaders.datasets.sbu import SBU
 from dataloaders.datasets.istd import ISTD
 
 from torch.utils.data.distributed import DistributedSampler
-from utils import make_dir,parse_args
+from utils import *
+
+from utils.edge_option import parse_args
 import json
 import warnings
 warnings.filterwarnings('ignore')
@@ -119,8 +121,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     make_dir(illumination_output_dir)
 
 
-    # attention_output_dir = os.path.join(output_dir, 'attention')
-    # make_dir(attention_output_dir)
+    attention_output_dir = os.path.join(output_dir, 'attention')
+    make_dir(attention_output_dir)
     
     logger.info("dir prepare done ,start to reference  ")
     #* 判断一些是否测试过了 , 测试过就不重复测试了
@@ -139,18 +141,22 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)
 
-            # attention_save_dir = osp.join(attention_output_dir,name)
-            # make_dir(attention_save_dir)
-            # with open('tmp.txt' ,'w') as f :
-            #     f.write(attention_save_dir)
+            attention_save_dir = osp.join(attention_output_dir,name)
+            make_dir(attention_save_dir)
+            with open('tmp.txt' ,'w') as f :
+                f.write(attention_save_dir)
 
             
             with torch.no_grad():
                 #!======================
-                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+
+                model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+                res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
+                continue
+
                 # vis_att(model,image)
                 #!======================
-                res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
+                
 
             out_edge = trans2(res[0])
             out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])

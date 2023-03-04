@@ -1,9 +1,9 @@
 '''
 Author: xushaocong
 Date: 2022-07-26 20:02:40
-LastEditTime: 2023-03-03 23:00:22
+LastEditTime: 2023-03-04 09:51:27
 LastEditors: daniel
-Description: 
+Description:  
 FilePath: /Cerberus-main/plot/plot_main_pic.py
 email: xushaocong@stu.xmu.edu.cn
 '''
@@ -28,22 +28,6 @@ from PIL import Image
 import json
 import shutil
 from skimage import morphology
-
-''' 
-description:  对goal 的非零元素进行扩张, 扩张倍数为10 
-param {*} goal 
-param {*} times
-return {*}
-'''
-def dilation(goal, times = 2 ):
-    selem = skimage.morphology.disk(times)
-
-
-    # goal = skimage.morphology.binary_dilation(goal, selem) != True
-    goal = morphology.binary_dilation(goal, selem) != True
-    goal = 1 - goal * 1.
-    goal*=255
-    return goal
 
 
 
@@ -117,29 +101,6 @@ def draw_specific_image(image_name,target_path):
     split_to_16_part(origin_img,osp.join(target_path,'split.png'))
 
 
-''' 
-description:  将图像划分成16个部分, 
-param {*} img
-param {*} target_path
-param {*} color
-return {*}
-'''
-def split_to_16_part(img,save_path,color=[255,255,255]):
-    H,W,C=img.shape
-    tmp = img.copy()
-
-    part_h = H//4
-    part_w = W//4
-    
-    #* 绘制横白线
-    for i in range(1,4):
-        tmp[part_h*i:(part_h*i+5),:] =  color
-    for i in range(1,4):
-        tmp[:,part_w*i:(part_w*i+5)] =  color
-    
-    cv2.imwrite(save_path,tmp)
-    
-        
 
 
 '''
@@ -405,104 +366,6 @@ def draw_inverse_loss_conceptual_plot_gt(
 
 
 '''
-description: 
-param {*} ims : 要拼接的两张图像
-return {*}
-'''
-def pinjie(ims,save_name):
-
-    # 单幅图像尺寸
-    width, height = ims[0].size
- 
-    # 创建空白长图
-    result = Image.new(ims[0].mode, (width, height * len(ims)))
- 
-    # 拼接图片
-    for i, im in enumerate(ims):
-        result.paste(im, box=(0, i * height))
- 
-    # 保存图片
-    result.save(save_name)
- 
-'''
-description:  给定两个生成的结果路径,两个路径的结果一一对应,然后将其concat在一起存储到concat_save_path
-return {*}
-'''
-def concat_for_comparison(
-    without_loss_save_path,
-    gt_save_dir,
-    concat_save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/concat_loss_compare2"
-    ):
-      
-    #* 读取然后concat在一起
-
-    if not osp.exists(concat_save_path):
-        os.makedirs(concat_save_path)
-
-    for a,b in zip(sorted(glob.glob(osp.join(without_loss_save_path,'*.png'))),
-                    sorted(glob.glob(osp.join(gt_save_dir,'*.jpg')))):
-        
-    #     #* 上面是没有constraint loss
-    #     #* 下面是有constraint loss
-        pinjie([Image.open(a),Image.open(b)],osp.join(concat_save_path,a.split('/')[-1].split('.')[0]+".png") )
-        
-
-
-'''
-description:  concat  两个路径下的图像 , 为了合成with loss and without loss heat map 方便对比
-param {*} with_loss_save_path
-param {*} without_loss_save_path
-return {*}
-'''
-def concat_two_set(with_loss_save_path,without_loss_save_path):
-
-    path_a = osp.join(with_loss_save_path,'heat_map_3')
-    path_b = osp.join(without_loss_save_path,'heat_map_3')
-
-    save_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material/with_and_without_loss_compare"
-    if not osp.exists(save_path):
-        os.makedirs(save_path)
-    all_ims = sorted(os.listdir(path_a))
-
-    for i in all_ims:
-        
-        x= cv2.imread(osp.join(path_a,i))
-        y= cv2.imread(osp.join(path_b,i))
-        #*  row 1 : with loss ,  
-        #*  row 2 : without loss 
-        #* col 1:  edge
-        #* col 2:  rind
-        
-        cv2.putText(x,"with loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
-        cv2.putText(y,"without loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
-
-        cv2.imwrite(osp.join(save_path,i) ,np.concatenate([x,y]))
-
-        
-
-'''
-description:  concatenate two image 
-param {*} imgA : 有loss的
-param {*} imgB: 无loss的
-param {*} save_file
-return {*}
-'''
-def concat_two_img(imgA,imgB,save_file,):
-    x = cv2.imread(imgA)
-    y = cv2.imread(imgB)
-     
-    cv2.putText(x,"Ours ,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
-    cv2.putText(y,"RINDNET loss,edge                  rind", (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1.0, (0, 0, 255), 3)
-
-    
-    
-    cv2.imwrite(save_file ,np.concatenate([x,np.ones([20,x.shape[1],3])*255,y]))
-
-
-
-
-
-'''
 description:   给定图像已经对应的阈值, 根据阈值过滤edge 绘制图像, 
 param {*} im_name 
 param {*} threshold_list :rind sequence   for best ois threshold 
@@ -561,25 +424,6 @@ def draw_rind_on_img_with_threshold(im_name,threshold_list,img_path_root,save_di
     
 
 
-
-    
-
-
-def load_json(path):
-    with open(path,'r') as f:
-
-        data = json.load(f)
-
-    return data
-
-
-
-def make_dir(path):
-    if  not osp.exists(path):
-        os.makedirs(path)
-
-
-
 '''
 description:  delete  the  file with the  corresponding suffix
 param {*} dir_path
@@ -608,7 +452,6 @@ def draw_topK_result(compara_json_path,a_path,a_save_path,
     make_dir(a_save_path)
     make_dir(b_save_path)
     make_dir(save_path)
-    
 
     compare_data = load_json(compara_json_path)
     for im_name,value in compare_data.items():
@@ -625,66 +468,8 @@ def draw_topK_result(compara_json_path,a_path,a_save_path,
         rind_b,edge_b,concat_b= draw_rind_on_img_with_threshold(im_name,b_threshold,b_path,b_save_path)#* 
         concat_two_img(concat_a,concat_b,osp.join(save_path,im_name+'_final_compare.png'))
         print(a_threshold,b_threshold)
-            
+        
 
-
-'''
-description:  绘制loss 概念图的相关代码
-return {*}
-'''
-def tmp():
-   pass
-    #* 绘制并写入
-    # tic = time.time()
-    # threshold=[0.84,0.61,0.84,0.66,0.5]
-    # threshold=[0.918081,0.93,0.88,0.82,0.76] #* for 8068
-    # draw_inverse_loss_conceptual_plot(
-    #     without_loss_path,
-    #     save_dir=without_loss_save_path,
-    #     is_rindnet_res=False,
-    #     is_concat_save=False,
-    #     threshold=threshold
-    # )
-    # logger.info(time.strftime("%H:%M:%S",time.gmtime(time.time()-tic)))
-
-
-'''
-description:  两个mat格式的gt和 png 格式的gt 是否一致
-return {*}
-'''
-# def check_consistence():
-#     a = scio.loadmat(osp.join(ORIGIN_IMG_GT,'depth/2018.mat'))
-#     b = cv2.imread(osp.join(ORIGIN_IMG_GT2,'depth/2018.png'),cv2.IMREAD_GRAYSCALE)
-#     a = a['groundTruth'][0][0][0][0][0] 
-#     if (b==255).sum()==(a==255).sum():
-#         logger.info("yes")
-    
-            
-
-
-
-def save_path(img,path):
-    if not osp.exists(osp.dirname(path)):
-        os.makedirs(osp.dirname(path))
-
-    cv2.imwrite(path,img)
-
-
-
-
-'''
-description:  读取mat格式的gt
-param {*} path
-return {*}
-'''
-def read_mat_gt(path):
-    if  not osp.exists(path):
-        print(f"path no exists")
-    gt_mask = scio.loadmat(path)
-    gt_mask = gt_mask['groundTruth'][0][0][0][0][0]
-    return gt_mask
-    
-    
 
 
 '''

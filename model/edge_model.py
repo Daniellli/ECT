@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2022-09-03 10:30:36
-LastEditors: xushaocong
+LastEditTime: 2023-03-04 19:34:11
+LastEditors: daniel
 Description: 
-FilePath: /cerberus/model/edge_model.py
+FilePath: /Cerberus-main/model/edge_model.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -139,7 +139,7 @@ class EdgeCerberus(BaseModel):
         num_decoder_layers= 6 #* detr == 6
         self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
         
-        self.return_attention = False
+        self.return_attention = True
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
                                                 dropout, activation, normalize_before,
                                                 return_attention = self.return_attention)
@@ -225,7 +225,8 @@ class EdgeCerberus(BaseModel):
         
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
-        x = forward_flex(self.pretrained.model, x, True, name)
+
+        x = forward_flex(self.pretrained.model, x, True, name) #* true mean plot attention,   
         return x
 
     '''

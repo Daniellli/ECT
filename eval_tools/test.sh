@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-02-22 18:27:18
+ # @LastEditTime: 2023-03-04 10:47:24
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -27,8 +27,13 @@ echo  dir == $1,param == $2;
 #     python test.py -d $1;
 # fi;
 
+
+
+
 # python test.py -d $1
 # python test.py -d $1 --test-edge;
+
+python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/modify_inverse_form_loss_1  --dataset BSDS-RIND
 
 
 #* SBU
@@ -42,8 +47,8 @@ echo  dir == $1,param == $2;
 
 
 
-python test.py --eval-data-dir '/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/nyud2_1' \
---dataset NYUD2 2>&1 | tee -a ../logs/eval_matlab.log
+# python test.py --eval-data-dir '/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/nyud2_1' \
+# --dataset NYUD2 2>&1 | tee -a ../logs/eval_matlab.log
 
 
 

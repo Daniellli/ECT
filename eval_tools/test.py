@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-13 10:30:59
-LastEditTime: 2023-02-21 15:20:18
+LastEditTime: 2023-03-04 10:49:38
 LastEditors: daniel
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
@@ -124,10 +124,10 @@ def test_by_matlab(eval_data_dir,test_edge):
     
     if test_edge:
         keys=['depth','normal','reflectance','illumination','all_edges']
-        logger.info("test edge ,keys = {keys}")
+        logger.info(f"test edge ,keys = {keys}")
     else :
         keys=['depth','normal','reflectance','illumination']
-        logger.info("do not test edge ,keys = {keys}")
+        logger.info(f"do not test edge ,keys = {keys}")
 
     eval_res = eval(eval_data_dir,keys)
     res = {}

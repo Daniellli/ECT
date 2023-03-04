@@ -2,10 +2,10 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-02 22:43:00
+ # @LastEditTime: 2023-03-04 20:28:33
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/scripts/train_SE_cityscapes.sh
+ # @FilePath: /Cerberus-main/scripts/train_SE_cityscapes.sh
  # have a nice day
 ### 
 
@@ -52,6 +52,7 @@ save_freq=5;
 
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
 # --resume $model2resume --change-decay-epoch 
+
 
 #* train 
 python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \

@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2023-02-21 16:46:30
+ # @LastEditTime: 2023-03-04 19:29:31
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/scripts/test.sh
@@ -47,14 +47,28 @@
 #* test one model 
 
 
+# resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar";
+# save_dir='nyud2'
+
+
+# python -u test_NYU.py test  -s 320 \
+# --resume $resume_model \
+# --batch-size 1 --workers 40 --gpu-ids "2" --run-id 2 --save-file $save_dir \
+# 2>&1 | tee -a logs/test_iiw.log
+
+
+
+
+
 resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar";
-save_dir='nyud2'
+save_dir='attention_test'
 
 
-python -u test_NYU.py test  -s 320 \
+python -u test.py test  -s 320 \
 --resume $resume_model \
---batch-size 1 --workers 40 --gpu-ids "2" --run-id 2 --save-file $save_dir \
-2>&1 | tee -a logs/test_iiw.log
+--batch-size 1 --workers 40 --gpu-ids "1" --run-id 2 --save-file $save_dir \
+2>&1 | tee -a logs/test_attenion.log
+
 
 
 

@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-07-21 19:21:58
-LastEditTime: 2023-02-27 15:33:08
+LastEditTime: 2023-03-04 09:31:09
 LastEditors: daniel
 Description:  
 FilePath: /Cerberus-main/plot/plot_precision_recall_plot.py
@@ -79,10 +79,7 @@ if __name__ =="__main__":
 
     # best_performance = osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_residualpth_0")
     edge_cerberus= osp.join(EVAL_RES_ROOT,"need2release/full_version_0")
-
-    
     test_edge = False
-    
     move_alg_res2plot_dir(my_res=edge_cerberus,
                         test_edge = test_edge)
 
