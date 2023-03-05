@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-04 22:34:17
+LastEditTime: 2023-03-04 23:38:19
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/model/edge_model_v2.py
+FilePath: /cerberus/model/edge_model_v2.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -196,7 +196,7 @@ class EdgeCerberus(BaseModel):
                 nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
                 nn.BatchNorm2d(num_classes),
                 # nn.ReLU(inplace=True)
-                # nn.Sigmoid()
+                nn.Sigmoid()
                 )
             )
 

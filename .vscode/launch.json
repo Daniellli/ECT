@@ -20,8 +20,8 @@
 
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "train", "-s", "640", "--batch-size=1","--gpu-ids=0","--lr=1e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
-                 "--dataset=cityscapes","--data-dir=data/cityscapes-preprocess/data_proc",
+                "train",  "--batch-size=2","--gpu-ids=0","--lr=1e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
+                 "--dataset=sbd","--data-dir=data/sbd-preprocess/data_proc","-s", "352",
             ]
 
             // "args": [
