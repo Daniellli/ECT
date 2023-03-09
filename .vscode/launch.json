@@ -9,10 +9,10 @@
             "type": "python",
             "request": "launch",
             // "program": "${file}",
-            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/DATA2/envs/mdetr/lib/python3.8/site-packages/torch/distributed/launch.py",
-            "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            // "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test.py",
             // "program": "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/test_NYU.py",
             "console": "integratedTerminal",
@@ -20,8 +20,8 @@
 
             "args": [
                 "--nproc_per_node=1","--master_port","29511","train_SE.py",
-                "train", "-s", "640", "--batch-size=1","--gpu-ids=0","--lr=1e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
-                 "--dataset=cityscapes","--data-dir=data/cityscapes-preprocess/data_proc",
+                "train",  "--batch-size=2","--gpu-ids=0","--lr=1e-3","--lr-scheduler=poly","--lr-decay-rate=1.0",
+                 "--dataset=sbd","--data-dir=data/sbd-preprocess/data_proc","-s", "352",
             ]
 
             // "args": [
@@ -41,12 +41,12 @@
 
 
             //* edge cerberus
-            // "args": [
-            //     "--nproc_per_node=1","--master_port","29510","train.py",
-            //     "train",  "-s", "320", "--batch-size", "2",
-            //      "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
-            //      "--gpu-ids","1","--constraint-loss"
-            // ]
+            "args": [
+                "--nproc_per_node=1","--master_port","29510","train.py",
+                "train",  "-s", "320", "--batch-size", "2",
+                 "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
+                 "--gpu-ids","0","--constraint-loss"
+            ]
 
 
 

@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-07 12:50:58
-LastEditTime: 2023-02-28 13:35:26
+LastEditTime: 2023-03-05 21:17:17
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/istd.py
@@ -196,8 +196,12 @@ class ISTD(data.Dataset):
     
 
     def getitem(self,idx):
-        return  self.imread(os.path.join(self.image_path,self.image_list[idx])),self.imread(os.path.join(self.edge_path,self.edge_list[idx])),
-        
+        return  self.imread(os.path.join(self.image_path,self.image_list[idx])),self.imread(os.path.join(self.edge_path,self.edge_list[idx]),gray=True)
+    
+    def name2idx(self,name):
+        return self.image_list.index(name)
+
+
     
     def getitem_all(self,idx):
         shadow_mask=self.imread(os.path.join(self.mask_path,self.mask_list[idx]),gray=True)

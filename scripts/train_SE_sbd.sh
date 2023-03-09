@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-03 15:42:33
+ # @LastEditTime: 2023-03-05 10:55:11
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /cerberus/scripts/train_SE_sbd.sh
@@ -15,13 +15,13 @@
 gpuids="0,1,2,3";
 gpu_number=4;
 
-# lr=5e-3;
-lr=1e-4;
-batch_size=6;
+lr=5e-3;
+# lr=1e-3;
+batch_size=4;
 epoch=100;
 bg_weights=0.5;
 rind_weights=1;
-inverseform_loss_weight=1;
+inverseform_loss_weight=100;
 edge_loss_beta=1;
 edge_loss_gamma=0.3;
 rind_loss_beta=5;
@@ -41,12 +41,17 @@ decay_rate=0.9; #* power
 # decay_rate=0.5;
 # decay_epoch="100 200"
 #  --lr-decay-epochs $decay_epoch
+
 print_freq=20;
 val_freq=5;
 save_freq=5;
 
+
+
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-01-16:07:1677658050/checkpoints/model_best.pth.tar;
 # --resume $model2resume --change-decay-epoch 
+
+
 
 
 #* train 
@@ -58,6 +63,8 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --wandb \
 --dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq \
 2>&1 | tee -a logs/train_sbds.log
+
+ 
 
 
 

@@ -1,10 +1,10 @@
 '''
 Author: daniel
 Date: 2023-02-07 12:50:58
-LastEditTime: 2023-02-08 21:19:19
+LastEditTime: 2023-03-05 22:20:14
 LastEditors: daniel
 Description: 
-FilePath: /RINDNet-main/dataloaders/datasets/sbu.py
+FilePath: /Cerberus-main/dataloaders/datasets/sbu.py
 have a nice day
 '''
 
@@ -191,6 +191,20 @@ class SBU(data.Dataset):
             return self.trans(img), ToTensor()(edge_map).float() 
         else:
             return self.trans(self.imread2(os.path.join(self.image_path,self.image_list[index]))),self.images_name[index]
+
+
+    def name2idx(self,name):
+        return self.image_list.index(name)
+    
+
+    def getitem(self, index):
+        img=self.imread(os.path.join(self.image_path,self.image_list[index]))
+        shadow_mask=self.imread(os.path.join(self.mask_path,self.mask_list[index]),gray=True)
+
+        edge_map = self.imread(os.path.join(self.edge_path,self.edge_list[index]),gray=True)
+
+        return img, edge_map
+        
 
 
 if __name__ == "__main__":

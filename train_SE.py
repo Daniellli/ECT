@@ -38,7 +38,7 @@ from utils.lr_scheduler import get_scheduler
 #* loss  function 
 from model.loss.inverse_loss import InverseTransform2D
 from utils.loss import SegmentationLosses
-from utils.edge_loss2 import AttentionLoss2
+from utils.edge_loss2 import AttentionLoss2,AttentionLoss3
 from utils.DFF_losses import EdgeDetectionReweightedLossesSingle,EdgeDetectionReweightedLosses
 
 
@@ -313,7 +313,9 @@ class SETrainer:
         elif self.args.dataset == 'bsds':
             self.hard_edge_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
         elif self.args.dataset == 'sbd':
-            self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
+            # self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
+            self.hard_edge_criterion = AttentionLoss3(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
+
 
 
         # self.focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
@@ -397,7 +399,7 @@ class SETrainer:
 
         for epoch in range(self.start_epoch, self.args.epochs):
 
-            self.train_sampler.set_epoch(epoch)        
+            self.train_sampler.set_epoch(epoch)
             self.train_epoch(epoch)
 
             self.scheduler.step(epoch)
@@ -490,10 +492,13 @@ class SETrainer:
              
                 if self.args.dataset == 'bsds':
                     rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
+                elif self.args.dataset == 'cityscapes' :
                     # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                     hard_prediction_maps = torch.cat(output[1:],dim=1)
                     rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+                elif self.args.dataset == 'sbd' :
+                    rind_loss = self.hard_edge_criterion(output[1:] ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+                    
 
                 
                 if self.inverse_form_criterion is not None: 
@@ -507,11 +512,18 @@ class SETrainer:
                         rind_out = output[1:]
                         rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
                         inverse_form_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
-                    elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
+                    elif self.args.dataset == 'cityscapes' :
                         background_out = pred_edge.clone().detach()
                         hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
                         inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
                         inverse_form_loss =  inverse_form_loss1
+                    elif self.args.dataset == 'sbd' :
+                        background_out = pred_edge.clone().detach()
+
+                        hard_edge_merged,__ = torch.max( torch.cat(output[1:],dim=1),1)
+                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                        inverse_form_loss =  inverse_form_loss1
+                        
 
                     loss =  b_loss + rind_loss +inverse_form_loss
                 else :
@@ -638,10 +650,14 @@ class SETrainer:
          
             if self.args.dataset == 'bsds':
                 rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-            elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
+            elif self.args.dataset == 'cityscapes' :
                 # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                 hard_prediction_maps = torch.cat(output[1:],dim=1)
-                rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+                rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)
+            
+            elif  self.args.dataset == 'sbd':
+                rind_loss = self.hard_edge_criterion(output[1:] ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+
                 
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
@@ -663,7 +679,7 @@ class SETrainer:
                     rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
                     extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
 
-                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
+                elif self.args.dataset == 'cityscapes' :
 
                     background_out = pred_edge.clone().detach()
                     hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
@@ -674,6 +690,13 @@ class SETrainer:
                     #?  why extra_loss == extra_loss2??
                     # inverse_form_loss = inverse_form_loss2 + inverse_form_loss1
                     inverse_form_loss =  inverse_form_loss1
+                elif  self.args.dataset == 'sbd':
+                    background_out = pred_edge.clone().detach()
+                    hard_edge_merged,__ = torch.max( torch.cat(output[1:],dim=1),1)
+                    inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+
+                    inverse_form_loss =  inverse_form_loss1
+                    pass
 
                 #* mean for merge hard task output 
                 # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
