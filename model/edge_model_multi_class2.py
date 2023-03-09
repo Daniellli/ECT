@@ -33,7 +33,10 @@ from loguru import logger
 import os.path as osp
 import cv2
 
+
+from IPython import embed
 # from sklearn.manifold import TSNE
+
 
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
@@ -62,7 +65,7 @@ def _get_activation_fn(activation):
 
 
 
-class EdgeCerberus(BaseModel):
+class EdgeCerberusMultiClass(BaseModel):
 
     def __init__(
         self,
@@ -75,7 +78,7 @@ class EdgeCerberus(BaseModel):
         decoder_head_num = 8, 
         hard_edge_cls_num = 4
     ):
-        super(EdgeCerberus, self).__init__()
+        super(EdgeCerberusMultiClass, self).__init__()
 
         self.hard_edge_cls_num = hard_edge_cls_num
 
@@ -158,36 +161,41 @@ class EdgeCerberus(BaseModel):
                                           return_attention = self.return_attention
                                           )
 
-       #!===============================================================
-
-
-        #!===============================================================
-        self.final_norm1 = nn.BatchNorm2d(d_model)
-        self.final_dropout1 = nn.Dropout(dropout)
-        self.final_rcu = ResidualConvUnit_custom(d_model,_get_activation_fn(activation),True)
-        
-
-        #!===============================================================
-
-
         #* fusion for different decoder layer 
         #*  pick 2 layer  to upsampling to [160,160 ] by refine net 
         self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet10 = _make_fusion_block(features, use_bn) 
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
+
+
+        self.final_dropout1 = nn.Dropout(dropout)
+        concated_channel = d_model*2
+        self.final_norm1 = nn.BatchNorm2d(concated_channel)
+        self.final_rcu = ResidualConvUnit_custom(concated_channel,_get_activation_fn(activation),True)
    
 
         #* final head 
         #* conv and ConvTranspose2d to [320,320] and classify
         for cls_idx in range(self.hard_edge_cls_num+1):
             num_classes = 1
-            setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
-                nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
-                nn.BatchNorm2d(features),
-                nn.ReLU(True),
-                nn.Dropout(0.1, False),
-                nn.Conv2d(features, num_classes, kernel_size=1),
-            ))
+
+            if cls_idx==0:
+                setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
+                    nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
+                    nn.BatchNorm2d(features),
+                    nn.ReLU(True),
+                    nn.Dropout(0.1, False),
+                    nn.Conv2d(features, num_classes, kernel_size=1),
+                ))
+                
+            else:
+                setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
+                    nn.Conv2d(concated_channel, concated_channel, kernel_size=3, padding=1, bias=False),
+                    nn.BatchNorm2d(concated_channel),
+                    nn.ReLU(True),
+                    nn.Dropout(0.1, False),
+                    nn.Conv2d(concated_channel, num_classes, kernel_size=1),
+                ))
 
             #* 需要 batch normalization 吗? 
             setattr(self.scratch, "output_" + str(cls_idx) + '_upsample', 
@@ -330,9 +338,17 @@ class EdgeCerberus(BaseModel):
 
         #* decoder_out 正则化  , 
         # !+===========================        
-        decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
+        # decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
+            
+        # embed()
+        # b = self.final_rcu(self.final_norm1torch.cat([edge_path_1, self.final_dropout1(decoder_out)],dim=1)))
+        # c = self.scratch.output_1(b)
+
+        decoder_out  = torch.cat([edge_path_1, self.final_dropout1(decoder_out)],dim=1)
         decoder_out = self.final_norm1(decoder_out)
         decoder_out = self.final_rcu(decoder_out)
+
+        
         # !+===========================
         
 

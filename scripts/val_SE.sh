@@ -1,4 +1,4 @@
-
+# 
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
@@ -53,17 +53,22 @@ port=29550;
 # model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/ckpt_rank000_ep0106.pth.tar;
 
 
-model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-03-16:20:1677831605/checkpoints/model_best.pth.tar;
+# model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-04-16:28:1677918493/checkpoints/model_best.pth.tar;
+model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/sbd/sbd_edge_cerberus_and_its_loss.pth.tar;
 
 #* for sbd 
 data_dir=data/sbd-preprocess/data_proc;
 dataset='sbd';
 data_size=512;
-batch_size=32;
+batch_size=16;
 
 
+# data_dir=data/cityscapes-preprocess/data_proc;
+# dataset='cityscapes';
+# data_size=640;
+# batch_size=2;
 
-gpuids="4";
+gpuids="1";
 gpu_number=1;
 
 

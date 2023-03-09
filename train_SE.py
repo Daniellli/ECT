@@ -52,7 +52,10 @@ from dataloaders.semantic_edge import get_edge_dataset
 # from model.edge_model import EdgeCerberus
 # from model.semantic_edge_model import SEdgeCerberus
 # from model.semantic_edge_model2 import SEdgeCerberus
-from model.edge_model_v2 import EdgeCerberus
+# from model.edge_model_multi_class import EdgeCerberusMultiClass
+from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+
+
 
 # from torchsummary import summary
 
@@ -175,16 +178,17 @@ class SETrainer:
         
         
         if self.args.dataset == 'bsds':
-            single_model = EdgeCerberus(backbone="vitb_rn50_384")
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384")
             self.class_num = 4
         elif self.args.dataset == 'cityscapes' :
             self.class_num = 19
             # single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
-            single_model = EdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
         elif self.args.dataset == 'sbd':
             self.class_num = 20
+            #*  for val 
             # single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
-            single_model = EdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
             self.log(f" edge cerberus v2 is loaded ")
             
             
