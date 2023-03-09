@@ -13,6 +13,11 @@ disp(test_list);
 % data_root='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/model_res'; 
 disp(eval_data_dir)
 data_root=eval_data_dir;
+
+num_worker = 128; %12;
+%delete(gcp('nocreate'));
+parpool('local', num_worker);
+
 %============ success to import pdollar_toolbox
 addpath(genpath("/home/DISCOVER_summer2022/xusc/matlab/pdollar_toolbox"));savepath;
 %============
@@ -66,7 +71,7 @@ for test_index=1:size(test_list,2)
     disp('Evaluate the edges...');
 
     
-    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/data/BSDS-RIND/testgt/',test_type];
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/data/BSDS-RIND/testgt/',test_type];
     
     % for SBU shadow edge detection 
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow/SBU-Test/EdgeMapMat'];
@@ -77,7 +82,7 @@ for test_index=1:size(test_list,2)
     % for NYUD2 normal and depth  edge detection 
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_canny/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
-    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/tmp/','nyu_',test_type,'_edges_crop_mat'];
+    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/range123/','nyu_',test_type,'_edges_crop_mat'];
     
 
 

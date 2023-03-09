@@ -17,6 +17,8 @@ class QualitativeDrawer:
     def __init__(self,root,name,save_dir = None ,gt_loader =None):
 
 
+        self.attention_path = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/attention/attention"
+
         if gt_loader is None :
             self.gt_loader = GtLoader()
 
@@ -57,14 +59,53 @@ class QualitativeDrawer:
         }
     
         #* load performance of each task for each image 
-        self.TASKS = ["reflectance","illumination","normal","depth","all_edges"]
+        self.TASKS = ["reflectance","illumination","normal","depth"]
         self.illumination  =self.get_images_quantitative_results('illumination')
         self.normal  =self.get_images_quantitative_results('normal')
         self.reflectance  =self.get_images_quantitative_results('reflectance')
         self.depth  =self.get_images_quantitative_results('depth')
+
+
+        
+
+        
+        
     
     def __len__(self):
         return  len(self.name_list)
+    
+    def get_attention(self,name):
+
+        reflectance = imread(join(self.attention_path,name,'atten-%s-5.jpg'%('reflectance')))[:,:,::-1]
+        illumination = imread(join(self.attention_path,name,'atten-%s-5.jpg'%('illumination')))[:,:,::-1]
+        normal = imread(join(self.attention_path,name,'atten-%s-5.jpg'%('normal')))[:,:,::-1]
+        depth = imread(join(self.attention_path,name,'atten-%s-5.jpg'%('depth')))[:,:,::-1]
+    
+        return reflectance,illumination,normal,depth
+        
+
+
+    def get_task_best_image(self,task):
+        ans = {}
+
+        for idx in range(self.__len__()):
+
+            
+            ans[self.name_list[idx]] = self.get_task_F_quantitatives(task,idx)
+
+        return  sorted(ans.items(), key =lambda k : k[1])[::-1]
+        
+
+    def get_best_image(self):
+        ans = {}
+
+        for idx in range(self.__len__()):
+            reflectance,illumination,normal,depth,name = self.get_F_quantitatives(idx)
+            
+            ans[name] = np.array([reflectance,illumination,normal,depth]).mean()
+
+            
+        return  sorted(ans.items(), key =lambda k : k[1])[::-1]
     
     def get_name(self):
         return self.name
@@ -75,6 +116,30 @@ class QualitativeDrawer:
         # return np.loadtxt(join(self.root,task,'nms-eval','eval_bdry_img.txt'),dtype=np.str0)[idx]
         return np.loadtxt(join(self.root,task,'nms-eval','eval_bdry_img.txt'))
 
+
+    def getitem_task(self,task,name):
+        
+        return imread(join(self.root,task,'nms',name+'.png'),gray=True)
+    
+
+    def getitem(self,name):
+
+        ans = []
+
+        generic_edge = load_mat(join(self.root,'all_edges','met',name+'.mat'))['result']*255
+        ans.append(generic_edge)
+
+        # self.TASKS = ["reflectance","illumination","normal","depth"]
+        
+        for task in self.TASKS:
+        
+            ans.append(imread(join(self.root,task,'nms',name+'.png'),gray=True))
+
+        return ans
+    
+    
+    
+    
     
     def getitem_by_task(self,task,idx):
         name = self.name_list[idx]
@@ -130,8 +195,8 @@ class QualitativeDrawer:
             
             save_name = join(save_dir, name_format%(name,threshold*100))
             
-            # if exists(save_name):
-            #     return [imread(save_name)[:,:,::-1]]
+            if exists(save_name):
+                return [imread(save_name)[:,:,::-1]]
 
             image_drawed = image.copy()[:,:,::-1]
 
@@ -144,7 +209,9 @@ class QualitativeDrawer:
             image_drawed[(gt_edge==1)  &  (filter_pred_edge ==0)] = self.COLORS['FN']
 
             # print(f'before {(filter_pred_edge==1).sum()}')
-            filter_pred_edge = dilation(filter_pred_edge,times=1.2)/255
+            dilation_times  = 2
+            # logger.info(f"dilation times == {dilation_times}")
+            filter_pred_edge = dilation(filter_pred_edge,times=dilation_times)/255
             # print(f'after {(filter_pred_edge==1).sum()}')
             #* TP
             image_drawed[(gt_edge == 1 ) &  (filter_pred_edge==1)] = self.COLORS['TP']

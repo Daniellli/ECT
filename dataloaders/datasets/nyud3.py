@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-28 10:56:04
+LastEditTime: 2023-03-06 08:06:29
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud3.py
@@ -87,7 +87,7 @@ class Nyud3:
 
         self.subset = subset
         self.path = join(path,subset)
-        self.name_list= readtxt(join(self.path,'val.txt'))
+        self.name_list = readtxt(join(self.path,'val.txt'))
         
         
         self.images_path = join(self.path,'nyu_images')
@@ -447,6 +447,8 @@ class Nyud3:
         return len(self.name_list)
 
     
+    def name2idx(self,name):
+        return self.name_list.index(name)
 
 
 
