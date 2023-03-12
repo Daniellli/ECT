@@ -16,7 +16,7 @@ gpuids="0,1,2,3";
 gpu_number=4;
 
 
-lr=5e-3;
+lr=3e-3;
 batch_size=8;
 epoch=100;
 bg_weights=0.5;
@@ -40,8 +40,8 @@ decay_rate=0.9; #* power
 # --lr-decay-epochs $decay_epoch 
 
 print_freq=10;
-val_freq=4;
-save_freq=4;
+val_freq=3;
+save_freq=3;
 
 # model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-02-15:34:1677742465/checkpoints/ckpt_rank000_ep0020.pth.tar;
 # --resume $model2resume 
@@ -52,7 +52,7 @@ train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr 
 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
 --edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 --inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir \
---lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --val-all-in 10 \
+--lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --val-all-in 5 \
 --dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --wandb \
 2>&1 | tee -a logs/train_sbd.log
 

@@ -48,19 +48,13 @@ port=29550;
 
 # python -c "import torch; print(torch.cuda.is_available(),torch.version.cuda);"
 
-
-
-# model2resume=/DATA2/xusc/cerberus/networks/2023-03-02-15:07:1677740825/checkpoints/ckpt_rank000_ep0106.pth.tar;
-
-
-# model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-04-16:28:1677918493/checkpoints/model_best.pth.tar;
-model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/sbd/sbd_edge_cerberus_and_its_loss.pth.tar;
+model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-09-09:48:1678326482/checkpoints/model_best.pth.tar;
 
 #* for sbd 
 data_dir=data/sbd-preprocess/data_proc;
 dataset='sbd';
 data_size=512;
-batch_size=16;
+batch_size=8;
 
 
 # data_dir=data/cityscapes-preprocess/data_proc;
@@ -68,12 +62,20 @@ batch_size=16;
 # data_size=640;
 # batch_size=2;
 
-gpuids="1";
+gpuids="6";
 gpu_number=1;
 
 
-# #* test 
+#* test 
 python -m torch.distributed.launch --nproc_per_node=$gpu_number --master_port $port \
 train_SE.py test  -s $data_size --batch-size $batch_size --gpu-ids $gpuids --workers 8 \
 --data-dir $data_dir --dataset $dataset --resume $model2resume \
 2>&1 | tee -a logs/test_cityscapes.log
+
+# resume_dir="/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-09-09:48:1678326482/checkpoints";
+
+
+# python -m torch.distributed.launch --nproc_per_node=$gpu_number --master_port $port \
+# train_SE.py val  -s $data_size --batch-size $batch_size --gpu-ids $gpuids --workers 8 \
+# --data-dir $data_dir --dataset $dataset --resume-model-dir $resume_dir \
+# 2>&1 | tee -a logs/test_cityscapes.log
