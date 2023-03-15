@@ -78,7 +78,7 @@ class ECTTrainer:
         self.log_file = join(self.project_dir,'train_log.txt')
 
         if args.wandb:
-            self.init_wand()
+            self.init_wandb()
 
         #* init dataloader 
         self.init_dataloader()
@@ -128,7 +128,7 @@ class ECTTrainer:
     def log2file(self,message):
         if self.args.local_rank == 0:
             with open(self.log_file,'a')as f :
-                f.write(message)
+                f.write(message+"\n")
 
     def init_wandb(self):
         wandb.init(project="train_cerberus") 
@@ -263,8 +263,8 @@ class ECTTrainer:
         for epoch in range(self.start_epoch,self.args.epochs):
             lr = self.adjust_learning_rate(epoch) 
 
-            # self.train_sampler.set_epoch(epoch)
-            # self.train_epoch(epoch)
+            self.train_sampler.set_epoch(epoch)
+            self.train_epoch(epoch)
 
             # if epoch %  self.args.val_freq ==0 or True:
             #     mean_val_loss = self.validate_epoch(epoch)

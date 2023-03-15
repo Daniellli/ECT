@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-15 23:41:15
+ # @LastEditTime: 2023-03-16 00:35:30
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/scripts/train.sh
@@ -41,9 +41,9 @@ CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_nod
 trainer.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
 --lr-mode poly --workers 16 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights \
 --extra-loss-weight $extra_loss_weight --edge-loss-gamma $edge_loss_gamma --edge-loss-beta $edge_loss_beta \
---rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
+--rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta --wandb \
 2>&1 | tee -a logs/train.log
 
-# --wandb
+
 #  --resume $resume
 
