@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-03-15 15:11:45
+ # @LastEditTime: 2023-03-15 16:11:09
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /Cerberus-main/eval_tools/test.sh
+ # @FilePath: /cerberus/eval_tools/test.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -33,8 +33,7 @@ echo  dir == $1,param == $2;
 # python test.py -d $1
 # python test.py -d $1 --test-edge;
 
-
-python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/share_disk_data/concat_eval_res_for_edge_cerberus  --dataset BSDS-RIND
+python test.py --eval-data-dir $1  --dataset BSDS-RIND
 
 
 #* SBU
@@ -50,9 +49,6 @@ python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/
 
 # python test.py --eval-data-dir '/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/nyud2_1' \
 # --dataset NYUD2 2>&1 | tee -a ../logs/eval_matlab.log
-
-
-
 
 
 

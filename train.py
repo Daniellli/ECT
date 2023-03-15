@@ -3,7 +3,6 @@
 
 import os
 import time
-from cv2 import threshold
 import numpy as np
 import sys
 import torch
@@ -11,12 +10,11 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from min_norm_solvers import MinNormSolver
 
-import copy
 # from model.models import  CerberusSegmentationModelMultiHead
 from model.edge_model import EdgeCerberus
+from model.edge_model_multi_class import EdgeCerberusMultiClass
+# from model.edge_model_multi_class2 import EdgeCerberusMultiClass
 import os.path as osp
-
-
 import random
 import wandb
 
@@ -28,28 +26,15 @@ from torch.utils.data.distributed import DistributedSampler
 from utils import save_checkpoint,AverageMeter,calculate_param_num
 from utils.edge_option import parse_args
 
-
-
 import json
 import warnings
 warnings.filterwarnings('ignore')
-
 import torch.distributed as dist
-import torch.multiprocessing as mp
 import json
-import signal
-
 from utils.global_var import *
-
-
 from utils.check_model_consistent import is_model_consistent
 from model.loss.inverse_loss import InverseTransform2D
-
-
 import torch.functional
-import cv2 
-
-from test import edge_validation
 
 
 '''
@@ -392,13 +377,13 @@ def train_seg_cerberus(args):
     
     #* construct model 
     # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
-    single_model = EdgeCerberus(backbone="vitb_rn50_384")
+    # single_model = EdgeCerberus(backbone="vitb_rn50_384")
+    single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
 
     #*========================================================
     #* calc parameter numbers 
-    total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
-    logger.info(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
-    
+    # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
+    # logger.info(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
     #*========================================================
 
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(args.local_rank))
@@ -625,9 +610,7 @@ def main():
     # os.environ['MASTER_PORT'] = str(port)
     # logger.info(f"node number == {args.nprocs}")
     args.nprocs = torch.cuda.device_count()#* gpu  number 
-
     torch.autograd.set_detect_anomaly(True) 
-
     train_seg_cerberus(args)
     
 
@@ -642,7 +625,7 @@ def setup_seed(seed):
     
 if __name__ == '__main__':
     # 设置随机数种子
-    # setup_seed(20)
+    setup_seed(20)
     main()
 
     

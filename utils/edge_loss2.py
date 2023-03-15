@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-07 22:24:07
-LastEditTime: 2023-03-05 08:23:52
+LastEditTime: 2023-03-15 15:42:05
 LastEditors: daniel
 Description: 
 FilePath: /cerberus/utils/edge_loss2.py
@@ -57,7 +57,8 @@ def attention_loss(output,target,beta=4,gamma = 0.5):
 
     weight=weight.detach()
     loss = F.binary_cross_entropy(output, target, weight, reduction='none')
-    loss = torch.mean(loss)
+    # loss = torch.mean(loss)
+    loss = torch.sum(loss)
     return loss
 
 

@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-03-04 19:34:54
+LastEditTime: 2023-03-15 15:25:39
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/test.py
+FilePath: /cerberus/test.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -23,8 +23,11 @@ from torchvision import  transforms
 from torch.autograd import Variable
 
 # import data_transforms as transforms
-from model.models import  CerberusSegmentationModelMultiHead
-from model.edge_model import  EdgeCerberus
+# from model.edge_model import  EdgeCerberus
+from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+
+
+
 import torch 
 import os.path as osp
 from tqdm import tqdm
@@ -39,12 +42,7 @@ from utils.loss import SegmentationLosses
 from utils.edge_loss2 import AttentionLoss2
 from dataloaders.datasets.bsds_hd5 import Mydataset
 from torchvision import transforms
-from dataloaders.datasets.sbu import SBU
-from dataloaders.datasets.istd import ISTD
-
-from torch.utils.data.distributed import DistributedSampler
 from utils import *
-
 from utils.edge_option import parse_args
 import json
 import warnings
@@ -92,7 +90,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     #* 加载模型
     # single_model = EdgeCerberus(backbone="vitb_rn50_384")
     # single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
-    single_model = EdgeCerberus(backbone="vitb_rn50_384")
+    # single_model = EdgeCerberus(backbone="vitb_rn50_384")
+    single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384")
 
     
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
@@ -141,19 +140,18 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)
 
-            attention_save_dir = osp.join(attention_output_dir,name)
-            make_dir(attention_save_dir)
-            with open('tmp.txt' ,'w') as f :
-                f.write(attention_save_dir)
+            # attention_save_dir = osp.join(attention_output_dir,name)
+            # make_dir(attention_save_dir)
+            # with open('tmp.txt' ,'w') as f :
+            #     f.write(attention_save_dir)
 
             
             with torch.no_grad():
                 #!======================
 
-                model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
                 res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
-                continue
-
+                # continue
                 # vis_att(model,image)
                 #!======================
                 

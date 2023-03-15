@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-04 23:38:19
+LastEditTime: 2023-03-15 15:59:40
 LastEditors: daniel
 Description: 
-FilePath: /cerberus/model/edge_model_v2.py
+FilePath: /cerberus/model/edge_model_multi_class.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -275,39 +275,21 @@ class EdgeCerberusMultiClass(BaseModel):
             # unloader(origin_image.cpu().clone().squeeze(0)).save(f'origin.jpg')
             cv2.imwrite('origin.jpg',origin_image.cpu().clone().squeeze().permute(1,2,0).numpy()*255)
 
-
             decoder_out,attentions = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
             #todo vis attentions
-            # attentions = torch.stack([ x.permute([0,3,2,1]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
             attentions = torch.stack([ x.permute([0,3,1,2]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
 
             #* traverse 6 decoder layer 
-            
-            #*=================
             with open('tmp.txt','r') as f:
                 atten_path = f.readlines()
-            #*=================
             
             for iidx,atten in enumerate(attentions):
                 #* traverse 4 attention map 
                 for  idx, (attention,x) in enumerate(zip(atten.squeeze(),self.full_output_task_list[1:])):
                     name = x[1][0]
-                    #* 乘不乘255 都一样
                     attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')#*  attention == [40,60] ->[320,480]
                     attention_map = attention_map.cpu().clone().squeeze().numpy()
-
-                    #* plan 1 
-                    # plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png')
-                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png',cmap='jet')
-                    #* plan 2
-                    # figure = plt.figure()
-                    # plt.pcolor(test, cmap='jet')
-                    # # plt.colorbar()
-                    # # plt.savefig('tmp.jpg')
-                    # plt.xticks([])
-                    # plt.yticks([])
-                    # plt.axis('off')
-                    
+                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png',cmap='jet')                    
         else :
             decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
 
@@ -329,13 +311,13 @@ class EdgeCerberusMultiClass(BaseModel):
             
 
         #* decoder_out 正则化  , 
-        # !+===========================        
+        # !+===========================
         decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
         decoder_out = self.final_norm1(decoder_out)
         decoder_out = self.final_rcu(decoder_out)
         # !+===========================
-        
 
+        
         #* rind 
         for cls_idx in range(self.hard_edge_cls_num):
             fun = eval("self.scratch.output_" + str(cls_idx+1))#* 全连接
@@ -346,7 +328,6 @@ class EdgeCerberusMultiClass(BaseModel):
             out = fun(out)
             model_out.append(out)
 
-            
         return model_out
 
 
