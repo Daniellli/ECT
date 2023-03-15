@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-28 20:36:03
- # @LastEditTime: 2023-03-09 16:07:54
+ # @LastEditTime: 2023-03-10 17:28:04
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/lib/matlab/eval/eval.sh
@@ -20,7 +20,7 @@
 
 
 # eval_dir="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/sbd/cerberus/edge_cerberus_with_dff_loss";
-eval_dir="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/sbd/cerberus/sbd_edge_cerberus_and_its_loss";
+eval_dir="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/sbd/cerberus/concat_decoder_feature";
 
 
 

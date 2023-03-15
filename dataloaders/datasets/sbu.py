@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-07 12:50:58
-LastEditTime: 2023-03-05 22:20:14
+LastEditTime: 2023-03-14 22:27:45
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/sbu.py
@@ -204,6 +204,15 @@ class SBU(data.Dataset):
         edge_map = self.imread(os.path.join(self.edge_path,self.edge_list[index]),gray=True)
 
         return img, edge_map
+    
+    def getitem_all(self, index):
+        img=self.imread(os.path.join(self.image_path,self.image_list[index]))
+        shadow_mask=self.imread(os.path.join(self.mask_path,self.mask_list[index]),gray=True)
+
+        edge_map = self.imread(os.path.join(self.edge_path,self.edge_list[index]),gray=True)
+
+        return img, shadow_mask,edge_map
+        
         
 
 
