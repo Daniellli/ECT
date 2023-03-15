@@ -71,7 +71,7 @@ for test_index=1:size(test_list,2)
     disp('Evaluate the edges...');
 
     
-    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/data/BSDS-RIND/testgt/',test_type];
+    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/data/BSDS-RIND/testgt/',test_type];
     
     % for SBU shadow edge detection 
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow/SBU-Test/EdgeMapMat'];
@@ -82,7 +82,7 @@ for test_index=1:size(test_list,2)
     % for NYUD2 normal and depth  edge detection 
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_canny/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
     %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/threashold_decay/','nyu_',test_type,'_edges_crop_mat'];
-    gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/range123/','nyu_',test_type,'_edges_crop_mat'];
+    %gtDir  = ['/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2/NYU_origin/depth_normal_edges_3x3/range123/','nyu_',test_type,'_edges_crop_mat'];
     
 
 
