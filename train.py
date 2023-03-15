@@ -293,53 +293,6 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
 
 
 '''
-description:  修改 lock 的互斥信号量
-'''
-lock = False
-'''
-description:  读取节点数,这个数据
-return {*}
-'''
-def read_ddp():
-    global lock
-    while lock:
-        pass
-
-    with open(ddp_file,'r')as f :
-        data  = json.load(f)
-    
-    return data
-
-''' 
-description:  写入节点数, 互斥, 一次只能一个进程写入
-param {*} data
-return {*}
-'''
-def write_ddp(data):
-    global lock
-    while lock:
-        pass
-    lock = True
-    with open(ddp_file,'w') as f :
-        json.dump(data,f)
-    lock = False
-        
-'''
-description: 平行节点数-1的操作, 
-return {*}
-'''
-def minus_process():
-    data = read_ddp()
-    data["node"] -=1
-    write_ddp(data)
-    logger.info(f"minus process ,surplus : {data['node']}")
-    return data["node"]
-
-
-
-
-
-'''
 description:  
 param {*} local_rank : 分布式训练参数 , 考试当前第几个节点,第几个GPU
 param {*} nprocs:  分布式训练参数 , 表示共有几个节点用于计算每个节点的batch size
@@ -349,7 +302,6 @@ return {*}
 def train_seg_cerberus(args):
     dist.init_process_group(backend='nccl')
     torch.cuda.set_device(args.local_rank) 
-    logger.info("DDP init  done ")
     
     model_save_dir = None
 
@@ -362,7 +314,6 @@ def train_seg_cerberus(args):
         
         info =""
         for k, v in args.__dict__.items():
-
             if args.wandb:
                 setattr(wandb.config,k,v)
 
@@ -376,15 +327,8 @@ def train_seg_cerberus(args):
 
     
     #* construct model 
-    # single_model = CerberusSegmentationModelMultiHead(backbone="vitb_rn50_384")
     # single_model = EdgeCerberus(backbone="vitb_rn50_384")
     single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
-
-    #*========================================================
-    #* calc parameter numbers 
-    # total_params,Trainable_params,NonTrainable_params =calculate_param_num(single_model)
-    # logger.info(f"total_params={total_params},Trainable_params={Trainable_params},NonTrainable_params:{NonTrainable_params}")
-    #*========================================================
 
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(single_model.cuda(args.local_rank))
     model = torch.nn.parallel.DistributedDataParallel(model,device_ids=[args.local_rank],
@@ -398,36 +342,18 @@ def train_seg_cerberus(args):
     
     edge_atten_criterion = AttentionLoss2(gamma=args.edge_loss_gamma,beta=args.edge_loss_beta).cuda(args.local_rank)
     rind_atten_criterion = AttentionLoss2(gamma=args.rind_loss_gamma,beta=args.rind_loss_beta).cuda(args.local_rank)
-
-
     focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
-    #!================
-    if args.constraint_loss:
-        inverse_form_criterion = InverseTransform2D()
-    else :
-        inverse_form_criterion =None
-    #!================
+    inverse_form_criterion = InverseTransform2D()
+    
 
     logger.info(f" the arg of constraint loss == {args.constraint_loss},constraint  loss = {inverse_form_criterion}")
 
-
-
-    #* 不能整除怎么办
-    if (args.batch_size % args.nprocs) != 0 and args.local_rank==0 :
-        args.batch_size  = int(args.batch_size / args.nprocs)  + args.batch_size % args.nprocs #* 不能整除的部分加到第一个GPU
-    else :
-        args.batch_size = int(args.batch_size / args.nprocs)
 
     #* Data loading code
     logger.info(f"rank = {args.local_rank},batch_size == {args.batch_size}")
 
     train_dataset = Mydataset(root_path=args.train_dir, split='trainval', crop_size=args.crop_size)
 
-    #!========================
-    # sample = train_dataset.__getitem__(0)
-    # cv2.imwrite('im.jpg',sample[0].permute(1,2,0).numpy()*255)
-    # cv2.imwrite('label1.jpg',sample[1].numpy()[0,:,:]*255)
-    #!========================
 
     train_sampler = DistributedSampler(train_dataset)
     train_loader = torch.utils.data.DataLoader(
@@ -456,25 +382,31 @@ def train_seg_cerberus(args):
     
     start_epoch = 0
     # optionally resume from a checkpoint
+
+    def load_model(model_path):
+        checkpoint = torch.load(args.resume,map_location=torch.device('cpu'))
+        return checkpoint
+
+
     if args.resume:
         if os.path.isfile(args.resume):
             logger.info("=> loading checkpoint '{}'".format(args.resume))
-            checkpoint = torch.load(args.resume,map_location=torch.device(args.local_rank))
+            checkpoint = load_model(args.resume)
             start_epoch = checkpoint['epoch']
             best_prec1 = checkpoint['best_prec1']
-            
+
             for name, param in checkpoint['state_dict'].items():
-                # name = name[7:]
                 model.state_dict()[name].copy_(param)
-            logger.info("=> loaded checkpoint '{}' (epoch {})"
-                  .format(args.resume, checkpoint['epoch']))
+                
+            logger.info("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
+
         else:
             logger.info("=> no checkpoint found at '{}'".format(args.resume))
 
     elif args.pretrained_model:
         if os.path.isfile(args.pretrained_model):
             logger.info("=> loading pretrained checkpoint '{}'".format(args.pretrained_model))
-            checkpoint = torch.load(args.pretrained_model)
+            checkpoint = load_model(args.pretrained_model)
             for name, param in checkpoint['state_dict'].items():
                 if name[:5] == 'sigma':
                     pass
@@ -495,16 +427,6 @@ def train_seg_cerberus(args):
         logger.info('Epoch: [{0}]\tlr {1:.06f}'.format(epoch, lr))
         train_sampler.set_epoch(epoch)        
 
-        #!=============== 检查model的一致性
-        # if epoch != 0  and epoch%10 == 0 :
-        #     check_checkpoint_path = osp.join(model_save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch-1))
-        #     is_consistent,_,_=is_model_consistent(
-        #         check_checkpoint_path.replace("ckpt_rank%03d"%(args.local_rank),"ckpt_rank%03d"%(1)),
-        #         check_checkpoint_path.replace("ckpt_rank%03d"%(args.local_rank),"ckpt_rank%03d"%(0))
-        #         )
-        #     logger.info(f"is consistent: {is_consistent}")
-        #     wandb.log({"is_consistent":1 if is_consistent else 0 })
-        #!===============
         
         train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterion,
              focal_criterion,optimizer, epoch,_moo = args.moo,
@@ -591,29 +513,12 @@ def main():
     project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
     args.save_dir=osp.join(project_dir,'checkpoints')
     
-    
-    # if args.save_dir is None :
-    #     args.save_dir = osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
-    #             "EdgeCerberus_%s"%(int(time.time())),"checkpoints")
-    # else :
-    #      args.save_dir= osp.join(osp.dirname(osp.abspath(__file__)),"networks",\
-    #             "%s_%s"%(args.save_dir,int(time.time())),"checkpoints")
-        
-
-
     logger.info(args.save_dir)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     
-    # port = int(1e4+np.random.randint(1,10000,1)[0])
-    # logger.info(f"port == {port}")
-    # os.environ['MASTER_ADDR'] = 'localhost'
-    # os.environ['MASTER_PORT'] = str(port)
-    # logger.info(f"node number == {args.nprocs}")
-    args.nprocs = torch.cuda.device_count()#* gpu  number 
     torch.autograd.set_detect_anomaly(True) 
     train_seg_cerberus(args)
     
-
 
 def setup_seed(seed):
      torch.manual_seed(seed)
