@@ -106,7 +106,8 @@ class Mydataset(data.Dataset):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.trans = transforms.Compose([
                              transforms.ToTensor(),
-                             normalize])  ## pre-process of pre-trained model of pytorch resnet-50
+                             normalize])  
+        ## pre-process of pre-trained model of pytorch resnet-50
         ## ToTensor() need input (H,W,3)
 
 
@@ -158,6 +159,11 @@ class Mydataset(data.Dataset):
             img = Image.open(os.path.join(self.images_path[idx])).convert('RGB')
             img_tensor = self.trans(img)
             return img_tensor
+
+    
+
+
+
 
 if __name__ == '__main__':
     train_dataset = Mydataset(root_path='/*******/Augmentation/', split='trainval', crop_size=320)
