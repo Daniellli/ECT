@@ -54,9 +54,6 @@ def parse_args():
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='path to latest checkpoint (default: none)')
     
-    
-
-
     parser.add_argument('--resume-model-dir', default=None, type=str, metavar='PATH',
                         help='path to checkpoint directory (default: none)')
     

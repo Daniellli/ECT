@@ -52,7 +52,10 @@ from dataloaders.semantic_edge import get_edge_dataset
 # from model.edge_model import EdgeCerberus
 # from model.semantic_edge_model import SEdgeCerberus
 # from model.semantic_edge_model2 import SEdgeCerberus
-from model.edge_model_v2 import EdgeCerberus
+# from model.edge_model_multi_class import EdgeCerberusMultiClass
+from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+
+
 
 # from torchsummary import summary
 
@@ -95,6 +98,7 @@ class SETrainer:
         self.args = parse_args()
         if self.args.local_rank==0:
             self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            
             self.save_dir = osp.join(self.project_dir,'checkpoints')
             if not osp.exists(self.save_dir):
                 os.makedirs(self.save_dir)
@@ -137,6 +141,14 @@ class SETrainer:
 
         return self.args.cmd
         
+
+    def log_file(self,message):
+        
+        if self.args.local_rank == 0 :
+            with open(join(self.project_dir ,'log.txt'),'a') as f :
+                f.write(message)
+            
+        
         
         
     def wandb_log(self,message,step=None):
@@ -156,9 +168,13 @@ class SETrainer:
   
     def init_wandb(self):
         wandb.init(project="semantic_edge_cerberus") 
-
+        
+        message=""
         for k, v in self.args.__dict__.items():
             setattr(wandb.config,k,v)
+            message+= f"{k}: {v} \n"
+            
+        self.log_file(message)
         setattr(wandb.config,'save_directory',self.save_dir)
 
         self.wandb_init =True
@@ -175,16 +191,17 @@ class SETrainer:
         
         
         if self.args.dataset == 'bsds':
-            single_model = EdgeCerberus(backbone="vitb_rn50_384")
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384")
             self.class_num = 4
         elif self.args.dataset == 'cityscapes' :
             self.class_num = 19
             # single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
-            single_model = EdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
         elif self.args.dataset == 'sbd':
             self.class_num = 20
+            #*  for val 
             # single_model = SEdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
-            single_model = EdgeCerberus(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
+            single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=self.class_num)
             self.log(f" edge cerberus v2 is loaded ")
             
             
@@ -309,8 +326,8 @@ class SETrainer:
         elif self.args.dataset == 'bsds':
             self.hard_edge_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
         elif self.args.dataset == 'sbd':
-            # self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
-            self.hard_edge_criterion = AttentionLoss3(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
+            self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
+            # self.hard_edge_criterion = AttentionLoss3(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
 
 
 
@@ -544,12 +561,17 @@ class SETrainer:
                                 "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                     self.log(tmp)
 
+        
 
+        self.log_file("epoch %d \t val loss: %f \t ")
         self.current_se_edge_loss = se_loss
         if self.current_se_edge_loss < self.best_se_edge_loss:
             self.best_se_edge_loss = self.current_se_edge_loss
             self.is_best = True
             self.wandb_log({'best_model_epoch':epoch})
+
+            self.log_file("epoch %d \t val loss: %f \t is best")
+
         else:
             self.is_best = False
             
@@ -566,6 +588,8 @@ class SETrainer:
         
         all_models = sorted(glob(join(self.args.resume_model_dir ,"ckpt_*")))
         # all_models =[ join(self.args.resume_model_dir ,"model_best.pth.tar")]
+
+        
         self.log(all_models)
         self.args.print_freq = 1e+10
 
