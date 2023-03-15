@@ -71,11 +71,13 @@ class ECTTrainer:
         torch.cuda.set_device(args.local_rank)
         torch.autograd.set_detect_anomaly(True) 
 
-        
-        self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
-        self.ckpt_dir=osp.join(self.project_dir,'checkpoints')
-        make_dir(self.ckpt_dir)
-        self.log_file = join(self.project_dir,'train_log.txt')
+        if args.local_rank == 0:
+            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            self.ckpt_dir=osp.join(self.project_dir,'checkpoints')
+            
+            
+            self.log_file = join(self.project_dir,'train_log.txt')
+            make_dir(self.ckpt_dir)
 
         if args.wandb:
             self.init_wandb()

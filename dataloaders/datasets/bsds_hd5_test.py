@@ -17,7 +17,7 @@ from PIL import Image
 
 import os 
 # os.chdir('/data3/xusc/exp/cerberus')
-os.chdir('/home/DISCOVER_summer2022/xusc/exp/Cerberus-main')
+# os.chdir('/home/DISCOVER_summer2022/xusc/exp/Cerberus-main')
 
 from os.path import join, split, isdir,isfile
 from torchvision import transforms
