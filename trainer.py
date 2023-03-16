@@ -14,6 +14,7 @@ import wandb
 from torch.utils.data.distributed import DistributedSampler
 from torchvision import  transforms
 import json
+from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 import torch.distributed as dist
@@ -43,7 +44,7 @@ from utils.edge_loss2 import AttentionLoss2
 # import torch.functional
 
 
-
+import scipy.io as sio
 
 
 
@@ -71,11 +72,13 @@ class ECTTrainer:
         torch.cuda.set_device(args.local_rank)
         torch.autograd.set_detect_anomaly(True) 
 
-        
-        self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
-        self.ckpt_dir=osp.join(self.project_dir,'checkpoints')
-        make_dir(self.ckpt_dir)
-        self.log_file = join(self.project_dir,'train_log.txt')
+        if args.local_rank == 0:
+            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            self.ckpt_dir=osp.join(self.project_dir,'checkpoints')
+            
+            
+            self.log_file = join(self.project_dir,'train_log.txt')
+            make_dir(self.ckpt_dir)
 
         if args.wandb:
             self.init_wandb()
@@ -211,6 +214,87 @@ class ECTTrainer:
 
         return lr
 
+
+    def test_epoch(self):
+
+
+            
+        edge_output_dir = os.path.join(self.project_dir, 'all_edges/met')
+        make_dir(edge_output_dir)
+
+        depth_output_dir = os.path.join(self.project_dir, 'depth/met')
+        make_dir(depth_output_dir)
+        
+        normal_output_dir = os.path.join(self.project_dir, 'normal/met')
+        make_dir(normal_output_dir)
+
+        reflectance_output_dir = os.path.join(self.project_dir, 'reflectance/met')
+        make_dir(reflectance_output_dir)
+
+        illumination_output_dir = os.path.join(self.project_dir, 'illumination/met')
+        make_dir(illumination_output_dir)
+
+
+        attention_output_dir = os.path.join(self.project_dir, 'attention')
+        make_dir(attention_output_dir)
+
+
+        tbar = tqdm(self.test_loader, desc='\r')
+        for i, (image,__) in enumerate(tbar):#*  B,C,H,W
+            name = self.test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
+            
+            image = Variable(image, requires_grad=False)
+            image = image.cuda()
+            B,C,H,W = image.shape 
+            
+            trans1 = transforms.Compose([transforms.Resize(size=(H//32*32, W//32*32))])
+            trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
+            image = trans1(image)
+
+            # attention_save_dir = osp.join(attention_output_dir,name)
+            # make_dir(attention_save_dir)
+            # with open('tmp.txt' ,'w') as f :
+            #     f.write(attention_save_dir)
+
+            
+            with torch.no_grad():
+                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+                res= self.model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
+                # vis_att(model,image)
+                
+
+            out_edge = trans2(res[0])
+            out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
+
+
+            edge_pred = out_edge.data.cpu().numpy()
+            edge_pred = edge_pred.squeeze()
+            sio.savemat(os.path.join(edge_output_dir, '{}.mat'.format(name)), {'result': edge_pred})
+            
+
+
+            depth_pred = out_depth.data.cpu().numpy()
+            depth_pred = depth_pred.squeeze()
+            sio.savemat(os.path.join(depth_output_dir, '{}.mat'.format(name)), {'result': depth_pred})
+
+
+            normal_pred = out_normal.data.cpu().numpy()
+            normal_pred = normal_pred.squeeze()
+            sio.savemat(os.path.join(normal_output_dir, '{}.mat'.format(name)), {'result': normal_pred})
+
+            reflectance_pred = out_reflectance.data.cpu().numpy()
+            reflectance_pred = reflectance_pred.squeeze()
+            sio.savemat(os.path.join(reflectance_output_dir, '{}.mat'.format(name)), {'result': reflectance_pred})
+
+            illumination_pred = out_illumination.data.cpu().numpy()
+            illumination_pred = illumination_pred.squeeze()
+            sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
+                        {'result': illumination_pred})
+        
+
+
+
+
     def validate_epoch(self,epoch):
 
 
@@ -240,7 +324,6 @@ class ECTTrainer:
             loss_sum+=rind_loss.item()
             if  torch.isnan(rind_loss):
                 print("nan")
-                self.log('b_loss is: {0}'.format(b_loss))
                 self.log('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
             
@@ -281,8 +364,7 @@ class ECTTrainer:
         if  self.args.local_rank == 0:
             checkpoint_path = osp.join(self.ckpt_dir,
                     'ckpt_ep%04d.pth.tar'%(epoch))
-            is_best = True
-
+            
             mean_val_loss = self.validate_epoch(epoch)
             
             
@@ -293,6 +375,7 @@ class ECTTrainer:
                 self.is_best = False 
             
             self.log2file(f"epoch: {epoch}, val loss: {mean_val_loss}, is best {self.is_best}")
+            # self.wandb_log({'val_loss':mean_val_loss})
                 
             save_checkpoint({
                 'epoch': epoch + 1,
@@ -370,7 +453,11 @@ if __name__ == '__main__':
     args = parse_args()
     # os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     trainer = ECTTrainer(args)
-    trainer.train()
+    if args.cmd == 'train':
+        trainer.train()
+    elif args.cmd == 'test':
+        trainer.test_epoch()
+
 
 
 

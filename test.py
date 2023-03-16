@@ -1,7 +1,7 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-03-15 15:25:39
+LastEditTime: 2023-03-16 09:11:19
 LastEditors: daniel
 Description: 
 FilePath: /cerberus/test.py
@@ -104,6 +104,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     model.eval()
 
     cudnn.benchmark = True
+    
     edge_output_dir = os.path.join(output_dir, 'all_edges/met')
     make_dir(edge_output_dir)
 
