@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-03-15 16:11:09
+ # @LastEditTime: 2023-03-16 09:34:01
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/eval_tools/test.sh
+ # @FilePath: /Cerberus-main/eval_tools/test.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -33,7 +33,7 @@ echo  dir == $1,param == $2;
 # python test.py -d $1
 # python test.py -d $1 --test-edge;
 
-python test.py --eval-data-dir $1  --dataset BSDS-RIND
+python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/share_disk_data/reproduce_in_trainer_ep186  --dataset BSDS-RIND
 
 
 #* SBU
