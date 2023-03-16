@@ -158,25 +158,21 @@ class ECTTrainer:
 
 
         self.test_dataset = MydatasetTest(root_path=self.args.bsds_dir)
-
         self.test_loader = torch.utils.data.DataLoader(self.test_dataset, 
                         batch_size=1, shuffle=False,
                         num_workers = self.args.workers,
                         pin_memory = True, drop_last=True,)
-        
         self.log("Dataloader  init  done ")
 
         
 
     def init_model(self):
-
         #* construct model 
         # self.model = EdgeCerberus(backbone="vitb_rn50_384")
         self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],
                             find_unused_parameters=True,broadcast_buffers = True) 
-
         self.log("construct model done ")
 
 
