@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2023-03-15 14:51:16
+ # @LastEditTime: 2023-03-16 23:31:18
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/scripts/test.sh
+ # @FilePath: /Cerberus-main/scripts/test.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -60,13 +60,13 @@
 
 
 
-resume_model="/data3/xusc/exp/cerberus/networks/2023-03-14-04:55:1678740937/checkpoints/ckpt_rank000_ep0299.pth.tar";
+resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar";
 save_dir='val_new_model'
 
 
 python -u test.py test  -s 320 \
 --resume $resume_model \
---batch-size 1 --workers 40 --gpu-ids "1" --run-id 2 --save-file $save_dir \
+--batch-size 1 --workers 40 --gpu-ids "1" \
 2>&1 | tee -a logs/test.log
 
 

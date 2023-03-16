@@ -2,10 +2,10 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-16 22:18:00
+ # @LastEditTime: 2023-03-17 00:31:22
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/scripts/train.sh
+ # @FilePath: /Cerberus-main/scripts/train.sh
  # have a nice day
 ### 
 
@@ -49,13 +49,13 @@ rind_loss_gamma=0.3
 
 
 #* test version 
-gpuids="0";
+gpuids="1";
 gpu_number=1;
 port=29550;
-resume=/data3/xusc/exp/cerberus/networks/origin_network/checkpoints/ckpt_ep0299.pth.tar;
+resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar;
 
  
 CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port $port \
-trainer.py test  -s 320 --batch-size $batch_size  --epochs $epoch --workers 8 --gpu-ids $gpuids --resume $resume \
+trainer.py test  -s 320 --batch-size $batch_size  --workers 8 --gpu-ids $gpuids --resume $resume \
 2>&1 | tee -a logs/train.log
 

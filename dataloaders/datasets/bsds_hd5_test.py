@@ -11,6 +11,8 @@ from torch.utils import data
 from torchvision import transforms
 import torch
 import numpy as np
+from IPython import embed
+
 
 from PIL import Image
 
@@ -40,18 +42,15 @@ class MydatasetTest(torch.utils.data.Dataset):
     def __init__(self,root_path='....../Augmentation/'):
         list_file = os.path.join(root_path, 'test.lst')
         self.data_root = root_path
-        
-        
 
-        self.images_path = np.loadtxt(list_file,dtype=np.str0)
+        # self.images_path = np.loadtxt(list_file,dtype=np.str0)
         
-#         with open(list_file, 'r') as f:
-#             lines = f.readlines()
-#         lines = [line.strip() for line in lines]
-#         self.images_path = lines
+        with open(list_file, 'r') as f:
+            lines = f.readlines()
+        lines = [line.strip() for line in lines]
+        self.images_path = lines
         
         self.images_name = []
-        
         for path in self.images_path:
             folder, filename = os.path.split(path)
             name, ext = os.path.splitext(filename)
@@ -66,7 +65,6 @@ class MydatasetTest(torch.utils.data.Dataset):
         
         """
         including DNRI, depth, normal, reflectance, illumination 
-        
         """
     def getitem_label(self,idx):
         
@@ -89,6 +87,7 @@ class MydatasetTest(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         img = Image.open(os.path.join(self.images_path[idx])).convert('RGB')
         img_tensor = self.trans(img)
+        
 
         gt_list = self.getitem_label(idx)
 
@@ -97,7 +96,8 @@ class MydatasetTest(torch.utils.data.Dataset):
         #* dnri  as the train schedule do 
         label = torch.from_numpy(label).float()
     
-        return img_tensor,label
+        # return img_tensor,label
+        return img_tensor
     
     
 
@@ -107,7 +107,6 @@ if __name__ == '__main__':
     test_dataset = MydatasetTest(root_path='data/BSDS-RIND/BSDS-RIND/Augmentation/')
     
     tbar = tqdm(test_dataset)
-    
 
     for i, (image, target) in enumerate(tbar):
         print(image.shape,target.shape)

@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-03-16 09:11:19
+LastEditTime: 2023-03-17 00:25:19
 LastEditors: daniel
 Description: 
-FilePath: /cerberus/test.py
+FilePath: /Cerberus-main/test.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -23,8 +23,8 @@ from torchvision import  transforms
 from torch.autograd import Variable
 
 # import data_transforms as transforms
-# from model.edge_model import  EdgeCerberus
-from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+from model.edge_model import  EdgeCerberus
+# from model.edge_model_multi_class2 import EdgeCerberusMultiClass
 
 
 
@@ -69,7 +69,7 @@ description:
 param {*} args
 return {*}
 '''
-def test_edge(model_abs_path,test_loader,save_name,runid=None,):
+def test_edge(model_abs_path,test_loader,save_name,runid=None):
     tic = time.time()
     
     a = osp.split(model_abs_path)
@@ -77,8 +77,6 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
         output_dir  = osp.join(a[0],"..",save_name)
     else:
         output_dir  = osp.join(a[0],"..","%s_%d"%(save_name,runid))
-
-
 
     
     # output_dir = osp.join("/".join(args.resume.split("/")[:-2]),"model_res")
@@ -90,8 +88,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     #* 加载模型
     # single_model = EdgeCerberus(backbone="vitb_rn50_384")
     # single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
-    # single_model = EdgeCerberus(backbone="vitb_rn50_384")
-    single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384")
+    single_model = EdgeCerberus(backbone="vitb_rn50_384")
+    # single_model = EdgeCerberusMultiClass(backbone="vitb_rn50_384")
 
     
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
@@ -190,6 +188,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
 
     #* just for attention 
     logger.info("reference done , start to eval ")
+    
     #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
     #! 第二个参数给1 就是测试edge
     os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
@@ -314,14 +313,15 @@ def main():
     args = parse_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_ids
     #* load data 
-    test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
+    test_dataset = Mydataset(root_path=args.bsds_dir, split='test', crop_size=args.crop_size)
 
 
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, 
                         shuffle=False,num_workers=args.workers,pin_memory=False)
-    logger.info(args.run_id)
-    logger.info(args.save_file)
-    test_edge(args.resume,test_loader,args.save_file,args.run_id)#! resume 给的model path需要是绝对路径
+    save_dir_name = time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time()))
+
+
+    test_edge(args.resume,test_loader,save_dir_name)#! resume 给的model path需要是绝对路径
     
 if __name__ == '__main__':
     main()

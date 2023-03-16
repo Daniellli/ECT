@@ -33,7 +33,6 @@ from model.loss.inverse_loss import InverseTransform2D
 
 
 from dataloaders.datasets.bsds_hd5 import Mydataset
-from dataloaders.datasets.bsds_hd5_test import MydatasetTest
 
 
 from utils import *
@@ -157,11 +156,10 @@ class ECTTrainer:
         )
 
 
-        self.test_dataset = MydatasetTest(root_path=self.args.bsds_dir)
+        self.test_dataset = Mydataset(root_path=self.args.bsds_dir,split='test')
         self.test_loader = torch.utils.data.DataLoader(self.test_dataset, 
-                        batch_size=1, shuffle=False,
-                        num_workers = self.args.workers,
-                        pin_memory = True, drop_last=True,)
+                        batch_size=1, shuffle=False,num_workers = self.args.workers,
+                        pin_memory = False)
         self.log("Dataloader  init  done ")
 
         
@@ -237,15 +235,20 @@ class ECTTrainer:
         make_dir(attention_output_dir)
 
 
+
+        
+        tic = time.time()
         tbar = tqdm(self.test_loader, desc='\r')
-        for i, (image,__) in enumerate(tbar):#*  B,C,H,W
+        # for i, (image,__) in enumerate(tbar):#*  B,C,H,W
+        for i, (image) in enumerate(tbar):#*  B,C,H,W
             name = self.test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
             
             image = Variable(image, requires_grad=False)
             image = image.cuda()
             B,C,H,W = image.shape 
             
-            trans1 = transforms.Compose([transforms.Resize(size=(H//32*32, W//32*32))])
+            # trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
+            trans1 = transforms.Compose([transforms.Resize(size=(H//4*4, W//4*4))])
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)
 
@@ -289,55 +292,18 @@ class ECTTrainer:
             sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                         {'result': illumination_pred})
         
+        
+        os.system("./eval_tools/test.sh %s %s"%(self.project_dir,"1"))
 
-
-
-
-    def validate_epoch(self,epoch):
-
-
-        self.model.eval()
-        loss_sum = 0
-
-        for i, (input,target) in enumerate(self.test_loader):#* 一个一个batch取数据
-            input = input.cuda()
-            target= target.cuda()
-
-            
-            B,C,H,W = input.shape 
-            # trans1 = transforms.Compose([transforms.Resize(size=(H//16*16, W//16*16))])
-            trans1 = transforms.Compose([transforms.Resize(size=(H//32*32, W//32*32))])
-            trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
-            
-            input = trans1(input)
-            
-            with torch.no_grad():
-                output = self.model(input)
-            
-            output = [trans2(x) for x in output]
-            #* compute the loss 
-
-            rind_loss = self.rind_atten_criterion(output[1:],target)#* 可以对多个类别计算loss ,但是这里只有一个类别
-            # self.log(rind_loss.item())
-            loss_sum+=rind_loss.item()
-            if  torch.isnan(rind_loss):
-                print("nan")
-                self.log('rind_loss is: {0}'.format(rind_loss)) 
-                exit(0)
-            
-
-
-            #* log
-            if  i % self.args.print_freq == 0:#* for debug 
-                all_need_upload = {"val_rind_loss":rind_loss}
-                self.wandb_log(all_need_upload)
-                tmp = 'Val Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(self.test_loader))
-                tmp+= "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
-                self.log(tmp)
-
-        return loss_sum/len(self.test_loader)
-
-
+        #* 读取评估的结果
+        self.log("eval done")
+        with open (osp.join(self.project_dir,"eval_res.json"),'r')as f :
+            eval_res = json.load(f)
+        spend_time =  time.time() - tic
+        #* 计算耗时
+        self.log("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
+        return eval_res
+        
 
     def train(self):
         
@@ -359,22 +325,19 @@ class ECTTrainer:
             checkpoint_path = osp.join(self.ckpt_dir,
                     'ckpt_ep%04d.pth.tar'%(epoch))
             
-            mean_val_loss = self.validate_epoch(epoch)
-            
-            
-            if self.best_val_loss > mean_val_loss:
-                self.is_best = True 
-                self.best_val_loss  = mean_val_loss
-            else:
-                self.is_best = False 
-            
-            self.log2file(f"epoch: {epoch}, val loss: {mean_val_loss}, is best {self.is_best}")
-            self.wandb_log({'val_loss':mean_val_loss})
+            # mean_val_loss = self.validate_epoch(epoch)
+            # if self.best_val_loss > mean_val_loss:
+            #     self.is_best = True 
+            #     self.best_val_loss  = mean_val_loss
+            # else:
+            #     self.is_best = False 
+            # self.log2file(f"epoch: {epoch}, val loss: {mean_val_loss}, is best {self.is_best}")
+            # self.wandb_log({'val_loss':mean_val_loss})
                 
             save_checkpoint({
                 'epoch': epoch + 1,
                 'state_dict': self.model.state_dict(),
-                'best_prec1': mean_val_loss,
+                'best_prec1': None,
             }, self.is_best, 
             filename=checkpoint_path)
         

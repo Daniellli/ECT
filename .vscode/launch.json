@@ -58,6 +58,11 @@
 
             // ]
 
+            "args": [
+                "--nproc_per_node=1","--master_port","29511","trainer.py",
+                "test", "--batch-size=1","--gpu-ids=1",
+                "--resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar"
+            ]
 
 
         }

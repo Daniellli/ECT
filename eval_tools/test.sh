@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-03-16 09:34:01
+ # @LastEditTime: 2023-03-16 23:52:18
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -33,10 +33,11 @@ echo  dir == $1,param == $2;
 # python test.py -d $1
 # python test.py -d $1 --test-edge;
 
-python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/share_disk_data/reproduce_in_trainer_ep186  --dataset BSDS-RIND
+# python test.py --eval-data-dir "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/2023-03-16-15:10:1678950646"  --dataset BSDS-RIND
+python test.py --eval-data-dir $1  --dataset BSDS-RIND
 
 
-#* SBU
+# * SBU
 # python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/SBU_0 \
 # --dataset SBU 2>&1 | tee -a ../logs/eval_matlab_sbu.log
 
