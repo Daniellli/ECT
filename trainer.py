@@ -168,12 +168,13 @@ class ECTTrainer:
 
     def init_model(self):
         #* construct model 
-        # self.model = EdgeCerberus(backbone="vitb_rn50_384")
-        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
+        self.model = EdgeCerberus(backbone="vitb_rn50_384")
+        # self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],
-                            find_unused_parameters=True,broadcast_buffers = True) 
+                            find_unused_parameters=True,broadcast_buffers = True)
         self.log("construct model done ")
+
 
 
     def log(self,message):
