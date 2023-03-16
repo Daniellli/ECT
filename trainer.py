@@ -171,8 +171,8 @@ class ECTTrainer:
     def init_model(self):
 
         #* construct model 
-        self.model = EdgeCerberus(backbone="vitb_rn50_384")
-        # self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
+        # self.model = EdgeCerberus(backbone="vitb_rn50_384")
+        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],
                             find_unused_parameters=True,broadcast_buffers = True) 
@@ -187,6 +187,7 @@ class ECTTrainer:
 
     def wandb_log(self,message_dict):
         if hasattr(self,'use_wandb')  and self.use_wandb and self.args.local_rank == 0 :
+            
             wandb.log(message_dict)
 
         
@@ -349,14 +350,10 @@ class ECTTrainer:
             self.train_sampler.set_epoch(epoch)
             self.train_epoch(epoch)
 
-            # if epoch %  self.args.val_freq ==0 or True:
-            #     mean_val_loss = self.validate_epoch(epoch)
-            #     self.log(f'mean val loss : {mean_val_loss}')
-            
             if epoch % self.args.save_freq == 0 or epoch>100 :
                 self.save_ckpt(epoch)
 
-    logger.info("train finish!!!! ")
+        self.log("train finish!!!! ")
 
 
 
@@ -375,7 +372,7 @@ class ECTTrainer:
                 self.is_best = False 
             
             self.log2file(f"epoch: {epoch}, val loss: {mean_val_loss}, is best {self.is_best}")
-            # self.wandb_log({'val_loss':mean_val_loss})
+            self.wandb_log({'val_loss':mean_val_loss})
                 
             save_checkpoint({
                 'epoch': epoch + 1,
