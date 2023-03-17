@@ -38,7 +38,7 @@ from utils.lr_scheduler import get_scheduler
 #* loss  function 
 from model.loss.inverse_loss import InverseTransform2D
 from utils.loss import SegmentationLosses
-from utils.edge_loss2 import AttentionLoss2,AttentionLoss3
+from utils.edge_loss2 import AttentionLossSEG,AttentionLossSE
 from utils.DFF_losses import EdgeDetectionReweightedLossesSingle,EdgeDetectionReweightedLosses
 
 
@@ -49,19 +49,13 @@ from dataloaders.semantic_edge import get_edge_dataset
 
 
 #* model 
-# from model.edge_model import EdgeCerberus
-# from model.semantic_edge_model import SEdgeCerberus
-# from model.semantic_edge_model2 import SEdgeCerberus
-# from model.edge_model_multi_class import EdgeCerberusMultiClass
-from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+from model.ECT_SE import EdgeCerberusMultiClass
 
 
 
 # from torchsummary import summary
 
 from  glob import glob
-
-
 
 from IPython import embed 
 warnings.filterwarnings('ignore')
@@ -97,7 +91,7 @@ class SETrainer:
     def __init__(self):
         self.args = parse_args()
         if self.args.local_rank==0:
-            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",self.args.dataset,time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
             
             self.save_dir = osp.join(self.project_dir,'checkpoints')
             if not osp.exists(self.save_dir):
@@ -105,7 +99,7 @@ class SETrainer:
             self.log(f'save path : {self.save_dir}')
         
         cudnn.benchmark = self.args.cudnn_benchmark
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids    
+        # os.environ["CUDA_VISIBLE_DEVICES"] = self.args.gpu_ids    
         
         dist.init_process_group(backend='nccl')
         torch.cuda.set_device(self.args.local_rank) 
@@ -124,7 +118,6 @@ class SETrainer:
         
         self.inti_dataloader()
         self.init_model() #* todo 
-        
         
         if self.args.cmd=='test':
             return 
@@ -319,7 +312,9 @@ class SETrainer:
 
 
     def inti_criterion(self):
-        self.edge_criterion = AttentionLoss2(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
+        # self.edge_criterion = AttentionLossSEG(gamma=self.args.edge_loss_gamma,beta=self.args.edge_loss_beta).cuda(self.args.local_rank)
+        self.edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
+        
 
         if self.args.dataset == 'cityscapes':
             self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
@@ -327,15 +322,14 @@ class SETrainer:
             self.hard_edge_criterion = AttentionLoss2(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
         elif self.args.dataset == 'sbd':
             self.hard_edge_criterion = EdgeDetectionReweightedLosses().cuda(self.args.local_rank)
-            # self.hard_edge_criterion = AttentionLoss3(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
+            # self.hard_edge_criterion = AttentionLossSE(gamma=self.args.rind_loss_gamma,beta=self.args.rind_loss_beta).cuda(self.args.local_rank)
 
 
 
         # self.focal_criterion = SegmentationLosses(weight=None, cuda=True).build_loss(mode='focal')
-        if self.args.inverseform_loss:
-            self.inverse_form_criterion = InverseTransform2D()
-        else :
-            self.inverse_form_criterion =None
+        
+        self.inverse_form_criterion = InverseTransform2D()
+        
 
     def inti_dataloader(self):
 
@@ -658,10 +652,18 @@ class SETrainer:
 
                 elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
                     generic_edge,indices = torch.max(target[:,1:,:,:],1)
-                    pred_edge = F.sigmoid(output[0])
-                    # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
-                    b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+
+                    
+                    
+                    # pred_edge = F.sigmoid(output[0])
+                    # b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+                    
+                    b_loss = self.edge_criterion(
+                                        output[0],
+                                        torch.cat([target[:,0:1,:,:],generic_edge.unsqueeze(1)],axis=1)
+                                    ) #* (B,N,W,H),(B,N,W,H)
                 
+                    
 
             elif edge_branch_out == "unet" :
                 b_loss = self.focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
@@ -687,46 +689,36 @@ class SETrainer:
                 exit(0)
 
             
-            if self.inverse_form_criterion is not None: 
-                #?  background_out 是否需要clone? 
-                #*  after detach , performance is better.
-                #* why detach?  using as 
-             
+        
+            #?  background_out 是否需要clone? 
+            #*  after detach , performance is better.
+            #* why detach?  using as 
+            
 
-                if self.args.dataset == 'bsds':
-                    background_out= output[0].clone().detach()
-                    rind_out = output[1:]
-                    rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-                    extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
+            if self.args.dataset == 'bsds':
+                background_out= output[0].clone().detach()
+                rind_out = output[1:]
+                rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
+                extra_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
 
-                elif self.args.dataset == 'cityscapes' :
+            elif self.args.dataset == 'cityscapes' :
 
-                    background_out = pred_edge.clone().detach()
-                    hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
-                    inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                background_out = pred_edge.clone().detach()
+                hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
+                inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                inverse_form_loss =  inverse_form_loss1
 
-                    # hard_edge_merged2= torch.mean(hard_prediction_maps,1)
-                    # inverse_form_loss2 = self.inverse_form_criterion(hard_edge_merged2.unsqueeze(1),background_out)
-                    #?  why extra_loss == extra_loss2??
-                    # inverse_form_loss = inverse_form_loss2 + inverse_form_loss1
-                    inverse_form_loss =  inverse_form_loss1
-                elif  self.args.dataset == 'sbd':
-                    background_out = pred_edge.clone().detach()
-                    hard_edge_merged,__ = torch.max( torch.cat(output[1:],dim=1),1)
-                    inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+            elif  self.args.dataset == 'sbd':
+                background_out = F.sigmoid(output[0]).clone().detach()
+                hard_edge_merged,__ = torch.max( torch.cat(output[1:],dim=1),1)
+                inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
+                inverse_form_loss =  inverse_form_loss1
 
-                    inverse_form_loss =  inverse_form_loss1
-                    pass
 
-                #* mean for merge hard task output 
-                # rind_out_stack_mean_value = torch.stack(rind_out).mean(0)
-                # extra_loss = inverse_form_criterion(rind_out_stack_mean_value,background_out)
-
-                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss \
-                         + self.args.inverseform_loss_weight * inverse_form_loss
-            else :
-                loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss  
-                
+            loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss \
+                        + self.args.inverseform_loss_weight * inverse_form_loss
+        
+            
             
 
 

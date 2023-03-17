@@ -2,30 +2,22 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-01 18:27:05
+ # @LastEditTime: 2023-03-17 14:06:28
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /Cerberus-main/scripts/train_SE.sh
+ # @FilePath: /cerberus/scripts/train_sbd.sh
  # have a nice day
 ### 
 
 
 
 
-gpuids="0,1,2,3";
+gpuids="2,3,5,6,7";
 gpu_number=4;
 
-
 lr=3e-3;
-batch_size=8;
+batch_size=2;
 epoch=100;
-bg_weights=0.5;
-rind_weights=1;
-inverseform_loss_weight=1;
-edge_loss_beta=1;
-edge_loss_gamma=0.3;
-rind_loss_beta=5;
-rind_loss_gamma=0.3;
 data_dir=data/sbd-preprocess/data_proc;
 dataset='sbd';
 data_size=352;
@@ -45,14 +37,13 @@ save_freq=3;
 
 # model2resume=/home/DISCOVER_summer2022/xusc/exp/cerberus/networks/2023-03-02-15:34:1677742465/checkpoints/ckpt_rank000_ep0020.pth.tar;
 # --resume $model2resume 
+# --weight-decay 1e-4
+# --gpu-ids $gpuids 
 
 
-python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
-train_SE.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
---gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights --edge-loss-gamma $edge_loss_gamma \
---edge-loss-beta $edge_loss_beta --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
---inverseform-loss --inverseform-loss-weight $inverseform_loss_weight --data-dir $data_dir \
---lr-scheduler $scheduler --lr-decay-rate $decay_rate --weight-decay 1e-4 --val-all-in 5 \
+CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number --master_port 29510 \
+se_trainer.py train  -s $data_size --batch-size $batch_size  --epochs $epoch --lr $lr \
+--data-dir $data_dir --lr-scheduler $scheduler --lr-decay-rate $decay_rate  --val-all-in 5 \
 --dataset $dataset  --val-freq $val_freq --save-freq $save_freq --print-freq $print_freq --wandb \
 2>&1 | tee -a logs/train_sbd.log
 

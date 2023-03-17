@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-15 15:59:40
+LastEditTime: 2023-03-17 13:41:58
 LastEditors: daniel
-Description: 
-FilePath: /cerberus/model/edge_model_multi_class.py
+Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
+FilePath: /cerberus/model/ECT_SE.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -195,7 +195,7 @@ class EdgeCerberusMultiClass(BaseModel):
                 nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
                 nn.BatchNorm2d(num_classes),
                 # nn.ReLU(inplace=True)
-                nn.Sigmoid()
+                # nn.Sigmoid()
                 )
             )
 

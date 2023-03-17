@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-17 12:52:08
+ # @LastEditTime: 2023-03-17 13:03:36
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /cerberus/scripts/train.sh
@@ -38,7 +38,7 @@ rind_loss_gamma=0.3
 # resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar;
 
 CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
-ect_trainer.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
+ect_trainer.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr \
 --lr-mode poly --workers 16 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights \
 --extra-loss-weight $extra_loss_weight --edge-loss-gamma $edge_loss_gamma --edge-loss-beta $edge_loss_beta \
 --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta --wandb \

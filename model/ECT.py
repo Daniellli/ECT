@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-04 22:34:29
+LastEditTime: 2023-03-17 13:38:51
 LastEditors: daniel
-Description: 
-FilePath: /Cerberus-main/model/semantic_edge_model.py
+Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
+FilePath: /cerberus/model/edge_model_multi_class.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -62,7 +62,7 @@ def _get_activation_fn(activation):
 
 
 
-class SEdgeCerberus(BaseModel):
+class EdgeCerberusMultiClass(BaseModel):
 
     def __init__(
         self,
@@ -72,10 +72,14 @@ class SEdgeCerberus(BaseModel):
         channels_last=False,
         use_bn=False,
         enable_attention_hooks=False,
-        hard_edge_cls_num=19
+        hard_edge_cls_num = 4
     ):
-        super(SEdgeCerberus, self).__init__()
+        super(EdgeCerberusMultiClass, self).__init__()
 
+        self.hard_edge_cls_num = hard_edge_cls_num
+
+
+    
         # self.full_output_task_list = ( \
         #     (1, ['background']), \
         #     (1, ['depth']), \
@@ -83,8 +87,7 @@ class SEdgeCerberus(BaseModel):
         #     (1, ['reflectance']),\
         #     (1, ['illumination'])
         # )
-        self.hard_edge_cls_num = hard_edge_cls_num
-
+        
         self.channels_last = channels_last
 
         hooks = {
@@ -122,17 +125,15 @@ class SEdgeCerberus(BaseModel):
 
         #* 下采样作为decoder 的输入 
         #? 这里是否要替换成  卷积操作? 
-        # setattr(self.scratch, "output_downsample",
-        #     Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
-
         setattr(self.scratch, "output_downsample",
-            Interpolate(scale_factor=0.125, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
+            Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
+
+
 
         #* decoder 
         #!===============================================================
         input_dim =  features #* 256 
-        # self.edge_query_embed = nn.Embedding(4, input_dim)
-        self.edge_query_embed = nn.Embedding(self.hard_edge_cls_num, input_dim)
+        self.edge_query_embed = nn.Embedding(4, input_dim)
         d_model  = input_dim 
         nhead = 8 #* detr ==8
         dim_feedforward  =2048
@@ -148,36 +149,36 @@ class SEdgeCerberus(BaseModel):
                                                 return_attention = self.return_attention)
 
 
+
         decoder_norm = nn.LayerNorm(d_model)
+
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
                                           return_intermediate=self.return_intermediate_dec,
                                           return_attention = self.return_attention
                                           )
 
-       
+       #!===============================================================
+
+
+        #!===============================================================
         self.final_norm1 = nn.BatchNorm2d(d_model)
         self.final_dropout1 = nn.Dropout(dropout)
         self.final_rcu = ResidualConvUnit_custom(d_model,_get_activation_fn(activation),True)
         
+
+        #!===============================================================
+
 
         #* fusion for different decoder layer 
         #*  pick 2 layer  to upsampling to [160,160 ] by refine net 
         self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet10 = _make_fusion_block(features, use_bn) 
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
-        
-        self.scratch.refinenet12 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet13 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet14 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet15 = _make_fusion_block(features, use_bn) 
-        
    
+
         #* final head 
         #* conv and ConvTranspose2d to [320,320] and classify
-        # for (num_classes, output_task_list) in self.full_output_task_list:
-        #* the other edge is generic edge classification
-        
-        for cls_idx in range(hard_edge_cls_num+1):
+        for cls_idx in range(self.hard_edge_cls_num+1):
             num_classes = 1
             setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
                 nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
@@ -190,16 +191,13 @@ class SEdgeCerberus(BaseModel):
             #* 需要 batch normalization 吗? 
             setattr(self.scratch, "output_" + str(cls_idx) + '_upsample', 
                 nn.Sequential(
-                    # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-                    nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
-                    nn.BatchNorm2d(num_classes),
-                    # nn.Sigmoid()
+                # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+                nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                nn.BatchNorm2d(num_classes),
+                # nn.ReLU(inplace=True)
+                nn.Sigmoid()
                 )
             )
-
-
-      
-
 
 
 
@@ -215,7 +213,8 @@ class SEdgeCerberus(BaseModel):
         
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
-        x = forward_flex(self.pretrained.model, x, True, name)
+
+        x = forward_flex(self.pretrained.model, x, True, name) #* true mean plot attention,   
         return x
 
     '''
@@ -254,6 +253,7 @@ class SEdgeCerberus(BaseModel):
 
         model_out = []
         #* background 
+
         out = self.scratch.output_0(edge_path_1)
         model_out.append(self.scratch.output_0_upsample(out))
         
@@ -274,39 +274,21 @@ class SEdgeCerberus(BaseModel):
             # unloader(origin_image.cpu().clone().squeeze(0)).save(f'origin.jpg')
             cv2.imwrite('origin.jpg',origin_image.cpu().clone().squeeze().permute(1,2,0).numpy()*255)
 
-
             decoder_out,attentions = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
             #todo vis attentions
-            # attentions = torch.stack([ x.permute([0,3,2,1]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
             attentions = torch.stack([ x.permute([0,3,1,2]).reshape(B,4,W,H)  for x in attentions.unsqueeze(1) ])
 
             #* traverse 6 decoder layer 
-            
-            #*=================
             with open('tmp.txt','r') as f:
                 atten_path = f.readlines()
-            #*=================
             
             for iidx,atten in enumerate(attentions):
                 #* traverse 4 attention map 
                 for  idx, (attention,x) in enumerate(zip(atten.squeeze(),self.full_output_task_list[1:])):
                     name = x[1][0]
-                    #* 乘不乘255 都一样
                     attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')#*  attention == [40,60] ->[320,480]
                     attention_map = attention_map.cpu().clone().squeeze().numpy()
-
-                    #* plan 1 
-                    # plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png')
-                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png',cmap='jet')
-                    #* plan 2
-                    # figure = plt.figure()
-                    # plt.pcolor(test, cmap='jet')
-                    # # plt.colorbar()
-                    # # plt.savefig('tmp.jpg')
-                    # plt.xticks([])
-                    # plt.yticks([])
-                    # plt.axis('off')
-                    
+                    plt.imsave(fname=osp.join(atten_path[0],f'atten-{name}-{iidx}.jpg'), arr=attention_map, format='png',cmap='jet')                    
         else :
             decoder_out = self.decoder(decoder_input,learnable_embedding) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
 
@@ -317,32 +299,24 @@ class SEdgeCerberus(BaseModel):
             #* [6,WH,B,256] == 
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
-            
-            
-            
-            decoder_layer1 = self.scratch.refinenet15(decoder_out[0]) #* from [B,C,40,40] to  [B,C,80,80]
-            decoder_layer2 = self.scratch.refinenet14(decoder_out[1])#* from [B,C,40,40] to  [B,C,80,80]
-
-
-            decoder_layer5 = self.scratch.refinenet13(decoder_out[-2]) #* from [B,C,40,40] to  [B,C,80,80]
-            decoder_layer6 = self.scratch.refinenet12(decoder_out[-1])#* from [B,C,40,40] to  [B,C,80,80]
-
-            decoder_layer12=self.scratch.refinenet11(decoder_layer1,decoder_layer2)
-            decoder_layer56=self.scratch.refinenet10(decoder_layer5,decoder_layer6)
-
-
-            decoder_out = self.scratch.refinenet09(decoder_layer12,decoder_layer56)#* from [B,C,80,80] to  [B,C,160,160]
+            decoder_layer1 =decoder_out[0]
+            decoder_layer6 =decoder_out[-1]
+            #* refinenet05-09
+            a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
+            b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
 
         #* decoder_out 正则化  , 
-        # !+===========================        
+        # !+===========================
         decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
         decoder_out = self.final_norm1(decoder_out)
         decoder_out = self.final_rcu(decoder_out)
-
         # !+===========================
+
+        
         #* rind 
         for cls_idx in range(self.hard_edge_cls_num):
             fun = eval("self.scratch.output_" + str(cls_idx+1))#* 全连接
@@ -352,7 +326,7 @@ class SEdgeCerberus(BaseModel):
             fun = eval("self.scratch.output_" + str( cls_idx+1) + '_upsample')#* 上采样
             out = fun(out)
             model_out.append(out)
-            
+
         return model_out
 
 

@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-02-25 23:23:23
+LastEditTime: 2023-03-17 13:37:59
 LastEditors: daniel
-Description: 
-FilePath: /cerberus/model/semantic_edge_model.py
+Description:  concatenate the 1-st and 6-th stage decoder feature for fine-grained edge prediction
+FilePath: /cerberus/model/edge_model_multi_class2.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -32,9 +32,11 @@ from .decoder import *
 from loguru import logger
 import os.path as osp
 import cv2
-from IPython import embed 
 
+
+from IPython import embed
 # from sklearn.manifold import TSNE
+
 
 def _make_fusion_block(features, use_bn):
     return FeatureFusionBlock_custom(
@@ -63,7 +65,7 @@ def _get_activation_fn(activation):
 
 
 
-class SEdgeCerberus(BaseModel):
+class EdgeCerberusMultiClass(BaseModel):
 
     def __init__(
         self,
@@ -73,10 +75,15 @@ class SEdgeCerberus(BaseModel):
         channels_last=False,
         use_bn=False,
         enable_attention_hooks=False,
-        hard_edge_cls_num=19
+        decoder_head_num = 8, 
+        hard_edge_cls_num = 4
     ):
-        super(SEdgeCerberus, self).__init__()
+        super(EdgeCerberusMultiClass, self).__init__()
 
+        self.hard_edge_cls_num = hard_edge_cls_num
+
+
+    
         # self.full_output_task_list = ( \
         #     (1, ['background']), \
         #     (1, ['depth']), \
@@ -84,8 +91,7 @@ class SEdgeCerberus(BaseModel):
         #     (1, ['reflectance']),\
         #     (1, ['illumination'])
         # )
-        self.hard_edge_cls_num = hard_edge_cls_num
-
+        
         self.channels_last = channels_last
 
         hooks = {
@@ -123,18 +129,16 @@ class SEdgeCerberus(BaseModel):
 
         #* 下采样作为decoder 的输入 
         #? 这里是否要替换成  卷积操作? 
-        # setattr(self.scratch, "output_downsample",
-        #     Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
-
         setattr(self.scratch, "output_downsample",
-            Interpolate(scale_factor=0.125, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
+            Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
+
+
 
         #* decoder 
         #!===============================================================
-        features #* 256 
-        # self.edge_query_embed = nn.Embedding(4, input_dim)
-        self.edge_query_embed = nn.Embedding(self.hard_edge_cls_num, features)
-        d_model  = features 
+        input_dim =  features #* 256 
+        self.edge_query_embed = nn.Embedding(4, input_dim)
+        d_model  = input_dim 
         nhead = 8 #* detr ==8
         dim_feedforward  =2048
         dropout = 0.1 
@@ -149,45 +153,33 @@ class SEdgeCerberus(BaseModel):
                                                 return_attention = self.return_attention)
 
 
+
         decoder_norm = nn.LayerNorm(d_model)
+
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
                                           return_intermediate=self.return_intermediate_dec,
                                           return_attention = self.return_attention
                                           )
-
-
 
         #* fusion for different decoder layer 
         #*  pick 2 layer  to upsampling to [160,160 ] by refine net 
         self.scratch.refinenet09 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet10 = _make_fusion_block(features, use_bn) 
         self.scratch.refinenet11 = _make_fusion_block(features, use_bn)
-        
-        self.scratch.refinenet12 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet13 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet14 = _make_fusion_block(features, use_bn) 
-        self.scratch.refinenet15 = _make_fusion_block(features, use_bn) 
-        
-        
-        
-        self.final_dropout1 = nn.Dropout(dropout) 
-         
-        self.final_norm1 = nn.BatchNorm2d(features*2)
-        self.final_rcu = ResidualConvUnit_custom(features*2,_get_activation_fn(activation),True)
-        #   self.final_module = nn.Sequential(
-        #     nn.BatchNorm2d(d_model),
-        #     ResidualConvUnit_custom(d_model,_get_activation_fn(activation),True)
-        # )
-        
-        
-        
+
+
+        self.final_dropout1 = nn.Dropout(dropout)
+        concated_channel = d_model*2
+        self.final_norm1 = nn.BatchNorm2d(concated_channel)
+        self.final_rcu = ResidualConvUnit_custom(concated_channel,_get_activation_fn(activation),True)
+   
+
         #* final head 
         #* conv and ConvTranspose2d to [320,320] and classify
-        # for (num_classes, output_task_list) in self.full_output_task_list:
-        #* the other edge is generic edge classification
-        for cls_idx in range(hard_edge_cls_num+1):
+        for cls_idx in range(self.hard_edge_cls_num+1):
             num_classes = 1
-            if cls_idx==0:  
+
+            if cls_idx==0:
                 setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
                     nn.Conv2d(features, features, kernel_size=3, padding=1, bias=False),
                     nn.BatchNorm2d(features),
@@ -195,28 +187,26 @@ class SEdgeCerberus(BaseModel):
                     nn.Dropout(0.1, False),
                     nn.Conv2d(features, num_classes, kernel_size=1),
                 ))
+                
             else:
                 setattr(self.scratch, "output_" + str(cls_idx) ,nn.Sequential(
-                    nn.Conv2d(features*2, features*2, kernel_size=3, padding=1, bias=False),
-                    nn.BatchNorm2d(features*2),
+                    nn.Conv2d(concated_channel, concated_channel, kernel_size=3, padding=1, bias=False),
+                    nn.BatchNorm2d(concated_channel),
                     nn.ReLU(True),
                     nn.Dropout(0.1, False),
-                    nn.Conv2d(features*2, num_classes, kernel_size=1),
+                    nn.Conv2d(concated_channel, num_classes, kernel_size=1),
                 ))
 
             #* 需要 batch normalization 吗? 
             setattr(self.scratch, "output_" + str(cls_idx) + '_upsample', 
                 nn.Sequential(
-                    # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-                    nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
-                    nn.BatchNorm2d(num_classes),
-                    # nn.Sigmoid()
+                # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
+                nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                nn.BatchNorm2d(num_classes),
+                # nn.ReLU(inplace=True)
+                nn.Sigmoid()
                 )
             )
-
-
-      
-
 
 
 
@@ -232,7 +222,8 @@ class SEdgeCerberus(BaseModel):
         
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
-        x = forward_flex(self.pretrained.model, x, True, name)
+
+        x = forward_flex(self.pretrained.model, x, True, name) #* true mean plot attention,   
         return x
 
     '''
@@ -271,6 +262,7 @@ class SEdgeCerberus(BaseModel):
 
         model_out = []
         #* background 
+
         out = self.scratch.output_0(edge_path_1)
         model_out.append(self.scratch.output_0_upsample(out))
         
@@ -282,6 +274,7 @@ class SEdgeCerberus(BaseModel):
 
         B,C,W,H=decoder_input.shape
         decoder_input=  decoder_input.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
+        
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
 
         #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
@@ -333,35 +326,32 @@ class SEdgeCerberus(BaseModel):
             #* [6,WH,B,256] == 
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
-            
-            
-            
-            decoder_layer1 = self.scratch.refinenet15(decoder_out[0]) #* from [B,C,40,40] to  [B,C,80,80]
-            decoder_layer2 = self.scratch.refinenet14(decoder_out[1])#* from [B,C,40,40] to  [B,C,80,80]
-
-
-            decoder_layer5 = self.scratch.refinenet13(decoder_out[-2]) #* from [B,C,40,40] to  [B,C,80,80]
-            decoder_layer6 = self.scratch.refinenet12(decoder_out[-1])#* from [B,C,40,40] to  [B,C,80,80]
-
-            decoder_layer12=self.scratch.refinenet11(decoder_layer1,decoder_layer2)
-            decoder_layer56=self.scratch.refinenet10(decoder_layer5,decoder_layer6)
-
-
-            decoder_out = self.scratch.refinenet09(decoder_layer12,decoder_layer56)#* from [B,C,80,80] to  [B,C,160,160]
+            decoder_layer1 =decoder_out[0]
+            decoder_layer6 =decoder_out[-1]
+            #* refinenet05-09
+            a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
+            b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
         else:
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
 
         #* decoder_out 正则化  , 
         # !+===========================        
-        
         # decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
+            
+        # embed()
+        # b = self.final_rcu(self.final_norm1torch.cat([edge_path_1, self.final_dropout1(decoder_out)],dim=1)))
+        # c = self.scratch.output_1(b)
+
         decoder_out  = torch.cat([edge_path_1, self.final_dropout1(decoder_out)],dim=1)
         decoder_out = self.final_norm1(decoder_out)
         decoder_out = self.final_rcu(decoder_out)
+
+        
+        # !+===========================
         
 
-        # !+===========================
         #* rind 
         for cls_idx in range(self.hard_edge_cls_num):
             fun = eval("self.scratch.output_" + str(cls_idx+1))#* 全连接
@@ -371,6 +361,7 @@ class SEdgeCerberus(BaseModel):
             fun = eval("self.scratch.output_" + str( cls_idx+1) + '_upsample')#* 上采样
             out = fun(out)
             model_out.append(out)
+
             
         return model_out
 
