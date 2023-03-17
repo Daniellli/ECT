@@ -33,6 +33,7 @@ from model.loss.inverse_loss import InverseTransform2D
 
 
 from dataloaders.datasets.bsds_hd5 import Mydataset
+from dataloaders.datasets.bsds_hd5_test import MydatasetTest
 
 
 from utils import *
@@ -138,12 +139,13 @@ class ECTTrainer:
                 f.write(message+"\n")
 
     def init_wandb(self):
-        wandb.init(project="train_cerberus") 
-        
-        for k, v in args.__dict__.items():
-            if args.wandb:
-                setattr(wandb.config,k,v)
-        self.use_wandb = True
+        if self.args.local_rank ==0:
+            wandb.init(project="train_cerberus") 
+            
+            for k, v in args.__dict__.items():
+                if args.wandb:
+                    setattr(wandb.config,k,v)
+            self.use_wandb = True
 
 
     
@@ -162,7 +164,8 @@ class ECTTrainer:
         )
 
 
-        self.test_dataset = Mydataset(root_path=self.args.bsds_dir,split='test')
+        # self.test_dataset = Mydataset(root_path=self.args.bsds_dir,split='test')
+        self.test_dataset = MydatasetTest(root_path=self.args.bsds_dir)
         self.test_loader = torch.utils.data.DataLoader(self.test_dataset, 
                         batch_size=1, shuffle=False,num_workers = self.args.workers,
                         pin_memory = False)

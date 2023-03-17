@@ -96,8 +96,8 @@ class MydatasetTest(torch.utils.data.Dataset):
         #* dnri  as the train schedule do 
         label = torch.from_numpy(label).float()
     
-        # return img_tensor,label
-        return img_tensor
+        return img_tensor,label
+        # return img_tensor
     
     
 
