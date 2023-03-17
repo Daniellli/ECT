@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-17 14:06:28
+ # @LastEditTime: 2023-03-17 19:54:16
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /cerberus/scripts/train_sbd.sh
@@ -12,8 +12,8 @@
 
 
 
-gpuids="2,3,5,6,7";
-gpu_number=4;
+gpuids="0,2,3,5,6,7";
+gpu_number=5;
 
 lr=3e-3;
 batch_size=2;

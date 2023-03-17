@@ -474,100 +474,55 @@ class SETrainer:
     def validate_epoch(self,epoch):
         self.model.eval()
         se_loss = 0
-        
-        
-        
+    
         for i, (input, target) in enumerate(self.val_loader):#* 一个一个batch取数据
 
             input = input.cuda()
             target = target.cuda()
 
             with torch.no_grad():
-                # output = self.model(input)
+
                 output = self.model(input.type(torch.FloatTensor))
             
-                #* for cityscapes
-               
-                if self.args.dataset == 'bsds':
-                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd':
-                    generic_edge,indices = torch.max(target[:,1:,:,:],1)
-                    pred_edge = F.sigmoid(output[0])
-                    # cv2.imwrite('a.jpg',generic_edge.squeeze().cpu().numpy()*255)
-                    b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-        
-             
-                if self.args.dataset == 'bsds':
-                    rind_loss = self.hard_edge_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
-                elif self.args.dataset == 'cityscapes' :
+                if self.args.dataset == 'cityscapes' :
                     # rind_loss = self.hard_edge_criterion(torch.cat(output[1:],dim=1),target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
                     hard_prediction_maps = torch.cat(output[1:],dim=1)
-                    rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
-                elif self.args.dataset == 'sbd' :
+                    rind_loss = self.hard_edge_criterion(hard_prediction_maps ,target)
+                elif  self.args.dataset == 'sbd':
                     rind_loss = self.hard_edge_criterion(output[1:] ,target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+
+                se_loss+= rind_loss.item()
+
+                if  torch.isnan(rind_loss)  :
+                    self.log("nan")
+                    self.log('rind_loss is: {0}'.format(rind_loss)) 
+                    exit(0)
+
+
+                #* print status 
+                if  i % self.args.print_freq == 0:#* for debug 
+                    # self.log(f'scheduler step counter : {self.scheduler._step_count} last epoch: {self.scheduler.last_epoch} milestones: {self.scheduler.milestones} current lr: {self.scheduler.get_last_lr()[0]};')
                     
-
-                
-                if self.inverse_form_criterion is not None: 
-                    #?  background_out 是否需要clone? 
-                    #*  after detach , performance is better.
-                    #* why detach?  using as 
+                    #* get_last_lr return the learning rate of each parameter group
+                    all_need_upload = {"val_hard_edge_loss":rind_loss.item()}
                     
-
-                    if self.args.dataset == 'bsds':
-                        background_out= output[0].clone().detach()
-                        rind_out = output[1:]
-                        rind_out_stack_max_value = torch.stack(rind_out).max(0)[0]
-                        inverse_form_loss = self.inverse_form_criterion(rind_out_stack_max_value,background_out)
-                    elif self.args.dataset == 'cityscapes' :
-                        background_out = pred_edge.clone().detach()
-                        hard_edge_merged,__ = torch.max(hard_prediction_maps,1)
-                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
-                        inverse_form_loss =  inverse_form_loss1
-                    elif self.args.dataset == 'sbd' :
-                        background_out = pred_edge.clone().detach()
-
-                        hard_edge_merged,__ = torch.max( torch.cat(output[1:],dim=1),1)
-                        inverse_form_loss1 = self.inverse_form_criterion(hard_edge_merged.unsqueeze(1),background_out)
-                        inverse_form_loss =  inverse_form_loss1
-                        
-
-                    loss =  b_loss + rind_loss +inverse_form_loss
-                else :
-                    loss =  b_loss+ rind_loss  
-
-                se_loss+=rind_loss.item()
-
-                all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item(),'val_step':epoch*len(self.val_loader)+i}
-                # all_need_upload = { "val_generic_edge_loss":b_loss.item(),"val_hard_edge_loss":rind_loss.item(),"val_total_loss":loss.item()}
-
-
-                if 'inverse_form_loss1' in locals():
-                    all_need_upload['val_inverse_form_loss1'] = inverse_form_loss1.item()
-
-                    
-                if (i+1) % self.args.print_freq  == 0 :
-
-                    # self.wandb_log(all_need_upload,step=epoch*len(self.val_loader)+i)
                     self.wandb_log(all_need_upload)
 
-                    tmp = 'Validation Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
+                    tmp = 'Validation Epoch: [{0}][{1}/{2}]'.format(epoch, i, len(self.train_loader)) + \
                                 "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                     self.log(tmp)
 
-        
 
-        self.log_file("epoch %d \t val loss: %f \t ")
+        
         self.current_se_edge_loss = se_loss
         if self.current_se_edge_loss < self.best_se_edge_loss:
             self.best_se_edge_loss = self.current_se_edge_loss
             self.is_best = True
             self.wandb_log({'best_model_epoch':epoch})
-
-            self.log_file("epoch %d \t val loss: %f \t is best")
-
         else:
             self.is_best = False
+            
+        self.log_file("epoch %d \t val loss: %f \t is best: %d \n "%(epoch,se_loss,self.is_best))
             
             
 
@@ -603,7 +558,7 @@ class SETrainer:
             self.log("==============================================================================================================================================")
 
 
-    def train_epoch(self, epoch,edge_branch_out="edge"): # transfer_model=None, transfer_optim=None):
+    def train_epoch(self, epoch): # transfer_model=None, transfer_optim=None):
         
         # task_list_array = [['background'],['depth'],
         #                 ['normal'],['reflectance'],
@@ -643,27 +598,22 @@ class SETrainer:
             2. 一类就是unet ,header 最后是ReLU, 并且需要改成5类,  求最后结果的时候对对第一维求最大值, 就得到model 对5个类别的分类结果
             return {*}
             '''
-            if edge_branch_out == "edge":
-                #* for cityscapes
+        
+            #* for cityscapes
+            if self.args.dataset == 'bsds' :
+                b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
+
+            elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
+                generic_edge,indices = torch.max(target[:,1:,:,:],1)
+                # pred_edge = F.sigmoid(output[0])
+                # b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
                 
+                b_loss = self.edge_criterion(
+                                    output[0],
+                                    torch.cat([target[:,0:1,:,:],generic_edge.unsqueeze(1)],axis=1)
+                                ) #* (B,N,W,H),(B,N,W,H)
             
-                if self.args.dataset == 'bsds' :
-                    b_loss = self.edge_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-
-                elif self.args.dataset == 'cityscapes' or self.args.dataset == 'sbd' :
-                    generic_edge,indices = torch.max(target[:,1:,:,:],1)
-
-                    
-                    
-                    # pred_edge = F.sigmoid(output[0])
-                    # b_loss = self.edge_criterion([pred_edge],generic_edge.unsqueeze(1))#* (B,N,W,H),(B,N,W,H)
-                    
-                    b_loss = self.edge_criterion(
-                                        output[0],
-                                        torch.cat([target[:,0:1,:,:],generic_edge.unsqueeze(1)],axis=1)
-                                    ) #* (B,N,W,H),(B,N,W,H)
                 
-                    
 
             elif edge_branch_out == "unet" :
                 b_loss = self.focal_criterion(output[0],target[:,0,:,:])#* (B,N,W,H),(B,N,W,H)
@@ -725,12 +675,10 @@ class SETrainer:
             self.optimizer.zero_grad()
             loss.backward()#* warning exists
             self.optimizer.step()
-            # self.scheduler.step()
-            # self.scheduler.step(epoch)
 
             #* print status 
             if  i % self.args.print_freq == 0 and self.args.local_rank == 0:#* for debug 
-                # embed()
+                
                 
                 # self.log(f'scheduler step counter : {self.scheduler._step_count} last epoch: {self.scheduler.last_epoch} milestones: {self.scheduler.milestones} current lr: {self.scheduler.get_last_lr()[0]};')
                 
@@ -756,6 +704,10 @@ class SETrainer:
                 tmp = 'Epoch: [{0}][{1}/{2}/{3}]'.format(epoch, i, len(self.train_loader),self.args.local_rank) + \
                             "\t".join([f"{k} : {v} \t" for k,v in all_need_upload.items()])
                 self.log(tmp)
+
+
+
+
 
     def test(self):
 

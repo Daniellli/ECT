@@ -84,7 +84,10 @@ def _get_sbd_pairs(folder, split='train'):
         img_paths = []
         mask_paths = []
         with open(split_f, 'r') as lines:
+            #!+========================
             for line in lines:
+            # for idx,line in enumerate(lines):
+            #!+======================== 
                 ll_str = re.split(' ', line)
                 imgpath = folder + ll_str[0].rstrip()
                 maskpath = folder + ll_str[1].rstrip()
@@ -96,6 +99,10 @@ def _get_sbd_pairs(folder, split='train'):
                     mask_paths.append(maskpath)
                 else:
                     print('cannot find the mask:', maskpath)
+                #!+======================== 
+                # if idx == 10:
+                #     break
+                #!+======================== 
         return img_paths, mask_paths
     if split == 'train':
         split_f = os.path.join(folder, 'trainvalaug_inst_orig.txt')
