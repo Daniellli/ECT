@@ -25,9 +25,14 @@ from loguru import logger
 from IPython import embed 
 
 from min_norm_solvers import MinNormSolver
+#* origin model version 
 from model.edge_model import EdgeCerberus
-from model.edge_model_multi_class import EdgeCerberusMultiClass
-# from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+
+
+#* modified version for generalization
+# from model.edge_model_multi_class import EdgeCerberusMultiClass
+from model.edge_model_multi_class2 import EdgeCerberusMultiClass
+
 from model.loss.inverse_loss import InverseTransform2D
 
 
@@ -175,8 +180,8 @@ class ECTTrainer:
 
     def init_model(self):
         #* construct model 
-        self.model = EdgeCerberus(backbone="vitb_rn50_384")
-        # self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
+        # self.model = EdgeCerberus(backbone="vitb_rn50_384")
+        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],
                             find_unused_parameters=True,broadcast_buffers = True)
@@ -342,7 +347,11 @@ class ECTTrainer:
                     'ckpt_ep%04d.pth.tar'%(epoch))
             
             
-            performance = self.validate_epoch(epoch)
+            mean_val_loss = self.validate_epoch(epoch)
+            # performance = self.test_epoch(epoch)#* can not test on 10.0.0.3
+            # ap = performance['Average']['AP']
+
+            
             if self.best_val_loss > mean_val_loss:
                 self.is_best = True 
                 self.best_val_loss  = mean_val_loss
