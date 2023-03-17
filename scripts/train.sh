@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-17 00:31:22
+ # @LastEditTime: 2023-03-17 09:07:47
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/scripts/train.sh
@@ -56,6 +56,6 @@ resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/ch
 
  
 CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port $port \
-trainer.py test  -s 320 --batch-size $batch_size  --workers 8 --gpu-ids $gpuids --resume $resume \
+ect_trainer.py test  -s 320 --batch-size $batch_size  --workers 8 --gpu-ids $gpuids --resume $resume \
 2>&1 | tee -a logs/train.log
 

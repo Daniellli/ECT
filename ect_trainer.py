@@ -108,10 +108,17 @@ class ECTTrainer:
         if args.resume:
             if os.path.isfile(args.resume):
                 checkpoint = load_model(args.resume)
+                self.log("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
                 self.start_epoch = checkpoint['epoch']
                 self.best_prec1 = checkpoint['best_prec1']
+
+                # if args.cmd == 'test':#* if test mode, do not use distributed model 
+                #     for name, param in checkpoint['state_dict'].items():
+                #         name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
+                #         self.model.state_dict()[name].copy_(param)
+                # else:
                 self.model.load_state_dict(checkpoint['state_dict'], True)
-                self.log("=> loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
+                    
             else:
                 self.log("=> no checkpoint found at '{}'".format(args.resume))
 
@@ -119,8 +126,6 @@ class ECTTrainer:
         if not hasattr(self,'start_epoch'):
             self.start_epoch = 0
 
-
-        # self.init_dist_model()
 
         self.log('trainer init done ')
         self.best_val_loss = 1e+7
@@ -149,6 +154,7 @@ class ECTTrainer:
             split='trainval', crop_size=args.crop_size)
 
         self.train_sampler = DistributedSampler(train_dataset)
+
         self.train_loader = torch.utils.data.DataLoader(
             train_dataset,batch_size=self.args.batch_size,
                 num_workers=self.args.workers,pin_memory=True, 
@@ -211,27 +217,33 @@ class ECTTrainer:
         return lr
 
 
-    def test_epoch(self):
+    def test_epoch(self,epoch):
+        #! this code would lead to  extrimely low performance 
+        self.log(f'start to eval {epoch}')
 
+        self.model.eval()
+
+        save_dir = join(self.project_dir,str(epoch))
+        make_dir(save_dir)
 
             
-        edge_output_dir = os.path.join(self.project_dir, 'all_edges/met')
+        edge_output_dir = os.path.join(save_dir, 'all_edges/met')
         make_dir(edge_output_dir)
 
-        depth_output_dir = os.path.join(self.project_dir, 'depth/met')
+        depth_output_dir = os.path.join(save_dir, 'depth/met')
         make_dir(depth_output_dir)
         
-        normal_output_dir = os.path.join(self.project_dir, 'normal/met')
+        normal_output_dir = os.path.join(save_dir, 'normal/met')
         make_dir(normal_output_dir)
 
-        reflectance_output_dir = os.path.join(self.project_dir, 'reflectance/met')
+        reflectance_output_dir = os.path.join(save_dir, 'reflectance/met')
         make_dir(reflectance_output_dir)
 
-        illumination_output_dir = os.path.join(self.project_dir, 'illumination/met')
+        illumination_output_dir = os.path.join(save_dir, 'illumination/met')
         make_dir(illumination_output_dir)
 
 
-        attention_output_dir = os.path.join(self.project_dir, 'attention')
+        attention_output_dir = os.path.join(save_dir, 'attention')
         make_dir(attention_output_dir)
 
 
@@ -292,16 +304,17 @@ class ECTTrainer:
             sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                         {'result': illumination_pred})
         
-        
-        os.system("./eval_tools/test.sh %s %s"%(self.project_dir,"1"))
+        #* eval by the matlab
+        os.system("./eval_tools/test.sh %s %s"%(save_dir,"1"))
 
         #* 读取评估的结果
         self.log("eval done")
-        with open (osp.join(self.project_dir,"eval_res.json"),'r')as f :
+        with open (osp.join(save_dir,"eval_res.json"),'r')as f :
             eval_res = json.load(f)
         spend_time =  time.time() - tic
         #* 计算耗时
         self.log("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
+
         return eval_res
         
 
@@ -313,7 +326,7 @@ class ECTTrainer:
             self.train_sampler.set_epoch(epoch)
             self.train_epoch(epoch)
 
-            if epoch % self.args.save_freq == 0 or epoch>100 :
+            if epoch % self.args.save_freq == 0 or epoch>250 :
                 self.save_ckpt(epoch)
 
         self.log("train finish!!!! ")
@@ -325,7 +338,8 @@ class ECTTrainer:
             checkpoint_path = osp.join(self.ckpt_dir,
                     'ckpt_ep%04d.pth.tar'%(epoch))
             
-            # mean_val_loss = self.validate_epoch(epoch)
+            
+            # performance = self.test_epoch(epoch)
             # if self.best_val_loss > mean_val_loss:
             #     self.is_best = True 
             #     self.best_val_loss  = mean_val_loss
@@ -413,7 +427,7 @@ if __name__ == '__main__':
     if args.cmd == 'train':
         trainer.train()
     elif args.cmd == 'test':
-        trainer.test_epoch()
+        trainer.test_epoch(trainer.start_epoch)
 
 
 
