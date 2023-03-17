@@ -72,7 +72,6 @@ class EdgeCerberusMultiClass(BaseModel):
         channels_last=False,
         use_bn=False,
         enable_attention_hooks=False,
-        decoder_head_num = 8, 
         hard_edge_cls_num = 4
     ):
         super(EdgeCerberusMultiClass, self).__init__()

@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-17 11:53:36
+ # @LastEditTime: 2023-03-17 12:52:08
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /cerberus/scripts/train.sh
@@ -17,7 +17,7 @@ gpu_number=5;
 
 lr=1e-5;
 batch_size=4;
-epoch=320;
+epoch=300;
 bg_weights=0.5;
 rind_weights=1;
 extra_loss_weight=1000;
