@@ -58,7 +58,7 @@
 
 
 
-
+conda activate cerberus2
 
 resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar";
 save_dir='val_new_model'

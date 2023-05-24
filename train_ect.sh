@@ -22,7 +22,7 @@ gpu_number=8;
 
 lr=1e-5;
 # batch_size=4;
-batch_size=24;
+batch_size=16;
 epoch=300;
 bg_weights=0.5;
 rind_weights=1;
