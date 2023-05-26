@@ -2,16 +2,18 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-03-17 13:03:36
+ # @LastEditTime: 2023-05-26 20:26:47
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /cerberus/scripts/train.sh
+ # @FilePath: /Cerberus-main/scripts/train_ect.sh
  # have a nice day
 ### 
 
 
 
-source ~/miniconda3/etc/profile.d/conda.sh 
+# source ~/miniconda3/etc/profile.d/conda.sh 
+
+source /usr/local/miniconda3/etc/profile.d/conda.sh 
 
 
 conda activate cerberus2
@@ -21,8 +23,8 @@ gpuids="0,1,2,3,4,5,6,7";
 gpu_number=8;
 
 lr=1e-5;
-# batch_size=4;
-batch_size=24;
+batch_size=4;
+# batch_size=24;
 epoch=300;
 bg_weights=0.5;
 rind_weights=1;
@@ -47,10 +49,10 @@ CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_nod
 ect_trainer.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr \
 --lr-mode poly --workers 16 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights \
 --extra-loss-weight $extra_loss_weight --edge-loss-gamma $edge_loss_gamma --edge-loss-beta $edge_loss_beta \
---rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta --wandb \
+--rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta \
 2>&1 | tee -a logs/train.log
  
-
+#  --wandb
 
 #* test version 
 # gpuids="1";

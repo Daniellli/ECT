@@ -14,7 +14,7 @@ disp(test_list);
 disp(eval_data_dir)
 data_root=eval_data_dir;
 
-num_worker = 128; %12;
+num_worker = 12; %12;
 %delete(gcp('nocreate'));
 parpool('local', num_worker);
 

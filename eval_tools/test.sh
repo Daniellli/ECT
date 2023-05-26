@@ -1,7 +1,7 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-03-16 23:52:18
+ # @LastEditTime: 2023-05-24 14:41:19
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -29,6 +29,12 @@ echo  dir == $1,param == $2;
 
 
 
+
+
+source /usr/local/miniconda3/etc/profile.d/conda.sh 
+
+
+conda activate cerberus2
 
 # python test.py -d $1
 # python test.py -d $1 --test-edge;

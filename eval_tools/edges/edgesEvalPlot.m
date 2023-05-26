@@ -40,12 +40,18 @@ set(gca,'XTick',0:0.1:1,'YTick',0:0.1:1);
 grid on; xlabel('Recall'); ylabel('Precision');
 axis equal; axis([0 1 0 1]);
 
+
+
 % load results for every algorithm (pr=[T,R,P,F])
 n=length(algs); hs=zeros(1,n); res=zeros(n,9); prs=cell(1,n);
 for i=1:n, a=[algs{i} '-eval'];
-  pr=dlmread(fullfile(a,'eval_bdry_thr.txt')); pr=pr(pr(:,2)>=1e-3,:);
-  [~,o]=unique(pr(:,3)); R50=interp1(pr(o,3),pr(o,2),max(pr(o(1),3),.5));
-  res(i,1:8)=dlmread(fullfile(a,'eval_bdry.txt')); res(i,9)=R50; prs{i}=pr;
+  pr=dlmread(fullfile(a,'eval_bdry_thr.txt')); 
+  pr=pr(pr(:,2)>=1e-3,:);
+  [~,o]=unique(pr(:,3)); 
+  R50=interp1(pr(o,3),pr(o,2),max(pr(o(1),3),.5));
+  res(i,1:8)=dlmread(fullfile(a,'eval_bdry.txt')); 
+  res(i,9)=R50; 
+  prs{i}=pr;
 end
 
 % sort algorithms by ODS score

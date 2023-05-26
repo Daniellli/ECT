@@ -77,8 +77,16 @@ class MydatasetTest(torch.utils.data.Dataset):
             # print(task)
             gt_list.append(load_mat_gt(join(self.data_root,'../../testgt/%s'%(task),self.images_name[idx]+'.mat')))
             
+            
         return gt_list
         
+
+    def idx2name(self,idx):
+        
+        return self.images_name[idx]
+
+    def name2idx(self,name):
+        return self.images_name.index(name)
 
     def __len__(self):
         return len(self.images_path)
