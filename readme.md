@@ -1,3 +1,12 @@
+<!--
+ * @Author: daniel
+ * @Date: 2022-05-19 22:27:52
+ * @LastEditTime: 2023-05-28 14:46:51
+ * @LastEditors: daniel
+ * @Description: 
+ * @FilePath: /Cerberus-main/readme.md
+ * have a nice day
+-->
 # ECT: Fine-grained Edge Detection with Learned Cause Tokens
 
 
@@ -18,74 +27,110 @@ models will be made public.
 
 ## Installation
 
-### Requirements
-    
-    torch==1.8.1
-    torchvision==0.9.1
-    opencv-python==4.5.2
-    timm==0.4.5
+### Environment 
+
+
+```
+bash install.sh
+```
+after this finishing this script, the envirnment name, ect, will be created. Then, you can use `conda activate ect` to activate the environment.
 
 ### Data preparation
 
+BSDS-RIND dataset ( [BaiDuNetDisk](https://pan.baidu.com/s/1wrxQyqAJQG1adyk4RzGDmw): code qc62) should have the following hierachy inside project_root/data:
 
-
-Then, prepare NYUd2 dataset or your own dataset.
-
-NYUd2 dataset should have the following hierachy:
 
 ```
-dataset_path
-|   info.json
-|   train_images.txt
-|   train_labels.txt
-|   val_iamges.txt
-|   val_labels.txt
-|
-└───image(semantic image folder)
-|     └───...
-└───gt_sem_40(semantic label folder)
-|     └───...
-|
-|   train_attribute_images.txt
-|   train_attribute_labels.txt
-|   val_attribute_iamges.txt
-|   val_attribute_labels.txt
-|
-└───attribute(attribute image and label folder)
-|     └───aNYU
-|           └───...
-|
-|   train_affordance_images.txt
-|   train_affordance_labels.txt
-|   val_affordance_iamges.txt
-|   val_affordance_labels.txt
-|
-└───affordance(affordance image and label folder)
-      └───Affordance_ground_truth
-            └───...
+BSDS-RIND
+├── BSDS-RIND
+│   └── Augmentation
+│       ├── Aug_HDF5EdgeOriLabel
+│       └── Aug_JPEGImages
+├── BSDS-RIND-Edge
+│   └── Augmentation
+│       ├── Aug_HDF5EdgeOriLabel
+│       └── Aug_JPEGImages
+├── test
+├── testgt
+│   ├── all_edges
+│   ├── depth
+│   ├── illumination
+│   ├── normal
+│   └── reflectance
 ```
 
-#### Attribute
 
-Download prepocessed attribute dataset [HERE](https://drive.google.com/file/d/13s5JUwj8_QFuKGhxElsA4gaIlfll5OEI/view?usp=sharing)
-#### Affordance
+### Pretrained model 
 
-Download prepocessed affordance dataset [HERE](https://drive.google.com/file/d/1LVR5Og0EQf1z_DoTPfCQt_gVVe46OcYt/view?usp=sharing)
-#### Semantic
-
-Download prepocessed semantic dataset [HERE](https://drive.google.com/file/d/1Hg1H37i0QOzNojpgLlh7bx1SgnLlgmNI/view?usp=sharing)
-
-## Run Pre-trained Model
-
-You can download pre-trained Cerberus model [HERE](https://drive.google.com/file/d/1AX_UYa44uW_aPOSykO06GMcfo8mHDRx6/view?usp=sharing).
+The alignment network [BaiDuNetDisk](https://pan.baidu.com/s/1K_HWsIJOoGrtcOmtcEj9wg): code eka2 should be placed inside `pretrained_models` directory.
 
 
 
+## Training and evaluation 
 
 
-## Training and evaluating
+To train a ECT on BSDS-RIND, run: 
 
-To train a Cerberus on NYUd2 with a single GPU:
+```
+bash scripts/train_ect.sh
+
+```
+
+After finishing training, the training and evaluation results can be found at `networks/2023-05-26-XXX`. 
+
+
+## Reproducing the results reported in our paper
+
+download our [trained model](https://pan.baidu.com/s/1A4okqEcx8VxUE36QpNwupw) (code: t6hc) the evaluate by following steps: 
+1. modify the variable of  resume_model in `scripts/test_ect.sh` 
+2. run: 
+```
+bash scripts/test_ect.sh
+```
+
+
+
+
+
+<!-- after finishing training, the results is constructed as follows: -->
+<!-- 
+```
+networks
+├── 2023-05-26-XXX
+    ├──XXX
+        ├── eval_res.json
+        ├── all_edges
+        │   └── met
+        ├── attention
+        ├── depth
+        │   ├── met
+        │   ├── modelname-depth.jpg
+        │   ├── nms
+        │   └── nms-eval
+        ├── eval_res.json
+        ├── illumination
+        │   ├── met
+        │   ├── modelname-illumination.jpg
+        │   ├── nms
+        │   └── nms-eval
+        ├── normal
+        │   ├── met
+        │   ├── modelname-normal.jpg
+        │   ├── nms
+        │   └── nms-eval
+        └── reflectance
+            ├── met
+            ├── modelname-reflectance.jpg
+            ├── nms
+            └── nms-eval
+    ├──checkpoints
+        ├──ckpt_ep0XXX.pth.tar
+        ................................................................
+...
+``` -->
+
+
+
 
 
 

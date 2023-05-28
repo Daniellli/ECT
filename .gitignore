@@ -24,6 +24,8 @@ wandb*
 
 .vscode/launch.json
 
+trash/*
+
 
 
 networks/lr@1e-05_ep@300_bgw@1.0_rindw@1.0_1658026477

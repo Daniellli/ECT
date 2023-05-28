@@ -24,7 +24,7 @@ from loguru import logger
 
 from IPython import embed 
 
-from min_norm_solvers import MinNormSolver
+# from min_norm_solvers import MinNormSolver
 #* origin model version 
 from model.edge_model import EdgeCerberus
 

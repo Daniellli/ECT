@@ -3,37 +3,21 @@
 ###
  # @Author:   "  "
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2023-02-26 15:54:51
+ # @LastEditTime: 2023-05-28 14:14:38
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/install.sh
  # email:  
 ### 
 
-# source /usr/local/miniconda3/bin/activate
+source /usr/local/miniconda3/etc/profile.d/conda.sh 
 
 
+conda create -n ect python=3.7 -y
 
-#todo :
-# conda update -n base -c defaults conda
-
-# python -V 
-
-# conda create -n cerberus3 python=3.7 -y
-# source activate
-# conda deactivate
-# conda activate cerberus3
+conda activate ect
 
 echo "start install cudnn and pytroch ====================================";
-
-# conda install cudnn=8.0.4 -y
-# conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=11.1 -c pytorch -c conda-forge
-
-# #* install cudnn
-# conda install cudnn=8.2.1 -y
-# #* install pytroch and cuda 11.3 
-# conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch -y
-
 
 conda install cudnn=8.0.5 -y
 conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11.0 -c pytorch -y
@@ -41,14 +25,12 @@ conda install pytorch==1.7.1 torchvision==0.8.2 torchaudio==0.7.2 cudatoolkit=11
 
 echo "start install other package ===== ====================================";
 
-
 pip install opencv-python
 pip install timm==0.4.5
 
-#!+=============
 pip install tensorboardX
 pip install wandb 
-#!+=============
+
 
 pip install IPython
 pip install matplotlib
@@ -58,22 +40,6 @@ pip install scipy
 pip install loguru
 pip install h5py
 echo " install  over ======================= ====================================";
+
 python -c "import torch; print(torch.cuda.is_available(), 'cuda version : ',torch.version.cuda);"
 
-
-# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
-# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
-# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/pytorch/
-# conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
-# conda config --set show_channel_urls yes
-# pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
-# pip install pip -U
-# pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
-python -c "import sys; print(sys.path)"
-
-
-pip install torch-summary
-
-conda activate /DATA2/envs/mdetr
