@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2022-05-19 22:27:52
- * @LastEditTime: 2023-05-28 14:46:51
+ * @LastEditTime: 2023-05-28 16:44:10
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/readme.md
@@ -19,10 +19,10 @@ In this study, we tackle the challenging fine-grained edge detection task, which
 of edge causes is formulated as four learnable cause tokens in a cause-aware decoder design. Furthermore, to encourage the consistency between generic edges and fine-grained edges, an edge aggregation and alignment loss is exploited. We evaluate our method on the public benchmark BSDS-RIND and several newly derived benchmarks, and achieve new state-of-the-art results. Our code, data, and
 models will be made public.
 
-![main](doc/main.png)
+![main](imgs/main.png)
 
 
-![qual](doc/qualitative.png)
+![qual](imgs/qualitative.png)
 
 
 ## Installation

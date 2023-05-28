@@ -12,11 +12,13 @@
 *.log
 runs/*
 
-*.png
+# *.png
 
 
 *.txt
 
+plot
+plot/*
 *wandb
 wandb*
 *.pyc
