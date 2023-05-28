@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2022-05-19 22:27:52
- * @LastEditTime: 2023-05-28 16:44:10
+ * @LastEditTime: 2023-05-28 16:47:40
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/readme.md
@@ -33,7 +33,7 @@ models will be made public.
 ```
 bash install.sh
 ```
-after this finishing this script, the envirnment name, ect, will be created. Then, you can use `conda activate ect` to activate the environment.
+After this finishing this script, the envirnment name, ect, will be created. Then, you can use `conda activate ect` to activate the environment.
 
 ### Data preparation
 
@@ -62,7 +62,7 @@ BSDS-RIND
 
 ### Pretrained model 
 
-The alignment network [BaiDuNetDisk](https://pan.baidu.com/s/1K_HWsIJOoGrtcOmtcEj9wg): code eka2 should be placed inside `pretrained_models` directory.
+The alignment network [BaiDuNetDisk](https://pan.baidu.com/s/1K_HWsIJOoGrtcOmtcEj9wg)(code eka2): should be placed inside `pretrained_models` directory.
 
 
 
@@ -82,7 +82,7 @@ After finishing training, the training and evaluation results can be found at `n
 ## Reproducing the results reported in our paper
 
 download our [trained model](https://pan.baidu.com/s/1A4okqEcx8VxUE36QpNwupw) (code: t6hc) the evaluate by following steps: 
-1. modify the variable of  resume_model in `scripts/test_ect.sh` 
+1. modify the variable of  `resume_model` in `scripts/test_ect.sh` 
 2. run: 
 ```
 bash scripts/test_ect.sh
