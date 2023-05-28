@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:21:58
-LastEditTime: 2023-03-16 00:27:32
+LastEditTime: 2023-05-26 20:48:48
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/edge_option.py
@@ -66,6 +66,9 @@ def parse_args():
     parser.add_argument("--edge-loss-beta", type=float,default=4,help="for loss ")
     parser.add_argument("--rind-loss-gamma", type=float,default=0.5,help="for loss ")
     parser.add_argument("--rind-loss-beta", type=float,default=4,help="for loss ")
+
+
+    parser.add_argument('--cause-token-num', type=int, default=4, help=' cause token number ')
 
     #* save path 
     parser.add_argument("--bsds-dir",type=str,default="data/BSDS-RIND/BSDS-RIND/Augmentation/", help="训练数据集的文件夹root")

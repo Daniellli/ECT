@@ -49,20 +49,28 @@
             // ]
 
 
+            
 
+
+            //* evaluate
+            // "args": [
+            //     "--nproc_per_node=1","--master_port","29510","test.py",
+            //     "test",  "-s", "320", "--batch-size", "1",
+            //      "--gpu-ids","0",
+            //      "--resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar"
+            // ]
+
+
+            //* edge cerberus
             "args": [
-                "--nproc_per_node=1","--master_port","29510","test.py",
-                "test",  "-s", "320", "--batch-size", "1",
-                 "--gpu-ids","0",
-                 "--resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar"
+                "--nproc_per_node=1","--master_port","29510","ect_trainer.py",
+                "train",  "-s", "320", "--batch-size=2",
+                 "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
+                 "--gpu-ids","0", "--cause-token-num=10",
+                //  "--resume=networks/2023-05-26-13:04:1685077468#CN20/checkpoints/ckpt_ep0299.pth.tar"
 
             ]
 
-            // "args": [
-            //     "--nproc_per_node=1","--master_port","29511","trainer.py",
-            //     "test", "--batch-size=1","--gpu-ids=1",
-            //     "--resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar"
-            // ]
 
 
         }

@@ -78,10 +78,17 @@ class ECTTrainer:
         torch.autograd.set_detect_anomaly(True) 
 
         if args.local_rank == 0:
-            self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time())))
+            # setting = ""
+            # for k, v in args.__dict__.items():
+            #     if isinstance(v,int or string or float):
+            #         setting += f"#{k}{v}"
+            # self.log(f"setting: {setting}")  
+            if args.resume and os.path.isfile(args.resume):
+                self.project_dir =  '/'.join(args.resume.split('/')[:-2])
+
+            else :
+                self.project_dir =  osp.join(osp.dirname(osp.abspath(__file__)),"networks",time.strftime("%Y-%m-%d-%H:%M:%s",time.gmtime(time.time()))+f"#CN{args.cause_token_num}")
             self.ckpt_dir=osp.join(self.project_dir,'checkpoints')
-            
-            
             self.log_file = join(self.project_dir,'train_log.txt')
             make_dir(self.ckpt_dir)
 
@@ -181,7 +188,10 @@ class ECTTrainer:
     def init_model(self):
         #* construct model 
         # self.model = EdgeCerberus(backbone="vitb_rn50_384")
-        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",hard_edge_cls_num=4)
+        
+        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",
+            hard_edge_cls_num=4,cause_token_num = self.args.cause_token_num)
+            
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],
                             find_unused_parameters=True,broadcast_buffers = True)
@@ -228,6 +238,7 @@ class ECTTrainer:
     def test_epoch(self,epoch):
         #! this code would lead to  extrimely low performance 
         self.log(f'start to eval {epoch}')
+        
 
         self.model.eval()
 
@@ -254,13 +265,14 @@ class ECTTrainer:
         attention_output_dir = os.path.join(save_dir, 'attention')
         make_dir(attention_output_dir)
 
-
-
-        
         tic = time.time()
         tbar = tqdm(self.test_loader, desc='\r')
         # for i, (image,__) in enumerate(tbar):#*  B,C,H,W
         for i, (image) in enumerate(tbar):#*  B,C,H,W
+            if len(image) == 2 :
+                image, label = image[0], image[1]
+
+
             name = self.test_loader.dataset.images_name[i] #* shuffle == false , so it sample sequentially 
             
             image = Variable(image, requires_grad=False)
@@ -334,8 +346,12 @@ class ECTTrainer:
             self.train_sampler.set_epoch(epoch)
             self.train_epoch(epoch)
 
-            if epoch % self.args.save_freq == 0 or epoch>250 :
+            if epoch % self.args.save_freq == 0 and   epoch>250 :
                 self.save_ckpt(epoch)
+                if self.args.local_rank == 0 :
+                    self.test_epoch(epoch)
+                
+
 
         self.log("train finish!!!! ")
 

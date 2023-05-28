@@ -1,10 +1,10 @@
 '''
 Author: xushaocong
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-17 13:38:51
+LastEditTime: 2023-05-26 20:50:25
 LastEditors: daniel
 Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
-FilePath: /cerberus/model/edge_model_multi_class.py
+FilePath: /Cerberus-main/model/ECT.py
 email: xushaocong@stu.xmu.edu.cn
 '''
 
@@ -72,7 +72,8 @@ class EdgeCerberusMultiClass(BaseModel):
         channels_last=False,
         use_bn=False,
         enable_attention_hooks=False,
-        hard_edge_cls_num = 4
+        hard_edge_cls_num = 4,
+        cause_token_num = 4
     ):
         super(EdgeCerberusMultiClass, self).__init__()
 
@@ -133,7 +134,8 @@ class EdgeCerberusMultiClass(BaseModel):
         #* decoder 
         #!===============================================================
         input_dim =  features #* 256 
-        self.edge_query_embed = nn.Embedding(4, input_dim)
+        self.edge_query_embed = nn.Embedding(cause_token_num, input_dim)
+        print(f"cause_token_num :{cause_token_num}, cause token size :{self.edge_query_embed}")
         d_model  = input_dim 
         nhead = 8 #* detr ==8
         dim_feedforward  =2048

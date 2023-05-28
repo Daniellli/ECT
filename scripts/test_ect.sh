@@ -1,10 +1,10 @@
 ###
  # @Author: xushaocong
  # @Date: 2022-05-12 21:59:18
- # @LastEditTime: 2023-03-16 23:31:18
+ # @LastEditTime: 2023-05-27 23:50:41
  # @LastEditors: daniel
  # @Description: 
- # @FilePath: /Cerberus-main/scripts/test.sh
+ # @FilePath: /Cerberus-main/scripts/test_ect.sh
  # email: xushaocong@stu.xmu.edu.cn
 ### 
 
@@ -57,17 +57,34 @@
 # 2>&1 | tee -a logs/test_iiw.log
 
 
+source /usr/local/miniconda3/etc/profile.d/conda.sh 
+
 
 conda activate cerberus2
 
-resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar";
-save_dir='val_new_model'
 
 
-python -u test.py test  -s 320 \
---resume $resume_model \
---batch-size 1 --workers 40 --gpu-ids "1" \
-2>&1 | tee -a logs/test.log
+gpuids='1'
+export CUDA_VISIBLE_DEVICES=$gpuids;
+
+
+for i in {250..300}; do
+    if (( ($i - 250) % 5 == 0 )); then
+        resume_model="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/2023-05-26-13:04:1685077468#CN20/checkpoints/ckpt_ep0${i}.pth.tar";
+        echo $resume_model;
+
+        python  -m torch.distributed.launch --nproc_per_node=1 \
+        --master_port 32654 ect_trainer.py test  -s 320 \
+        --resume $resume_model --cause-token-num 3 \
+        --batch-size 1 --workers 40 --gpu-ids $gpuids --cause-token-num 20 \
+        2>&1 | tee -a logs/test.log
+
+    fi
+done
+
+
+
+
 
 
 
