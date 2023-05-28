@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-05-07 15:08:33
 LastEditTime: 2022-06-13 20:58:35
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/my_script/sweep/sweep_config.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

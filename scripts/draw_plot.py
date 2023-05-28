@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-07-25 15:33:47
 LastEditTime: 2022-07-25 15:55:38
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/my_script/draw_plot.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

@@ -1,20 +1,11 @@
 '''
-Author: xushaocong
+Author:   
 Date: 2022-09-05 20:50:42
-LastEditTime: 2022-09-11 19:03:17
-LastEditors: xushaocong
+LastEditTime: 2023-05-28 11:31:00
+LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/inference.py
-email: xushaocong@stu.xmu.edu.cn
-'''
-'''
-Author: xushaocong
-Date: 2022-06-20 22:49:32
-LastEditTime: 2022-08-30 09:31:42
-LastEditors: xushaocong
-Description: 
-FilePath: /Cerberus-main/test.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

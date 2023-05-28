@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-07-21 12:00:57
 LastEditTime: 2022-07-30 15:25:26
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/model/loss/InverseForm.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 # Copyright (c) 2021 Qualcomm Technologies, Inc.

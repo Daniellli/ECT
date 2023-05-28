@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-07 22:24:07
 LastEditTime: 2023-03-17 13:51:34
 LastEditors: daniel
 Description: 
 FilePath: /cerberus/utils/edge_loss2.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 import numpy as np
 import torch

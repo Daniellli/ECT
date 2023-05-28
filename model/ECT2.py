@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 21:10:45
 LastEditTime: 2023-03-17 13:37:59
 LastEditors: daniel
 Description:  concatenate the 1-st and 6-th stage decoder feature for fine-grained edge prediction
 FilePath: /cerberus/model/edge_model_multi_class2.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 from torchvision import transforms

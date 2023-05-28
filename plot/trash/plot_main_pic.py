@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-07-26 20:02:40
 LastEditTime: 2023-03-04 09:51:27
 LastEditors: daniel
 Description:  
 FilePath: /Cerberus-main/plot/plot_main_pic.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

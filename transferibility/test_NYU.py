@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 22:49:32
 LastEditTime: 2023-02-21 16:38:49
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test_NYU.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

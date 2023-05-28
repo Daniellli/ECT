@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-12 14:47:04
 LastEditTime: 2022-06-12 16:13:50
-LastEditors: xushaocong
+LastEditors:   "  "
 Description:  分布式训练
 FilePath: /Cerberus-main/utils/distributed.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 # Copyright (c) SenseTime. All Rights Reserved.
 

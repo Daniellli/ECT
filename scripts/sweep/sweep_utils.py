@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-05-07 15:08:33
 LastEditTime: 2022-06-13 20:17:42
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/my_script/sweep_utils.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 # from my_script.sweep_test import run_from_train
 import traceback

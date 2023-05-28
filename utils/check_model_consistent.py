@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-30 23:04:50
 LastEditTime: 2022-06-30 23:26:31
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /cerberus/utils/check_model_consistent.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

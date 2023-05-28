@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-11 22:47:30
 LastEditTime: 2023-02-25 20:22:10
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 import torch
 from PIL import Image

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
 ###
- # @Author: xushaocong
+ # @Author:   "  "
  # @Date: 2022-05-12 21:51:13
  # @LastEditTime: 2023-02-26 15:54:51
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/install.sh
- # email: xushaocong@stu.xmu.edu.cn
+ # email:  
 ### 
 
 # source /usr/local/miniconda3/bin/activate

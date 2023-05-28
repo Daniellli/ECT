@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-07-21 11:59:44
 LastEditTime: 2023-02-25 21:43:45
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/model/loss/inverse_loss.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

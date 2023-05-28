@@ -1,11 +1,11 @@
 ###
- # @Author: xushaocong
+ # @Author:   "  "
  # @Date: 2022-05-12 21:59:18
  # @LastEditTime: 2023-05-27 23:50:41
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/scripts/test_ect.sh
- # email: xushaocong@stu.xmu.edu.cn
+ # email:  
 ### 
 
 

@@ -1,11 +1,11 @@
 ###
- # @Author: xushaocong
+ # @Author:   "  "
  # @Date: 2022-09-05 23:15:06
  # @LastEditTime: 2022-09-23 10:57:27
- # @LastEditors: xushaocong
+ # @LastEditors:   "  "
  # @Description: 
  # @FilePath: /Cerberus-main/my_script/inference.sh
- # email: xushaocong@stu.xmu.edu.cn
+ # email:  
 ### 
 
 

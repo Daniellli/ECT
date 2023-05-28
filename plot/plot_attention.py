@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-08-28 22:57:06
 LastEditTime: 2022-09-06 13:42:08
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/plot-rind-edge-pr-curves/plot_attention.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

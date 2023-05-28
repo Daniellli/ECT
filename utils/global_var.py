@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 22:41:22
 LastEditTime: 2022-06-20 22:44:46
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /Cerberus-main/utils/global_var.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 import numpy as np
 

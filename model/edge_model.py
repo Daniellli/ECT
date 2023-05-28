@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 21:10:45
 LastEditTime: 2023-03-04 19:34:11
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/model/edge_model.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 from torchvision import transforms

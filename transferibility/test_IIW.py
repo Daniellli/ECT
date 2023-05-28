@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 22:49:32
 LastEditTime: 2023-02-19 19:55:16
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/test_IIW.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

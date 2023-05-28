@@ -1,21 +1,21 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-07 19:26:49
 LastEditTime: 2022-07-15 10:40:08
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /cerberus/utils/loss.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-05-19 22:32:30
 LastEditTime: 2022-06-07 19:16:47
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 FilePath: /RINDNet-main/utils/loss.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 import torch
 import torch.nn as nn

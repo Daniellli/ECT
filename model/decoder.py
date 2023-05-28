@@ -1,12 +1,12 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 20:59:06
 LastEditTime: 2022-09-04 15:00:21
-LastEditors: xushaocong
+LastEditors:   "  "
 Description: 
 
 FilePath: /Cerberus-main/model/decoder.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-13 10:30:59
 LastEditTime: 2023-03-04 10:49:38
 LastEditors: daniel
 Description:  使用matlab engin 进行eval
 FilePath: /Cerberus-main/eval_tools/test.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 

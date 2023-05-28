@@ -1,11 +1,11 @@
 '''
-Author: xushaocong
+Author:   "  "
 Date: 2022-06-20 21:10:45
 LastEditTime: 2023-05-26 20:50:25
 LastEditors: daniel
 Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
 FilePath: /Cerberus-main/model/ECT.py
-email: xushaocong@stu.xmu.edu.cn
+email:  
 '''
 
 from torchvision import transforms
