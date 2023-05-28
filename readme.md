@@ -1,67 +1,20 @@
-# Cerberus Transformer: Joint Semantic, Affordance and Attribute Parsing
+# ECT: Fine-grained Edge Detection with Learned Cause Tokens
 
-## Update log 
-
-### 2022-5-12
-
-
-- 添加了install.sh 用于配置环境
-
-
-
-### 2022-5-13
-
-- 推到了gitee 仓库
-
-
-### 2022-5-14
-
-- datasets 主要就是一些数据集的加载类
-
-
-### 2022-5-15
-
-- 修改模型 
-- 成功在BSDS_RIND 数据集开始训练
-
-
-
-
-### 2022-6-7
-
-添加了data 和dataloaders
-- dataloaders 拷贝自 rindnet
-- data 和dataset 一样 ,for debug
-
-
-
-[**Paper**](https://arxiv.org/pdf/2111.12608.pdf) Accepted to CVPR 2022.
-
-
-
-![qual](doc/qualitative.PNG)
-![attn](doc/attention.png)
 
 
 
 
 ## Introduction
 
-Multi-task indoor scene understanding is widely considered as an intriguing formulation, as the affinity of different tasks may lead to improved performance. In this paper, we tackle the new problem of joint semantic, affordance and attribute parsing. However, successfully resolving it requires a model to capture long-range dependency, learn from weakly aligned data and properly balance sub-tasks during training. To this end, we propose an attention-based architecture named Cerberus and a tailored training framework. Our method effectively addresses aforementioned challenges and achieves state-of-the-art performance on all three tasks. Moreover, an in-depth analysis shows concept affinity consistent with human cognition, which inspires us to explore the possibility of extremely low-shot learning. Surprisingly, Cerberus achieves strong results using only 0.1\%-1\% annotation. Visualizations further confirm that this success is credited to common attention maps across tasks. Code and models are publicly available.
+In this study, we tackle the challenging fine-grained edge detection task, which refers to predicting specific edges caused by reflectance, illumination, normal, and depth changes, respectively. Prior methods exploit multi-scale convolutional networks, which are limited in three aspects: (1) Convolutions are local operators while identifying the cause of edge formation requires looking at far away pixels. (2) Priors specific to edge cause are fixed in prediction heads. (3) Using separate networks for generic and fine-grained edge detection, and the constraint between them may be violated. To address these three issues, we propose a two-stage transformer-based network sequentially predicting generic edges and fine-grained edges, which has a global receptive field thanks to the attention mechanism. The prior knowledge
+of edge causes is formulated as four learnable cause tokens in a cause-aware decoder design. Furthermore, to encourage the consistency between generic edges and fine-grained edges, an edge aggregation and alignment loss is exploited. We evaluate our method on the public benchmark BSDS-RIND and several newly derived benchmarks, and achieve new state-of-the-art results. Our code, data, and
+models will be made public.
+
+![main](doc/main.png)
 
 
-## Citation
+![qual](doc/qualitative.png)
 
-If you find our work useful in your research, please consider citing:
-
-    @misc{chen2021cerberus,
-        title={Cerberus Transformer: Joint Semantic, Affordance and Attribute Parsing}, 
-        author={Xiaoxue Chen and Tianyu Liu and Hao Zhao and Guyue Zhou and Ya-Qin Zhang},
-        year={2021},
-        eprint={2111.12608},
-        archivePrefix={arXiv},
-        primaryClass={cs.CV}
-    }
 
 ## Installation
 
@@ -73,6 +26,8 @@ If you find our work useful in your research, please consider citing:
     timm==0.4.5
 
 ### Data preparation
+
+
 
 Then, prepare NYUd2 dataset or your own dataset.
 
@@ -125,16 +80,20 @@ Download prepocessed semantic dataset [HERE](https://drive.google.com/file/d/1Hg
 You can download pre-trained Cerberus model [HERE](https://drive.google.com/file/d/1AX_UYa44uW_aPOSykO06GMcfo8mHDRx6/view?usp=sharing).
 
 
+
+
+
 ## Training and evaluating
 
 To train a Cerberus on NYUd2 with a single GPU:
 
-    CUDA_VISIBLE_DEVICES=0 python main.py train -d [dataset_path] -s 512 --batch-size 2 --random-scale 2 --random-rotate 10 --epochs 200 --lr 0.007 --momentum 0.9 --lr-mode poly --workers 12 
-
-    
-To test the trained model with its checkpoint:
-
-    CUDA_VISIBLE_DEVICES=0 python main.py test -d [dataset_path]  -s 512 --resume model_best.pth.tar --phase val --batch-size 1 --ms --workers 10
 
 
 
+## Citation
+
+If you find our work useful in your research, please consider citing:
+
+```
+coming soon 
+```
