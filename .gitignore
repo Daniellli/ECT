@@ -76,3 +76,6 @@ networks
 
 
 .vscode 
+
+
+jupyters/*
