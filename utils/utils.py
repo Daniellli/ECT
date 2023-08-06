@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-11 22:47:30
-LastEditTime: 2023-02-25 20:22:10
+LastEditTime: 2023-08-06 21:47:00
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/utils.py
@@ -36,6 +36,14 @@ def load_mat(path):
     return scio.loadmat(path)
 
 
+
+"""
+come from the dataloders.prediction_loaders.base_loader
+"""
+def load_mat_gt(data_path):
+    gt  = load_mat(data_path)
+    
+    return gt['groundTruth'][0,0]['Boundaries'][0,0]
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):
@@ -278,3 +286,52 @@ def process_mp(function,function_parameter_list,num_threads=64,\
 
 
 
+
+#* from NYUD2 dataloder: 
+
+
+''' 
+description:  Expand non-zero elements of goal by a factor of 10.
+param {*} goal 
+param {*} times
+return {*}
+'''
+def dilation(goal, times = 2 ):
+    selem = skimage.morphology.disk(times)
+
+
+    # goal = skimage.morphology.binary_dilation(goal, selem) != True
+    goal = morphology.binary_dilation(goal, selem) != True
+    goal = 1 - goal * 1.
+    goal*=255
+    return goal
+
+
+
+def crop_save(path,src):
+        if not exists(path):
+            imwrite(path,src[45:471, 41:601])
+
+
+'''
+description:  save  mat file for evaluation 
+param {*} self
+param {*} file_name
+param {*} gt_map
+return {*}
+'''
+def save_as_mat(file_name,gt_map):
+
+    scio.savemat(file_name,
+        {'__header__': b'MATLAB 5.0 MAT-file, Platform: MACI64, Created on: Mon Feb 7 06:47:01 2023',
+        '__version__': '1.0',
+        '__globals__': [],
+        'groundTruth': [{'Boundaries':gt_map}]
+        }
+    )
+
+
+
+
+def readtxt(path):
+    return np.loadtxt(path,dtype=np.str0,delimiter='\n')

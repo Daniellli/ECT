@@ -53,8 +53,6 @@ import scipy.io as sio
 
 
 
-
-#* resume model or load pretrained model 
 def load_model(model_path):
     checkpoint = torch.load(model_path,map_location=torch.device('cpu'))
     return checkpoint
@@ -127,7 +125,7 @@ class ECTTrainer:
 
                 # if args.cmd == 'test':#* if test mode, do not use distributed model 
                 #     for name, param in checkpoint['state_dict'].items():
-                #         name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
+                #         name = name.replace("module.","") 
                 #         self.model.state_dict()[name].copy_(param)
                 # else:
                 self.model.load_state_dict(checkpoint['state_dict'], True)
@@ -291,9 +289,9 @@ class ECTTrainer:
 
             
             with torch.no_grad():
-                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
+                
                 res= self.model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
-                # vis_att(model,image)
+                
                 
 
             out_edge = trans2(res[0])
@@ -327,12 +325,12 @@ class ECTTrainer:
         #* eval by the matlab
         os.system("./eval_tools/test.sh %s %s"%(save_dir,"1"))
 
-        #* 读取评估的结果
+        
         self.log("eval done")
         with open (osp.join(save_dir,"eval_res.json"),'r')as f :
             eval_res = json.load(f)
         spend_time =  time.time() - tic
-        #* 计算耗时
+        
         self.log("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
 
         return eval_res
@@ -393,7 +391,7 @@ class ECTTrainer:
         self.model.eval()
         loss_sum = 0
 
-        for i, (input,target) in enumerate(self.test_loader):#* 一个一个batch取数据
+        for i, (input,target) in enumerate(self.test_loader):
             input = Variable(input,requires_grad=False).cuda()            
             target= Variable(target,requires_grad=False).cuda()
 
@@ -409,7 +407,7 @@ class ECTTrainer:
             output = [trans2(x) for x in output]
             #* compute the loss 
 
-            rind_loss = self.rind_atten_criterion(output[1:],target)#* 可以对多个类别计算loss ,但是这里只有一个类别
+            rind_loss = self.rind_atten_criterion(output[1:],target)
             # self.log(rind_loss.item())
             loss_sum+=rind_loss.item()
             if  torch.isnan(rind_loss):
@@ -438,7 +436,7 @@ class ECTTrainer:
         
         self.model.train()
 
-        for i, (input,target) in enumerate(self.train_loader):#* 一个一个batch取数据
+        for i, (input,target) in enumerate(self.train_loader):
             input = torch.autograd.Variable(input.cuda())
             target= torch.autograd.Variable( target.cuda())
 
@@ -446,7 +444,7 @@ class ECTTrainer:
 
             #* compute the loss 
             b_loss = self.edge_atten_criterion([output[0]],target[:,0,:,:].unsqueeze(1))#* (B,N,W,H),(B,N,W,H)          
-            rind_loss = self.rind_atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            rind_loss = self.rind_atten_criterion(output[1:],target[:,1:,:,:])
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss):
                 print("nan")

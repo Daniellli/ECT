@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-05-26 20:50:25
+LastEditTime: 2023-08-06 22:17:19
 LastEditors: daniel
 Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
 FilePath: /Cerberus-main/model/ECT.py
@@ -47,9 +47,6 @@ def _make_fusion_block(features, use_bn):
 
 
 
-
-
-
 def _get_activation_fn(activation):
     """Return an activation function given a string"""
     if activation == "relu":
@@ -90,16 +87,21 @@ class EdgeCerberusMultiClass(BaseModel):
         # )
         
         self.channels_last = channels_last
-
+        """
+        If the backbone is "vitb_rn50_384", then extract ResNet layers with indices 0 and 1, as well as the encoder layers with indices 8 and 11.
+        If the backbone is "vitb16_384", then extract ResNet layers with indices 2 and 5, as well as the encoder layers with indices 8 and 11.
+        """
         hooks = {
-            "vitb_rn50_384": [0, 1, 8, 11], #* 不同的backbone对应提取不同layer, 如果backbone是vitb_rn50_384 则 提取resnet 0,1 and encoder  8,11 
-            "vitb16_384": [2, 5, 8, 11],    #* 如果backbone 是vitb16_384 则提取resnet  2,5 and encoder 8,11 
+            "vitb_rn50_384": [0, 1, 8, 11],
+            "vitb16_384": [2, 5, 8, 11],    
             "vitl16_384": [5, 11, 17, 23],  
         }
 
         
-        #* self.pretrained : 对应backbone , 就是 resnet 50+ transformer encoder 
-        #* self.scratch  对应 特征融合模块, 后面还需要接refinenet0d , 
+        """
+            #* self.pretrained: corresponds to the backbone, which consists of ResNet-50 and a Transformer encoder.
+            #* self.scratch: corresponds to the feature fusion module. It will be followed by refinenet0d.
+        """
         self.pretrained, self.scratch = _make_encoder(
             backbone,
             features,
@@ -116,16 +118,18 @@ class EdgeCerberusMultiClass(BaseModel):
 
         
         #*  sequenceial  fusion blocks 
-        #?  reassemble operation 呢?  
-        #? 是不是 self.scratch 的卷积部分就是对应 网络的reassemble operation ? 
+        #?  reassemble operation 
+        #? Is the convolutional part of self.scratch corresponding to the reassemble operation in the network?
+
+
         self.scratch.refinenet01 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet02 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet03 = _make_fusion_block(features, use_bn)
         self.scratch.refinenet04 = _make_fusion_block(features, use_bn)#* output [160,160]
         
 
-        #* 下采样作为decoder 的输入 
-        #? 这里是否要替换成  卷积操作? 
+        #* Downsampling is used as the input to the decoder.
+        #? Should it be replaced with a convolution operation?
         setattr(self.scratch, "output_downsample",
             Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
 
@@ -143,7 +147,12 @@ class EdgeCerberusMultiClass(BaseModel):
         activation="relu" #*   detr , by default == relu, 
         normalize_before =False   #* detr , by default  == False
         num_decoder_layers= 6 #* detr == 6
-        self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
+        """
+        Whether to return the output of each layer in the decoder or just the output of the last layer is yet to be determined.
+        
+        detr, by default  == False,  
+        """
+        self.return_intermediate_dec = True 
         
         self.return_attention = False
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -190,11 +199,11 @@ class EdgeCerberusMultiClass(BaseModel):
                 nn.Conv2d(features, num_classes, kernel_size=1),
             ))
 
-            #* 需要 batch normalization 吗? 
+            
             setattr(self.scratch, "output_" + str(cls_idx) + '_upsample', 
                 nn.Sequential(
                 # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
-                nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),
                 nn.BatchNorm2d(num_classes),
                 # nn.ReLU(inplace=True)
                 nn.Sigmoid()
@@ -204,13 +213,7 @@ class EdgeCerberusMultiClass(BaseModel):
 
 
     
-    '''
-    description:  这个好像也没调用?
-    param {*} self
-    param {*} x
-    param {*} name
-    return {*}
-    '''
+
     def get_attention(self, x ,name):
         
         if self.channels_last == True:
@@ -219,13 +222,7 @@ class EdgeCerberusMultiClass(BaseModel):
         x = forward_flex(self.pretrained.model, x, True, name) #* true mean plot attention,   
         return x
 
-    '''
-    description: 
-    param {*} self
-    param {*} x
-    param {*} index : 对应当前前向传播的是哪个子任务 
-    return {*}
-    '''
+
     def forward(self, x ):
         if self.return_attention:
             origin_image= x.clone()
@@ -236,9 +233,9 @@ class EdgeCerberusMultiClass(BaseModel):
         #* layer2 : (B,512,40,40)
         #* layer3 : (B,768,20,20)
         #* layer4 : (B,768,10,10)
-        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
+        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* Obtain feature embeddings from ResNet layers 1 and 2, as well as Transformer encoder layers 9 and 12.
         
-        #*  reassemble operatoion ?  将sequence 重新reassemble 成一张patch 
+        #* Reassemble operation refers to the process of reassembling a sequence into a single patch.
         layer_1_rn = self.scratch.layer1_rn(layer_1)#*  : (B,256,80,80)
         layer_2_rn = self.scratch.layer2_rn(layer_2)#*  : (B,256,40,40)
         layer_3_rn = self.scratch.layer3_rn(layer_3)#*  : (B,256,20,20)
@@ -297,7 +294,6 @@ class EdgeCerberusMultiClass(BaseModel):
 
 
         if self.return_intermediate_dec : 
-            #* 返回的是多个decoder layer , 需要另外处理 
             #* [6,WH,B,256] == 
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
@@ -321,11 +317,11 @@ class EdgeCerberusMultiClass(BaseModel):
         
         #* rind 
         for cls_idx in range(self.hard_edge_cls_num):
-            fun = eval("self.scratch.output_" + str(cls_idx+1))#* 全连接
+            fun = eval("self.scratch.output_" + str(cls_idx+1))
             out = fun(decoder_out)
 
-            #* refine net 已经恢复了原来的大小了, 不需要进一步操作
-            fun = eval("self.scratch.output_" + str( cls_idx+1) + '_upsample')#* 上采样
+
+            fun = eval("self.scratch.output_" + str( cls_idx+1) + '_upsample')
             out = fun(out)
             model_out.append(out)
 
@@ -334,14 +330,6 @@ class EdgeCerberusMultiClass(BaseModel):
 
       
 
-
-'''
-description: 传过来的都是PIL 的image类型 
-param {*} gray_img interpolate输出的灰度图
-param {*} origin_img
-param {*} save_name
-return {*}
-'''
 def blend_atten_origin_image(gray_img,origin_img,save_name):
     figure = plt.figure()
     plt.pcolor(gray_img, cmap='jet')
@@ -367,7 +355,7 @@ def blend_atten_origin_image(gray_img,origin_img,save_name):
     
 
 '''
-description:  可视化attention
+description:  visualize attention
 param {*} atten: (H,W) map 
 param {*} save_name
 return {*}
@@ -387,8 +375,9 @@ return {*}
 #     plt.imsave(fname=save_name, arr=result, format='png',cmap='plasma')
     
 
+
 '''
-description:  将matplotlib 数据 转image
+description:  turn matplotlib data into image
 param {*} self
 param {*} fig
 return {*}

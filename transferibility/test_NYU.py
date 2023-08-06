@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-08-06 21:35:51
+LastEditTime: 2023-08-06 22:39:54
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/transferibility/test_NYU.py
@@ -82,7 +82,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     # logger.info(output_dir)
     
     
-    #* 加载模型
+    
     # single_model = EdgeCerberus(backbone="vitb_rn50_384")
     # single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
     single_model = EdgeCerberus(backbone="vitb_rn50_384")
@@ -90,7 +90,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
     for name, param in checkpoint['state_dict'].items():
-        name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
+        name = name.replace("module.","") 
         single_model.state_dict()[name].copy_(param)
 
     logger.info("load model done ")
@@ -118,7 +118,7 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     # make_dir(attention_output_dir)
     
     logger.info("dir prepare done ,start to reference  ")
-    #* 判断一些是否测试过了 , 测试过就不重复测试了
+
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
         tbar = tqdm(test_loader, desc='\r')
@@ -138,11 +138,8 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
 
             
             with torch.no_grad():
-                #!======================
-                # model.get_attention(image,attention_save_dir) #*可视化attention ,并保存到attention_save_dir
-                # vis_att(model,image)
-                #!======================
-                res= model(image)#* out_background,out_depth, out_normal, out_reflectance, out_illumination
+              
+                res= model(image)
 
             out_edge = trans2(res[0])
             out_depth, out_normal, out_reflectance, out_illumination = trans2(res[1]),trans2(res[2]),trans2(res[3]),trans2(res[4])
@@ -176,23 +173,22 @@ def test_edge(model_abs_path,test_loader,save_name,runid=None,):
     
     eval_res= None
     if False:
-        #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
-        #! 第二个参数给1 就是测试edge
+        
         os.system("./eval_tools/test.sh %s %s"%(output_dir,"1"))
-        #* 读取评估的结果
+        
         logger.info("eval done  ")
         with open (osp.join(output_dir,"eval_res.json"),'r')as f :
             eval_res = json.load(f)
 
     spend_time =  time.time() - tic
-    #* 计算耗时
+    
     logger.info("spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     return eval_res
 
 
 def edge_validation(model,test_loader,output_dir):    
 
-    #* 加载模型
+    
     edge_output_dir = os.path.join(output_dir, 'edge/met')
     make_dir(edge_output_dir)
 
@@ -242,7 +238,7 @@ def edge_validation(model,test_loader,output_dir):
         sio.savemat(os.path.join(illumination_output_dir, '{}.mat'.format(name)),
                     {'result': illumination_pred})
     
-    #* 因为环境冲突, 用另一个shell激活另一个虚拟环境, 进行eval
+    
 
     return eval_dir(output_dir)
     
@@ -281,7 +277,7 @@ def eval_dir(output_dir):
     spend_time =  time.time() - tic
     logger.info("validation spend time : "+time.strftime("%H:%M:%S",time.gmtime(spend_time)))
     
-    #* 读取评估的结果
+    
     with open (osp.join(output_dir,"eval_res.json"),'r')as f :
         eval_res = json.load(f)
 
@@ -311,7 +307,7 @@ def main():
     logger.info(args.run_id)
     logger.info(args.save_file)
 
-    test_edge(args.resume,test_loader,args.save_file,args.run_id)#! resume 给的model path需要是绝对路径
+    test_edge(args.resume,test_loader,args.save_file,args.run_id)
     
 if __name__ == '__main__':
     main()

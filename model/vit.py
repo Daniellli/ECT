@@ -186,7 +186,7 @@ def forward_flex(self, x, attn = False, name = None):
             x = x[-1]  # last feature if backbone outputs list/tuple of features
 
     x = self.patch_embed.proj(x).flatten(2).transpose(1, 2)#* [1,600,768]
-    #* 加了hasattr 这句话 , 不然会报错, 很奇怪在10.0.0.15 不会报错, 在10.0.0.14会报错
+    #* Add the hasattr check to prevent an error. It seems strange that it doesn't raise an error on 10.0.0.15 but does on 10.0.0.14.
     if hasattr(self,"dist_token") and  self.dist_token:
     #*=========================================================
         cls_tokens = self.cls_token.expand(
@@ -210,7 +210,7 @@ def forward_flex(self, x, attn = False, name = None):
             x, attentions  = blk(x,True)
             nh = attentions.shape[1]
             token = 0
-            attentions = attentions[0, :, token, 1:].reshape(nh, -1)#? 为什么第三维只取一个数据?  这个就是readout token? 
+            attentions = attentions[0, :, token, 1:].reshape(nh, -1)
             attentions = attentions.reshape(nh, h // self.patch_size[0], w // self.patch_size[1])#* output shape =[12,20,30]
             attentions = nn.functional.interpolate(attentions.unsqueeze(0), scale_factor=self.patch_size[0], mode="nearest")[0].cpu().numpy()#* upsample 
             for j in range(nh):#* write

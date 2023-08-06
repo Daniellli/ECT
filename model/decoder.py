@@ -1,8 +1,8 @@
 '''
 Author:   "  "
 Date: 2022-06-20 20:59:06
-LastEditTime: 2022-09-04 15:00:21
-LastEditors:   "  "
+LastEditTime: 2023-08-06 22:04:01
+LastEditors: daniel
 Description: 
 
 FilePath: /Cerberus-main/model/decoder.py
@@ -60,8 +60,10 @@ class TransformerDecoder(nn.Module):
                             pos=pos, query_pos=query_pos)
             if self.return_intermediate:
                 intermediate.append(self.norm(output))
-
-        if self.norm is not None:#* 是否对最后一个layer的输出做 normalization 
+        """
+        Whether to perform normalization on the output of the last layer?
+        """
+        if self.norm is not None:
             output = self.norm(output)  
             if self.return_intermediate: 
                 intermediate.pop() #* replace last output
@@ -121,7 +123,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
         return tensor if pos is None else tensor + pos
-    #* tgt 是Q , memory : KV
+    #* tgt is Q , memory is  KV
     def forward_post(self, tgt, memory,
                      tgt_mask: Optional[Tensor] = None,
                      memory_mask: Optional[Tensor] = None,
@@ -129,7 +131,7 @@ class TransformerDecoderLayer(nn.Module):
                      memory_key_padding_mask: Optional[Tensor] = None,
                      pos: Optional[Tensor] = None,
                      query_pos: Optional[Tensor] = None):
-        #* Q feature shape 不能是768 
+        #* Q feature shape can not be 768 
 
         q = k = self.with_pos_embed(tgt, query_pos)#?  decoder 这个query position  从哪里生成? 
 
@@ -137,8 +139,8 @@ class TransformerDecoderLayer(nn.Module):
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
-        #todo : memory 就是cross attention 的key , value.   
-        #! 所以 我要做的就是 memory 也进行self attention 
+        #todo: Memory refers to the keys and values of the cross-attention.
+        #! Therefore, what I need to do is to apply self-attention to the memory as well.
         #* memory: learnable embedding 
         #*==============================================================================
         memory = memory + self.dropout4(self.self_attn_learnable_embedding1(memory, memory, value=memory)[0])
@@ -169,7 +171,10 @@ class TransformerDecoderLayer(nn.Module):
         # memory = torch.cat([depth_query,normal_query,reflectance_query,illumination_query])
 
         #*==============================================================================
-        #*  multihead_attn 返回两个参数, 第一个是attention输出, 第二个  是weight , 就是这次的attention 
+        """
+        multihead_attn returns two parameters.
+         The first one is the attention output, and the second one is the weight, representing the attention for this iteration.
+        """
 
         if self.return_attention :
             tgt2,attention= self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),

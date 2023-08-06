@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+
+
+
 def decode_seg_map_sequence(label_masks, dataset='pascal'):
     rgb_masks = []
     for label_mask in label_masks:
@@ -48,6 +51,8 @@ def decode_segmap(label_mask, dataset, plot=False):
         return rgb
 
 
+
+
 def encode_segmap(mask):
     """Encode segmentation label images as pascal classes
     Args:
@@ -63,6 +68,9 @@ def encode_segmap(mask):
         label_mask[np.where(np.all(mask == label, axis=-1))[:2]] = ii
     label_mask = label_mask.astype(int)
     return label_mask
+
+
+
 
 
 def get_pascal_labels():

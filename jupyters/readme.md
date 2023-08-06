@@ -11,3 +11,10 @@
 
 
 ##  draw_bsds_rind_qualitative_results.ipynb 
+
+
+`draw_bsds_rind_qualitative_results.ipynb`
+`draw_iiw_qualiatative_results.ipynb`
+`istd_qualitative.ipynb`
+`nyud_qualitative.ipynb`
+`sbu_qualitative.ipynb`

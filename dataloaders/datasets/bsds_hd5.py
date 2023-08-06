@@ -116,8 +116,20 @@ class Mydataset(data.Dataset):
 
 
     '''
-    description:  1.读取图片, 2.计算图像中心 3. 读取标签,  4.将图像和标签裁剪成方格形的数据格式 5.数据增强, 6.转tensor 7.返回
-    #? 这个标签如何生成的 [5,w,h]  ,这个5个索引分别对应什么? 
+    description:  
+        Read image.
+
+        Calculate image center.
+
+        Read labels.
+
+        Crop image and labels into square-shaped data format.
+
+        Perform data augmentation.
+
+        Convert to tensor.
+
+    #? How are the labels generated? [5, w, h]. What do these 5 indices correspond to?
     param {*} self
     param {*} idx
     return {*}
@@ -125,7 +137,7 @@ class Mydataset(data.Dataset):
     def __getitem__(self, idx):
         if self.split == 'trainval':
             ## img data
-            img = Image.open(os.path.join(self.images_path[idx])).convert('RGB') # 读取图像，转换为三维矩阵
+            img = Image.open(os.path.join(self.images_path[idx])).convert('RGB') 
             w, h = img.size
             img_center = np.array([h / 2, w / 2]).astype(np.int)
             img = np.array(img)  ## (H,W,3) uint8 RGB

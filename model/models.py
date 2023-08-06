@@ -106,15 +106,12 @@ class Cerberus(BaseModel):
         self.channels_last = channels_last
 
         hooks = {
-            "vitb_rn50_384": [0, 1, 8, 11], #* 不同的backbone对应提取不同layer, 如果backbone是vitb_rn50_384 则 提取resnet 0,1 and encoder  8,11 
-            "vitb16_384": [2, 5, 8, 11],    #* 如果backbone 是vitb16_384 则提取resnet  2,5 and encoder 8,11 
+            "vitb_rn50_384": [0, 1, 8, 11], 
+            "vitb16_384": [2, 5, 8, 11],    
             "vitl16_384": [5, 11, 17, 23],  
         }
 
-        # Instantiate backbone and reassemble blocks
-        #* self.pretrained : 对应backbone , 就是 resnet 50+ transformer encoder 
-        #? self.scratch 对应什么? 
-        #* self.scratch  对应 特征融合模块, 后面还需要接refinenet0d , 
+        
         self.pretrained, self.scratch = _make_encoder(
             backbone,
             features,
@@ -354,7 +351,7 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         self.full_output_task_list = full_output_task_list
 
    
-        #* 网络头部, 每个子任务的子类别都对应一个头部 , 每个头部由 一个 nn.Sequential 和 upsample , sigmoid 组成, 其中sigmoid是我加上去的
+        
         for (num_classes, output_task_list) in full_output_task_list:
             for it in output_task_list:
                 setattr(self.scratch, "output_" + it ,nn.Sequential(
@@ -384,13 +381,6 @@ class CerberusSegmentationModelMultiHead(Cerberus):
         else:
             pass
 
-    '''
-    description:  这个好像也没调用?
-    param {*} self
-    param {*} x
-    param {*} name
-    return {*}
-    '''
     def get_attention(self, x ,name):
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
@@ -399,26 +389,19 @@ class CerberusSegmentationModelMultiHead(Cerberus):
 
         return x
 
-    '''
-    description: 
-    param {*} self
-    param {*} x
-    param {*} index : 对应当前前向传播的是哪个子任务 
-    return {*}
-    '''
     def forward(self, x ,index):
         if self.channels_last == True:
             x.contiguous(memory_format=torch.channels_last)
         #*( B,256,80,80), ( B,512,40,40),( B,768,20,20),( B,768,10,10)
-        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
+        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) 
 
-        #*  reassemble operatoion ?   统一channel
+        #*  reassemble operatoion ?   
         layer_1_rn = self.scratch.layer1_rn(layer_1) #* ( B,256,80,80)
         layer_2_rn = self.scratch.layer2_rn(layer_2)#* ( B,256,40,40)
         layer_3_rn = self.scratch.layer3_rn(layer_3)#* ( B,256,20,20)
         layer_4_rn = self.scratch.layer4_rn(layer_4)#* ( B,256,10,10)
 
-        #* 不断将  小batch 变大和大patch 进行融合
+        
         if (index == 0):
             path_4 = self.scratch.refinenet04(layer_4_rn)#* ( B,256,20,20)
             path_3 = self.scratch.refinenet03(path_4, layer_3_rn)#* ( B,256,40,40)
@@ -450,15 +433,15 @@ class CerberusSegmentationModelMultiHead(Cerberus):
             assert 0 == 1
         
 
-        #* 特征融合后 , 下面就是网络的头部, 主要为了输出每个任务的mask  
+        
         output_task_list = self.full_output_task_list[index][1]
         
         outs = list()
         
         for it in output_task_list:
-            fun = eval("self.scratch.output_" + it)#* 全连接
+            fun = eval("self.scratch.output_" + it)#*
             out = fun(path_1)
-            fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
+            fun = eval("self.scratch.output_" + it + '_upsample')#* 
             out = fun(out)
             #!==========
             if it != "background":

@@ -72,7 +72,7 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
     end = time.time()
 
     moo = _moo
-    for i, in_tar_name_pair in enumerate(train_loader):#* 一个一个batch取数据
+    for i, in_tar_name_pair in enumerate(train_loader):
         if moo :
             grads = {}
         
@@ -83,11 +83,14 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
             target= torch.autograd.Variable( in_tar_name_pair[1].cuda(local_rank))
             output = model(input)
             
+            
             '''
-            description:  edge detection branch output 共两类 , 
-            1.  一类 01map也就是 0,1  , header 最后接的是sigmoid   , 输出就是每个像素点是边缘的概率
-            2. 一类就是unet ,header 最后是ReLU, 并且需要改成5类,  求最后结果的时候对对第一维求最大值, 就得到model 对5个类别的分类结果
-            return {*}
+            Description: The edge detection branch has two types of outputs:
+
+            Type 1: A binary map (0 or 1) where the header is connected to a sigmoid activation function. The output represents the probability of each pixel being an edge.
+
+            Type 2: A U-Net architecture where the header is connected to a ReLU activation function. This output needs to be modified to have 5 classes. When obtaining the final result, take the maximum value along the first dimension to obtain the model's classification result for the 5 categories.
+
             '''
             b_loss=None
             if edge_branch_out == "edge":
@@ -97,7 +100,7 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
             else :
                 raise Exception('edge_branch_out is invalid:{}'.format(edge_branch_out))
             
-            rind_loss=rind_atten_criterion(output[1:],target[:,1:,:,:])#* 可以对多个类别计算loss ,但是这里只有一个类别
+            rind_loss=rind_atten_criterion(output[1:],target[:,1:,:,:])
 
             if torch.isnan(b_loss) or torch.isnan(rind_loss)  :
                 print("nan")
@@ -107,7 +110,6 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
 
             loss = None
             if inverse_form_criterion is not None: 
-                #?  background_out 是否需要clone? 
                 #*  after detach , performance is better.
                 background_out= output[0].clone().detach()
                 rind_out = output[1:]
@@ -143,28 +145,26 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
         else :
             task_loss_array = []
             input_new = in_tar_name_pair[0].cuda(local_rank) 
-            in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)#*  将channel 交换到第一维度
-            for index,target in enumerate(in_tar_name_pair_label):# * 遍历一个一个任务
+            in_tar_name_pair_label= in_tar_name_pair[1].permute(1,0,2,3)
+            for index,target in enumerate(in_tar_name_pair_label):
                 input   = in_tar_name_pair[0].clone().cuda(local_rank)
 
                 B,W,H=target.shape
                 target=  target.reshape([1,B,1,W,H])
-                # measure data loading time #* input 输入图像数据, target 图像的标签, name : input 的相对路径
+                # measure data loading time 
                 data_time_list[index].update(time.time() - end)
-                '''
-                #! 主要就是将数据前向推理 然后计算loss ,存储loss,  然后是反向传播,处理梯度 ?, 不是很清楚是如何处理梯度的  
-                '''
-                input_var = torch.autograd.Variable(input)#?将输入转成可导的对象 
+                
+                input_var = torch.autograd.Variable(input)
                 target_var = [torch.autograd.Variable(target[idx].cuda(local_rank)) for idx in range(len(target)) ]
                 # compute output
                 output, _, _ = model(input_var, index)
                 loss_array = list()
-                #! 之前的任务是 每个类计算loss, 以[11,1,2,512,512]  为例子, 会循环11次, 输入[2,512,512] 输出[1,512,512] 也就是每个像素是否属于这个像素, 然后和gt[1,512,512]计算loss
-                for idx in range(len(output)):#? 遍历该子任务预测的各个类别mask, 然后我只有一个类别, 并且只输出概率
+                
+                for idx in range(len(output)):
                     if index==0:
-                        loss_raw = focal_criterion(output[idx],target_var[idx][:,0,:,:]) #* 计算loss, output 经过softmax 变成0-1 ,但是target_var 确实0-255
+                        loss_raw = focal_criterion(output[idx],target_var[idx][:,0,:,:]) 
                     else :
-                        loss_raw = atten_criterion(output[idx],target_var[idx][:,0:1,:,:]) #* 计算loss, output 经过softmax 变成0-1 ,但是target_var 确实0-255
+                        loss_raw = atten_criterion(output[idx],target_var[idx][:,0:1,:,:])
 
                     loss_enhance = loss_raw 
                     if torch.isnan(loss_enhance):
@@ -208,18 +208,15 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
                     task_loss_array.append(local_loss_enhance)
 
                 losses_list[index].update(local_loss_enhance.item(), input.size(0))#* losses_list记录loss 
-                for idx, it in enumerate(task_list_array[index]): #* 遍历当前处理的子任务的每个类别, 每个类别都有一个loss ,记录到losses_array_list
+                for idx, it in enumerate(task_list_array[index]): 
                     (losses_array_list[index][idx]).update((loss_array[idx]).item(), input.size(0))
 
                 # compute gradient and do SGD step
                 if index == 4:           
-                    '''
-                    description:  在最后一个子任务 , 前向推理结束
-                    #! 将所有子任务在重新前向推理一次, 计算loss , 对应文章的二次求导
-                    '''
+                    
                     del input, target, input_var, target_var
                     task_loss_array_new = []
-                    #! 重新前向传播计算梯度
+                    
                     for index_new, target_new in enumerate(in_tar_name_pair_label):
                         B,W,H=target_new.shape
                         input_new=in_tar_name_pair[0].clone().cuda(local_rank)
@@ -250,7 +247,7 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
                     assert len(task_loss_array_new) == 5
 
                     sol, min_norm = MinNormSolver.find_min_norm_element([grads[cnt] for cnt in root_task_list_array])
-                    #* 打印一下
+                    
                     scale_info ='scale is: |{0}|\t|{1}|\t|{2}|\t {3} \t {4}'.format(sol[0], sol[1], sol[2],sol[3],sol[4]) 
                     logger.info(scale_info)
                     # print(scale_info)
@@ -294,13 +291,6 @@ def train_cerberus(train_loader, model, edge_atten_criterion,rind_atten_criterio
 
 
 
-'''
-description:  
-param {*} local_rank : 分布式训练参数 , 考试当前第几个节点,第几个GPU
-param {*} nprocs:  分布式训练参数 , 表示共有几个节点用于计算每个节点的batch size
-param {*} args : 训练脚本的超参数
-return {*}
-'''
 def train_seg_cerberus(args):
     dist.init_process_group(backend='nccl')
     torch.cuda.set_device(args.local_rank) 
@@ -441,7 +431,6 @@ def train_seg_cerberus(args):
 
 
         #* save model every 20 epoch
-        #* 要么 要验证  那就在250epoch之后每5个epoch 验证一次 ,  
         if (args.validation  and (epoch%5==0 or  epoch+1 == args.epochs )and epoch >=260  and  args.local_rank == 0 ): 
             val_dir = osp.join(model_save_dir,'..','ckpt_ep%04d'%epoch)
             os.makedirs(val_dir)
@@ -474,9 +463,9 @@ def train_seg_cerberus(args):
                 'state_dict': model.state_dict(),
                 'best_prec1': val_res["Average"]["AP"],
             }, save_flag, filename=checkpoint_path)
-        #* 要么就每30epoch 保存一次 
+        
         elif((epoch%5==0 or  epoch+1 == args.epochs )and args.local_rank == 0):
-        # elif(args.local_rank == 0):#* 每个epoch都保存
+        
             checkpoint_path = osp.join(model_save_dir,'ckpt_rank%03d_ep%04d.pth.tar'%(args.local_rank,epoch))
             save_checkpoint({
                 'epoch': epoch + 1,

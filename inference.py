@@ -71,12 +71,12 @@ def inference(model_abs_path,test_loader,src_data_dir,runid=None,):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
-    #* 加载模型
+    
     single_model = EdgeCerberus(backbone="vitb_rn50_384",enable_attention_hooks=True)
     
     checkpoint = torch.load(model_abs_path,map_location='cuda:0')
     for name, param in checkpoint['state_dict'].items():
-        name = name.replace("module.","") #* 因为分布式训练的原因导致多封装了一层
+        name = name.replace("module.","") 
         single_model.state_dict()[name].copy_(param)
 
     logger.info("load model done ")
@@ -102,7 +102,7 @@ def inference(model_abs_path,test_loader,src_data_dir,runid=None,):
 
 
 
-    #* 判断一些是否测试过了 , 测试过就不重复测试了
+    
     
     if not(len(glob.glob(normal_output_dir+"/*.mat")) == len(test_loader)): 
         model.eval()
@@ -117,7 +117,7 @@ def inference(model_abs_path,test_loader,src_data_dir,runid=None,):
             B,C,H,W = image.shape 
             to_size = (math.ceil(H/32)*32,math.ceil(W/32)*32)
             # logger.info(f'origin size = {(H,W)}, to size : {to_size}')
-            trans1 = transforms.Compose([transforms.Resize(size= to_size )])#* 需要是32的倍数, 
+            trans1 = transforms.Compose([transforms.Resize(size= to_size )])
             trans2 = transforms.Compose([transforms.Resize(size=(H, W))])
             image = trans1(image)#* debug
 
@@ -223,7 +223,7 @@ def main():
                         shuffle=False,num_workers=args.workers,pin_memory=True)
     logger.info(args.run_id)
     logger.info(args.data_dir)
-    inference(args.resume,test_loader,args.data_dir,args.run_id)#! resume 给的model path需要是绝对路径
+    inference(args.resume,test_loader,args.data_dir,args.run_id)#! resume should be absolute path
 
 
     

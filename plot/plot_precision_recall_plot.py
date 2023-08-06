@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-07-21 19:21:58
-LastEditTime: 2023-07-31 21:50:27
+LastEditTime: 2023-08-06 22:33:32
 LastEditors: daniel
 Description:  
 FilePath: /Cerberus-main/plot/plot_precision_recall_plot.py
@@ -19,10 +19,16 @@ from  loguru import logger
 
 import shutil
 
+
 '''
-description:  调用matlab 来eval , 
-param {*} eval_data_dir : 只能绝对路径进行测试, 
-return {*}
+Description: Call MATLAB to perform evaluation.
+
+Parameters:
+
+eval_data_dir: Absolute path to the evaluation data directory.
+Returns:
+
+None
 '''
 def plot(test_edge = False):
 
@@ -33,10 +39,15 @@ def plot(test_edge = False):
     
 
 '''
-description:  将算法评估结果的绘图需要的文件移动到绘图需要的文件夹
-my_res: 就是算法评估的结果文件夹
-prefix: 绘制曲线图时我们的算法结果名字
-return {*}
+Description: Move the necessary files for drawing algorithm evaluation results to the required folder.
+
+Parameters:
+
+my_res: Folder containing the algorithm evaluation results.
+prefix: Name of the algorithm result for drawing the curves.
+Returns:
+
+None
 '''
 def move_alg_res2plot_dir(
     my_res ="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/edge_cerberus_v8/model_res_2",

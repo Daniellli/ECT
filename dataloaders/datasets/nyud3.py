@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-08-01 14:04:16
+LastEditTime: 2023-08-06 21:44:49
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud3.py
@@ -27,57 +27,8 @@ from torchvision import transforms
 import os 
 
 import torch.nn.functional as F
- 
-def make_dir(path):
-    if not exists(path):
-        os.makedirs(path)
 
-''' 
-description:  对goal 的非零元素进行扩张, 扩张倍数为10 
-param {*} goal 
-param {*} times
-return {*}
-'''
-def dilation(goal, times = 2 ):
-    selem = skimage.morphology.disk(times)
-
-
-    # goal = skimage.morphology.binary_dilation(goal, selem) != True
-    goal = morphology.binary_dilation(goal, selem) != True
-    goal = 1 - goal * 1.
-    goal*=255
-    return goal
-
-
-
-def crop_save(path,src):
-        if not exists(path):
-            imwrite(path,src[45:471, 41:601])
-
-
-'''
-description:  save  mat file for evaluation 
-param {*} self
-param {*} file_name
-param {*} gt_map
-return {*}
-'''
-def save_as_mat(file_name,gt_map):
-
-    scio.savemat(file_name,
-        {'__header__': b'MATLAB 5.0 MAT-file, Platform: MACI64, Created on: Mon Feb 7 06:47:01 2023',
-        '__version__': '1.0',
-        '__globals__': [],
-        'groundTruth': [{'Boundaries':gt_map}]
-        }
-    )
-
-
-
-
-def readtxt(path):
-    return np.loadtxt(path,dtype=np.str0,delimiter='\n')
-
+from utils.utils import * 
 
 class Nyud3:
 

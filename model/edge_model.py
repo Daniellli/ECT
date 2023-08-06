@@ -1,9 +1,9 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-03-04 19:34:11
+LastEditTime: 2023-08-06 22:26:22
 LastEditors: daniel
-Description: 
+Description:  the oldest model 
 FilePath: /Cerberus-main/model/edge_model.py
 email:  
 '''
@@ -87,14 +87,13 @@ class EdgeCerberus(BaseModel):
         self.channels_last = channels_last
 
         hooks = {
-            "vitb_rn50_384": [0, 1, 8, 11], #* 不同的backbone对应提取不同layer, 如果backbone是vitb_rn50_384 则 提取resnet 0,1 and encoder  8,11 
-            "vitb16_384": [2, 5, 8, 11],    #* 如果backbone 是vitb16_384 则提取resnet  2,5 and encoder 8,11 
+            "vitb_rn50_384": [0, 1, 8, 11], 
+            "vitb16_384": [2, 5, 8, 11],    
             "vitl16_384": [5, 11, 17, 23],  
         }
 
         
-        #* self.pretrained : 对应backbone , 就是 resnet 50+ transformer encoder 
-        #* self.scratch  对应 特征融合模块, 后面还需要接refinenet0d , 
+        
         self.pretrained, self.scratch = _make_encoder(
             backbone,
             features,
@@ -119,8 +118,7 @@ class EdgeCerberus(BaseModel):
         self.scratch.refinenet04 = _make_fusion_block(features, use_bn)#* output [160,160]
         
 
-        #* 下采样作为decoder 的输入 
-        #? 这里是否要替换成  卷积操作? 
+        
         setattr(self.scratch, "output_downsample",
             Interpolate(scale_factor=0.25, mode="bilinear", align_corners=True))#* from [160,160] to [40,40]
 
@@ -137,7 +135,7 @@ class EdgeCerberus(BaseModel):
         activation="relu" #*   detr , by default == relu, 
         normalize_before =False   #* detr , by default  == False
         num_decoder_layers= 6 #* detr == 6
-        self.return_intermediate_dec = True #* detr , by default  == False,  是否返回decoder 每个layer的输出, 还是只输出最后一个layer
+        self.return_intermediate_dec = True
         
         self.return_attention = False
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
@@ -184,12 +182,12 @@ class EdgeCerberus(BaseModel):
                 ))
 
                 if it == "background":
-                    #* 需要 batch normalization 吗? 
+                    
                     setattr(self.scratch, "output_" + it + '_upsample', 
                         nn.Sequential(
                         # Interpolate(scale_factor=2, mode="bilinear", align_corners=True),
                         #!+===============
-                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
+                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),
                         nn.BatchNorm2d(num_classes),
                         #!+===============
                         # nn.ReLU(inplace=True)
@@ -199,14 +197,10 @@ class EdgeCerberus(BaseModel):
 
 
                 else :
-                    #*  用refine net 将 decoder layer1 and layer 6 进行fusion得到 了size 为[160,160] 所以只需要upsample 2 倍 
-                    #* refine net 已经恢复原来的size了 , 不需要进一步操作了
                     setattr(self.scratch, "output_" + it + '_upsample', 
                         nn.Sequential(
                         # Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
-                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#* 比interpolate 多了100个参数
-                        nn.BatchNorm2d(num_classes),
-                        nn.Sigmoid()
+                        nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#*
                         )
                     )
 
@@ -214,13 +208,7 @@ class EdgeCerberus(BaseModel):
 
 
     
-    '''
-    description:  这个好像也没调用?
-    param {*} self
-    param {*} x
-    param {*} name
-    return {*}
-    '''
+
     def get_attention(self, x ,name):
         
         if self.channels_last == True:
@@ -229,13 +217,7 @@ class EdgeCerberus(BaseModel):
         x = forward_flex(self.pretrained.model, x, True, name) #* true mean plot attention,   
         return x
 
-    '''
-    description: 
-    param {*} self
-    param {*} x
-    param {*} index : 对应当前前向传播的是哪个子任务 
-    return {*}
-    '''
+
     def forward(self, x ):
         if self.return_attention:
             origin_image= x.clone()
@@ -246,9 +228,9 @@ class EdgeCerberus(BaseModel):
         #* layer2 : (B,512,40,40)
         #* layer3 : (B,768,20,20)
         #* layer4 : (B,768,10,10)
-        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) #* 获取 resnet 1,2 and transformer encoder  9,12 layer  feature embedding 
+        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) 
         
-        #*  reassemble operatoion ?  将sequence 重新reassemble 成一张patch 
+        
         layer_1_rn = self.scratch.layer1_rn(layer_1)#*  : (B,256,80,80)
         layer_2_rn = self.scratch.layer2_rn(layer_2)#*  : (B,256,40,40)
         layer_3_rn = self.scratch.layer3_rn(layer_3)#*  : (B,256,20,20)
@@ -266,9 +248,9 @@ class EdgeCerberus(BaseModel):
         model_out = []
         #* background 
         edge_it = self.full_output_task_list[0][1][0]
-        fun = eval("self.scratch.output_" + edge_it)#* 全连接
+        fun = eval("self.scratch.output_" + edge_it)
         out = fun(edge_path_1)
-        fun = eval("self.scratch.output_" + edge_it + '_upsample')#* 上采样
+        fun = eval("self.scratch.output_" + edge_it + '_upsample')
         model_out.append(fun(out))
         
 
@@ -296,16 +278,16 @@ class EdgeCerberus(BaseModel):
 
             #* traverse 6 decoder layer 
             
-            #*=================
+            
             with open('tmp.txt','r') as f:
                 atten_path = f.readlines()
-            #*=================
+            
             
             for iidx,atten in enumerate(attentions):
                 #* traverse 4 attention map 
                 for  idx, (attention,x) in enumerate(zip(atten.squeeze(),self.full_output_task_list[1:])):
                     name = x[1][0]
-                    #* 乘不乘255 都一样
+                    
                     attention_map = F.interpolate(attention.unsqueeze(0).unsqueeze(0),scale_factor=8,mode='bilinear')#*  attention == [40,60] ->[320,480]
                     attention_map = attention_map.cpu().clone().squeeze().numpy()
 
@@ -327,7 +309,6 @@ class EdgeCerberus(BaseModel):
 
 
         if self.return_intermediate_dec : 
-            #* 返回的是多个decoder layer , 需要另外处理 
             #* [6,WH,B,256] == 
             decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
             #* pick up layer 1 and layer6
@@ -341,7 +322,7 @@ class EdgeCerberus(BaseModel):
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
 
-        #* decoder_out 正则化  , 
+        #* decoder_out 
         # !+===========================        
         decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
         decoder_out = self.final_norm1(decoder_out)
@@ -350,11 +331,10 @@ class EdgeCerberus(BaseModel):
         # !+===========================
         #* rind 
         for  x in self.full_output_task_list[1:]:
-            it = x[1][0]#* 每个任务只有一类 
-            fun = eval("self.scratch.output_" + it)#* 全连接
+            it = x[1][0]
+            fun = eval("self.scratch.output_" + it) 
             out = fun(decoder_out)
-            #* refine net 已经恢复了原来的大小了, 不需要进一步操作
-            fun = eval("self.scratch.output_" + it + '_upsample')#* 上采样
+            fun = eval("self.scratch.output_" + it + '_upsample')
             out = fun(out)
             model_out.append(out)
         return model_out
@@ -363,13 +343,7 @@ class EdgeCerberus(BaseModel):
       
 
 
-'''
-description: 传过来的都是PIL 的image类型 
-param {*} gray_img interpolate输出的灰度图
-param {*} origin_img
-param {*} save_name
-return {*}
-'''
+
 def blend_atten_origin_image(gray_img,origin_img,save_name):
     figure = plt.figure()
     plt.pcolor(gray_img, cmap='jet')
@@ -394,33 +368,7 @@ def blend_atten_origin_image(gray_img,origin_img,save_name):
     # cv2.imwrite(save_name,d)
     
 
-'''
-description:  可视化attention
-param {*} atten: (H,W) map 
-param {*} save_name
-return {*}
-'''
-# def down_dim_and_vis_atten(atten,save_name):
-#     H,W=atten.shape
-#     tsne = TSNE(n_components=1, init='pca', random_state=0)
-#     # temp = atten.view(H*W).cpu().clone().unsqueeze(0)
-#     temp = atten.view(H*W,1).cpu().clone()
-#     #temp = q_feat.squeeze(0).cpu()
-#     result = tsne.fit_transform(temp)
-#     result = result.reshape([H,W])
 
-#     result = result - result.min()
-#     result = result/result.max()
-
-#     plt.imsave(fname=save_name, arr=result, format='png',cmap='plasma')
-    
-
-'''
-description:  将matplotlib 数据 转image
-param {*} self
-param {*} fig
-return {*}
-'''
 def fig2data(fig):
     """
     fig = plt.figure()
