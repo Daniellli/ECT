@@ -31,7 +31,6 @@ from model.edge_model import EdgeCerberus
 
 #* modified version for generalization
 from model.ECT import EdgeCerberusMultiClass
-# from model.ECT2 import EdgeCerberusMultiClass
 
 from model.loss.inverse_loss import InverseTransform2D
 
