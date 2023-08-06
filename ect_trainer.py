@@ -485,7 +485,6 @@ def setup_seed(seed):
 
     
 if __name__ == '__main__':
-    # 设置随机数种子
     setup_seed(20)
 
     args = parse_args()
