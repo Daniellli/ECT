@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2022-05-19 22:27:52
- * @LastEditTime: 2023-08-07 07:23:34
+ * @LastEditTime: 2023-08-07 07:48:57
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/readme.md
@@ -22,8 +22,6 @@ models will be made public.
 ![main](imgs/main.png)
 
 
-![qual](imgs/qualitative.png)
-
 
 ## Quantitative comparison for REs, IEs, NEs, DEs, and Average on BSDS-RIND.
 
@@ -35,6 +33,13 @@ models will be made public.
 | RINDNet | 0.478             | 0.521             | 0.414            | 0.280              | 0.337              | 0.168             | 0.489        | 0.522        | 0.440       | 0.697       | 0.724       | 0.705      | 0.486         | 0.526         | 0.432        |
 | EDTER   | 0.496             | 0.552             | 0.440            | 0.341              | 0.363              | 0.222             | 0.513        | 0.557        | 0.459       | **0.703**   | 0.733       | 0.695      | 0.513         | 0.551         | 0.454        |
 | ECT     | **0.520**         | **0.567**         | **0.470**        | **0.371**          | **0.399**          | **0.318**         | **0.516**    | **0.558**    | **0.473**   | 0.699       | **0.734**   | **0.722**  | **0.526**     | **0.564**     | **0.496**    |
+
+
+
+
+![qual](imgs/qualitative.png)
+
+
 
 
 
@@ -58,7 +63,7 @@ models will be made public.
 
 
 
-
+![qual](imgs/transferability_qualitative.png)
 
 ## Installation
 
