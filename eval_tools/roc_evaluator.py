@@ -1,9 +1,9 @@
 '''
 Author: daniel
 Date: 2023-05-24 19:12:23
-LastEditTime: 2023-05-25 17:42:10
+LastEditTime: 2023-08-06 21:55:36
 LastEditors: daniel
-Description: 
+Description:  extra metric to demonstrate the effectiveness of EA2 Loss
 FilePath: /Cerberus-main/eval_tools/roc_evaluator.py
 have a nice day
 '''
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     
     fig = plt.figure(figsize=(5, 4))
 
-    # loader = PredictionLoader('/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/wo_containt_loss_0')
+    
     EA2loader = PredictionLoader('/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/wo_cause_interaction_0') #* use EA2 Loss
     
     NoEA2loader = PredictionLoader('/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/without_cause_interaction_and_constraint_loss_0')

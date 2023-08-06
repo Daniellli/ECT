@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-02-20 16:22:38
+LastEditTime: 2023-08-06 21:43:02
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud2.py
@@ -27,29 +27,11 @@ import os
 
 
  
-def make_dir(path):
-    if not exists(path):
-        os.makedirs(path)
+from utils.utils import * 
 
-''' 
-description:  对goal 的非零元素进行扩张, 扩张倍数为10 
-param {*} goal 
-param {*} times
-return {*}
-'''
-def dilation(goal, times = 2 ):
-    selem = skimage.morphology.disk(times)
-
-
-    # goal = skimage.morphology.binary_dilation(goal, selem) != True
-    goal = morphology.binary_dilation(goal, selem) != True
-    goal = 1 - goal * 1.
-    goal*=255
-    return goal
 
 
 class Nyud2:
-
     def __init__(self,
                 path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/nyud2',
                 subset='NYU_origin',
@@ -442,11 +424,6 @@ class Nyud2:
 
         
 
-
-
-
-def readtxt(path):
-    return np.loadtxt(path,dtype=np.str0,delimiter='\n')
 
 
 if __name__ == "__main__":

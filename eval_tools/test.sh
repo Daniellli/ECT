@@ -1,9 +1,9 @@
 ###
  # @Author:   "  "
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-05-24 14:41:19
+ # @LastEditTime: 2023-08-06 21:53:37
  # @LastEditors: daniel
- # @Description: 
+ # @Description: eval BSDS-RIND, NYUD2, SBU,ISTD...
  # @FilePath: /Cerberus-main/eval_tools/test.sh
  # email:  
 ### 
@@ -12,13 +12,15 @@
 
 
 cd eval_tools;
-#* 这个如果是1 就test,如果是2 就不测试
-echo  dir == $1,param == $2;
-# source activate
-# conda deactivate
-# conda activate matlab #* 不需要切换环境也可以测试
+
+source /usr/local/miniconda3/etc/profile.d/conda.sh 
+conda activate cerberus2
+
+
+
+#? test generic edge or not 
+# echo  dir == $1,param == $2;
 # echo "output_dir == $output_dir";
-#! 注意空格的问题
 # if [ $2=="1" ]; then 
 #     echo  "test edge ";
 #     python test.py -d $1 --test-edge;
@@ -31,33 +33,41 @@ echo  dir == $1,param == $2;
 
 
 
-source /usr/local/miniconda3/etc/profile.d/conda.sh 
-
-
-conda activate cerberus2
-
+#*=========================test BSDS-RIND=========================
 # python test.py -d $1
 # python test.py -d $1 --test-edge;
 
+
 # python test.py --eval-data-dir "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/2023-03-16-15:10:1678950646"  --dataset BSDS-RIND
-python test.py --eval-data-dir $1  --dataset BSDS-RIND
+# python test.py --eval-data-dir $1  --dataset BSDS-RIND --test-edge
+
+#*================================================================
 
 
-# * SBU
+
+
+
+#*=========================test SBU================================
 # python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/SBU_0 \
 # --dataset SBU 2>&1 | tee -a ../logs/eval_matlab_sbu.log
 
+#*================================================================
 
 
+
+#*=========================test ISTD================================
 # python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/ISTD_0 \
 # --dataset ISTD 2>&1 | tee -a ../logs/eval_matlab_istd.log
 
+#*================================================================
 
 
+
+#*=========================test NYUD2================================
 # python test.py --eval-data-dir '/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/nyud2_1' \
 # --dataset NYUD2 2>&1 | tee -a ../logs/eval_matlab.log
 
-
+#*================================================================
 
 
 

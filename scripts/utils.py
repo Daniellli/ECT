@@ -1,10 +1,10 @@
 '''
 Author:   "  "
 Date: 2022-08-04 16:42:24
-LastEditTime: 2022-09-11 19:33:38
-LastEditors:   "  "
+LastEditTime: 2023-08-06 22:37:02
+LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/my_script/utils.py
+FilePath: /Cerberus-main/scripts/utils.py
 email:  
 '''
 
@@ -86,14 +86,18 @@ def test():
 
 
 
+'''
+Description: Get the evaluation results.
 
-''' 
-description: 获取评估的结果 
-param {*} path : 结果存储的路径
-param {*} tasks: list  : 要评估的任务
-param {*} print_top10 : 是否打印前10个
-param {*}  avg_including_edge : 回去评估 精度的时候是否包含edge, 
-return {*}
+Parameters:
+
+path: Path where the results are stored.
+tasks: List of tasks to evaluate.
+print_top10: Whether to print the top 10 results.
+avg_including_edge: Whether to include edges when evaluating precision.
+Returns:
+
+None
 '''
 def get_eval_res(path, 
                 tasks=['reflectance','illumination','normal','depth'],
@@ -101,41 +105,41 @@ def get_eval_res(path,
                 avg_including_edge=False
                 ):
     
-    #* 获取所有图像的名字
+    
     all_name = np.array(sorted([x.split('.')[0] for x in os.listdir(osp.join(path,'depth',"nms"))]))
 
     data = None
     all_dict = {}
-    #* 将所有任务所有图片评估的iso 整合成一个dict
+    
     for t in tasks:
-        #* 写入的是  OIS 的[image,  threshold,Recall, Precision, F1, image_name]
+        
         data = np.loadtxt(osp.join(path,t,"nms-eval","eval_bdry_img.txt"),dtype=np.str0)
 
-        #* f1 score , 每张图在这个任务上的ois score  进行排序, 
+        
         # f1= data[:,-1].copy().astype(np.float64)
         # f1_index = np.argsort(-f1)#* 降序排序的index
         
-        #* reshape 成一个字典
+        
         data_dict = {x:y for x,y in zip(all_name,data)}
 
         #* save dict 
         all_dict[t]=data_dict
         
 
-    #* 获取每张图像 5个子任务的 ois score 的avg score 
+    
     avg_ ={}
     for name in all_name:
         avg_[name] = round(get_arg_ois_score(all_dict,name,including_edge=avg_including_edge),3,)
 
-    #*  输出前10个 
+    
     if print_top10:
-        #* 对avg score 排序
+    
         idx = np.argsort(-np.array(list(avg_.values())))
         for a in idx[:10]:
             name = list(avg_.keys())[a]
             print(name,avg_[name])
 
-            #* 输出单个的数值
+    
             for  k,v in all_dict.items():
                 print(v[name])
     return  all_dict,avg_
@@ -143,14 +147,6 @@ def get_eval_res(path,
 
 
 
-
-'''
-description:  输出前X个比较大的
-param {*} X
-param {*} best_avg_ois_idx
-param {*} our_avg_ois
-return {*}
-'''
 def print_topX_avg_ois(X,avg_ois,eval_dict,print_all=False):
     best_avg_ois_idx = np.argsort(-np.array(list(avg_ois.values())))
     for idx in best_avg_ois_idx[:X]:
@@ -181,14 +177,6 @@ def search_dict(_dict,search_name,return_numpy = True):
     return res
         
 
-
-
-'''
-description: 写入json文件
-param {*} json_data
-param {*} filename
-return {*}
-'''
 def dump_dict(json_data,filename):
     
     with open(filename,'w') as f :
@@ -196,7 +184,9 @@ def dump_dict(json_data,filename):
     
     
 '''
-description:  给定两组数据 ,输出距离最大的前K pair, 用 group A - group B,  然后距离最大的, 也就是A 比B, A表现最好的 
+description:  Given two sets of data, the task is to output the top K pairs with the maximum distance.
+ The distance is calculated by subtracting the values from group B from group A.
+  In other words, we are looking for the pairs where A outperforms B the most.
 param {*} K
 param {*} A_avg_ois
 param {*} A_eval_dict
@@ -213,7 +203,6 @@ def print_topK_distance(K,A_avg_ois,A_eval_dict,B_avg_ois,B_eval_dict,save_path 
         A_avg_ois_score = round(get_arg_ois_score(A_eval_dict,name),3)
         B_avg_ois_score = round(get_arg_ois_score(B_eval_dict,name),3)
         print(f" name : {name} \t group A  score : {A_avg_ois_score} \t group B  score: {B_avg_ois_score}, \t distance = {minus_res[name]}")
-        #* A 对应的阈值 和 B 对应的阈值   都要存起来可视化 
         pair = {}
         pair['A1'] = search_dict(A_eval_dict,name,return_numpy=False)
         pair['B1'] = search_dict(B_eval_dict,name,return_numpy=False)
@@ -227,7 +216,7 @@ def print_topK_distance(K,A_avg_ois,A_eval_dict,B_avg_ois,B_eval_dict,save_path 
 
 
 '''
-description:  给定一个评估的数据, 分别获取每个任务最好ois那张图像
+description:  Given an evaluation dataset, the task is to obtain the image with the best OIS (Overall Image Quality Score) for each task.
 param {*} eval_dict
 return {*}
 '''
@@ -248,13 +237,6 @@ def __get_best_ois_for_each_task(eval_dict,top_k=1):
         
     
 
-'''
-description:  根据 image_name 获取task下的ois 
-param {*} image_name 
-param {*} path
-param {*} task
-return {*}
-'''
 def __get_ois_threshold_accoding_name(image_name,path,task): 
     eval_dict,_=get_eval_res(path,[task])#* single task 
     return float(eval_dict[task][image_name][1])
@@ -266,11 +248,6 @@ def get_ois_threshold_accoding_name(image_name,path,task):
     return __get_ois_threshold_accoding_name(image_name,path,task)
 
 
-'''
-description:  向其他py文件暴露的接口 ,给定路径返回每个任务最好ois那张图像
-param {*} path  : 包含评估的所有结果的路径
-return {*}
-'''
 def get_best_ois_for_each_task(path,task):
     eval_dict,_=get_eval_res(path,task)
     return __get_best_ois_for_each_task(eval_dict)
@@ -278,11 +255,6 @@ def get_best_ois_for_each_task(path,task):
     
 
 
-'''
-description: 获取所有ODS
-param {*} path
-return {*}
-'''
 def __get_ods(path):
 
     with open(osp.join(path,'eval_res.json'),'r')as f :
@@ -291,12 +263,7 @@ def __get_ods(path):
     return  data
 
 
-'''
-description:  根据task 获取ODS 
-param {*} path
-param {*} task
-return {*}
-'''
+
 def __get_task_ods(path,task):
     ods  = __get_ods(path)
 
@@ -309,15 +276,6 @@ def get_task_ods(path,task):
     return __get_task_ods(path,task)
 
 
-
-'''
-description:  打印指定任务的topK 个 A 优于B的 image 
-param {*} pathA
-param {*} pathB
-param {*} task
-param {*} K
-return {*}
-'''
 def print_topK_distance_in_specific_task(pathA,pathB,task,K=10):
     
     dictA ,_ = get_eval_res(pathA,[task])
@@ -338,14 +296,7 @@ def print_topK_distance_in_specific_task(pathA,pathB,task,K=10):
         
 
 
-'''
-description:  打印指定任务的topK 个 A 优于B的 image 
-param {*} pathA
-param {*} pathB
-param {*} task
-param {*} K
-return {*}
-'''
+
 def print_topK_distance_in_specific_task_multi_source(pathA , paths,task,K=10):
     
 
@@ -392,15 +343,18 @@ def interp_img(img,to_size= (320,480)):
     a = a.squeeze().permute(1,2,0).numpy()
     return a 
 
+'''
+Description: Convert a video into a sequence of images.
 
+Parameters:
 
-''' 
-description:  将视频转图片序列
-param {*} video_path 视频文件的路径
-param {*} im_dir 转换后的结果文件夹 
-param {*} img_name_format 转换后 的图片 存储的文件名格式 比如 dancer-1.jpg
-param {*} interp 是否下采样, 如果图像太大可以下采样
-return {*}
+video_path: Path of the video file.
+im_dir: Directory to store the converted images.
+img_name_format: Format of the file name for the converted images, e.g., "dancer-1.jpg".
+interp: Whether to perform downsampling. If the images are too large, downsampling can be applied.
+Returns:
+
+None
 '''
 def video2imgs(video_path , im_dir,img_name_format="%06d.png" ,interp=False):
     
@@ -445,11 +399,6 @@ def delete_dirs_files(asb_path_list):
 
 
 
-'''
-description:  下采样dir_path的图像数据 ,   存储到另一个文件夹
-param {*} dir_path
-return {*}
-'''
 def inter_dir(dir_path):
     target_p = osp.join(osp.dirname(dir_path),'after_interp')
     make_dir(target_p)
@@ -464,12 +413,7 @@ def inter_dir(dir_path):
     
 
 
-    
-'''
-description:  
-param dir_path: 将这个文件夹下的mp4视频转图像,  
-return {*}
-'''
+
 def my_video2img(dir_path="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot/demo"):
     all_mp4 = glob.glob(dir_path+"/*.mp4")
     for  idx,p in tqdm(enumerate(all_mp4)):
@@ -515,7 +459,7 @@ if __name__ == "__main__":
     #                 save_path = "loss_our_with_rind.json") 
 
 
-    #* 根据任务来获取单个任务表现最好的图像
+    
     # __get_best_ois_for_each_task(our_eval_dict)
     # get_ois_threshold_accoding_name('2018',ours_res_path,'depth')
     

@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2022-05-19 22:27:52
- * @LastEditTime: 2023-05-28 16:47:40
+ * @LastEditTime: 2023-08-06 23:07:25
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/readme.md
@@ -83,6 +83,7 @@ After finishing training, the training and evaluation results can be found at `n
 
 download our [trained model](https://pan.baidu.com/s/1A4okqEcx8VxUE36QpNwupw) (code: t6hc) the evaluate by following steps: 
 1. modify the variable of  `resume_model` in `scripts/test_ect.sh` 
+<!-- 2. change the `from model.ECT import EdgeCerberusMultiClass`  to `from model.edge_model import EdgeCerberus` -->
 2. run: 
 ```
 bash scripts/test_ect.sh

@@ -62,31 +62,17 @@ def plot_attention(all_images,gt_save_path,save_path):
             cv2.imwrite(osp.join(save_path, f'{im}_{t}.png'),concat_res)
 
 
-'''
-description:  加载mat文件
-param {*} path
-return {*}
-'''
+
 def loadmat(path):
     return scio.loadmat(path)['result']
 
-'''
-description:  加载mat然后写入save_path
-param {*} path
-param {*} save_path
-return {*}
-'''
+
 def mat2png_save(path,save_path):
     data  = loadmat(path)*255
     
     cv2.imwrite(save_path,data)
 
-'''
-description: 读取所有mat文件, 转png然后存储 
-param {*} path
-param {*} imgs
-return {*}
-'''
+
 def mat2png(path,imgs):
 
     for task in TASKS:
@@ -102,11 +88,11 @@ def mat2png(path,imgs):
 
 SAVE_ROOT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/plot-rind-edge-pr-curves/plot_material"
 EVAL_RES_ROOT="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks"
-ORIGIN_IMG_PATH="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/test" #! 读取测试图像的路径
+ORIGIN_IMG_PATH="/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/test" 
 ORIGIN_IMG_GT = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS-RIND/testgt"
 ORIGIN_IMG_GT2 = "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/dataset/BSDS_RIND_mine"
 
-#* 每种边缘对应的颜色
+
 RINDE_COLOR = [
     (10,139,226),
     (142,217,199),
@@ -119,10 +105,10 @@ RINDE_COLOR = [
 COLORS = {
     "TP":(10,251,9),
     "FN":(8,9,250),
-    # "FN":(255,255,0),#* 青色
-    # "FN":(255,0,255),#* 深红色
-    # "FN":(203,192,255),#* 粉色
-    # "FN":(255,1,1),#* 蓝色
+    # "FN":(255,255,0),
+    # "FN":(255,0,255),
+    # "FN":(203,192,255),
+    # "FN":(255,1,1),#* 
     "FP":(7,255,252),
 }
 

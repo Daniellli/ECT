@@ -23,13 +23,6 @@ import shutil
 from skimage import morphology
 
 
-''' 
-description:  将图像划分成16个部分, 
-param {*} img
-param {*} target_path
-param {*} color
-return {*}
-'''
 def split_to_16_part(img,save_path,color=[255,255,255]):
     H,W,C=img.shape
     tmp = img.copy()
@@ -47,12 +40,6 @@ def split_to_16_part(img,save_path,color=[255,255,255]):
     
         
 
-''' 
-description:  对goal 的非零元素进行扩张, 扩张倍数为10 
-param {*} goal 
-param {*} times
-return {*}
-'''
 def dilation(goal, times = 2 ):
     selem = skimage.morphology.disk(times)
     # goal = skimage.morphology.binary_dilation(goal, selem) != True
@@ -65,11 +52,7 @@ def dilation(goal, times = 2 ):
 
 
 
-'''
-description: 
-param {*} ims : 要拼接的两张图像
-return {*}
-'''
+
 def pinjie(ims,save_name):
 
     # 单幅图像尺寸
@@ -95,11 +78,6 @@ def load_json(path):
 
 
 
-'''
-description:  读取mat格式的gt
-param {*} path
-return {*}
-'''
 def read_mat_gt(path):
     if  not osp.exists(path):
         print(f"path no exists")

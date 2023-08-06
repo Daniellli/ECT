@@ -1,22 +1,3 @@
-'''
-Author: daniel
-Date: 2023-05-24 16:21:55
-LastEditTime: 2023-05-24 17:42:17
-LastEditors: daniel
-Description: 
-FilePath: /Cerberus-main/dataloaders/prediction_loaders/base_loader.py
-have a nice day
-'''
-'''
-Author: daniel
-Date: 2023-05-24 16:21:55
-LastEditTime: 2023-05-24 16:37:53
-LastEditors: daniel
-Description: 
-FilePath: /Cerberus-main/dataloaders/prediction_loaders/base_loader.py
-have a nice day
-'''
-
 import os 
 from os.path import join,split,exists
 import numpy as np 
@@ -26,17 +7,8 @@ import scipy.io as scio
 import cv2
 
 
-def load_mat_gt(data_path):
-    gt  = load_mat(data_path)
+from utils.utils import * 
     
-    return gt['groundTruth'][0,0]['Boundaries'][0,0]
-    
-
-
-    
-
-def load_mat(path):
-    return scio.loadmat(path)
 
 
 

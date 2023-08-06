@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-07 12:50:58
-LastEditTime: 2023-03-05 21:17:17
+LastEditTime: 2023-08-06 21:34:27
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/istd.py
@@ -37,6 +37,7 @@ from torchvision.transforms import ToTensor
 
 import os.path as osp 
 
+from os.path import join,split, exists
 
 
 import scipy.io as scio
@@ -93,7 +94,13 @@ class ISTD(data.Dataset):
         self.save_mat_for_eval()
         self.images_name = ['.'.join(x.split('.')[:-1]) for x in self.image_list]
         
-    
+        #* EDTER dataloader 
+        # save_list = []
+        # for idx in range(self.__len__()):
+        #     save_list.append(' '.join([os.path.join('/'.join(self.image_path.split('/')[-2:]),
+        #                 self.image_list[idx]),os.path.join('/'.join(self.edge_mat_path.split('/')[-2:]),'.'.join(self.image_list[idx].split('.')[:-1])+".mat")]))
+
+        # np.savetxt(join(path,'ImageSets/test.txt'),save_list,fmt='%s')
 
     
 
@@ -215,8 +222,8 @@ class ISTD(data.Dataset):
 if __name__ == "__main__":
 
     
-    dataset  = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='train')
-    # dataset  = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='test')
+    # dataset  = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='train')
+    dataset  = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='test')
     
 
     sample= dataset.__getitem__(0)

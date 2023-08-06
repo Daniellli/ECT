@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-08 17:28:27
-LastEditTime: 2023-03-03 20:50:30
+LastEditTime: 2023-08-01 11:45:02
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/iiw_dataset.py
@@ -20,7 +20,7 @@ from os.path import join,split,exists
 import utils.data_transforms as transforms
 import cv2
 
-
+from os.path import join, split, exists
 
 class IIWDataset(torch.utils.data.Dataset):
     def __init__(self,data_transforms=None, data_dir = '/DATA2/cxx/IIW/IIW/IIW/iiw-dataset/',
@@ -48,6 +48,14 @@ class IIWDataset(torch.utils.data.Dataset):
         self.guidance = guidance
         self.guide_size = 512 #? 
         
+        #* EDTER dataloader 
+        # save_list = []
+        # for name in self.image_list:
+        #     save_list.append(' '.join([join('data',name+".png"),join('data',name+".mat")]))
+
+        # np.savetxt(join(data_dir,'ImageSets/test.txt'),save_list,fmt='%s')
+
+    
         
         
         

@@ -85,14 +85,14 @@ class Mydataset(data.Dataset):
         if self.split == 'trainval':
             list_file = os.path.join(root_path,'trainval_pair.lst')
         else:
-            list_file = os.path.join(root_path, 'test.lst')#* 就是一个类似txt文件的list列表, 指向每张jpg图像
+            list_file = os.path.join(root_path, 'test.lst')
         
         with open(list_file, 'r') as f:
             lines = f.readlines() 
         lines = [line.strip() for line in lines]
 
-        if self.split == 'trainval':#* 如果是trainval_pair的话每行对应一个数据对, image and labels , 用space 分割 
-            pairs = [line.split() for line in lines]#* 每张图像对应的标签
+        if self.split == 'trainval':
+            pairs = [line.split() for line in lines]
             self.images_path = [pair[0] for pair in pairs]
             self.edges_path = [pair[1] for pair in pairs]
         else:
@@ -117,7 +117,7 @@ class Mydataset(data.Dataset):
     def __getitem__(self, idx):
         if self.split == 'trainval':
             ## img data
-            img = Image.open(os.path.join(self.images_path[idx])).convert('RGB') # 读取图像，转换为三维矩阵
+            img = Image.open(os.path.join(self.images_path[idx])).convert('RGB') 
             w, h = img.size
             img_center = np.array([h / 2, w / 2]).astype(np.int)
             img = np.array(img)  ## (H,W,3) uint8 RGB
@@ -126,10 +126,10 @@ class Mydataset(data.Dataset):
             ## label data
             edge_path = os.path.join(self.edges_path[idx])
             h = h5py.File(edge_path, 'r')
-            edge = np.squeeze(h['label'][...])#! 只有0和1两个元素 , 没有中间值
+            edge = np.squeeze(h['label'][...])
             label = edge.astype(np.float32)
 
-            ##random crop 320x320 #* 随机裁剪成320 * 320 
+            ##random crop 320x320 #* random crop to 320 * 320 
             offset_x, offset_y = 0, 0
             offset = True
             if offset:
