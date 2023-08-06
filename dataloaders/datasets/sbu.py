@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-07 12:50:58
-LastEditTime: 2023-03-14 22:27:45
+LastEditTime: 2023-07-31 21:52:59
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/dataloaders/datasets/sbu.py
@@ -37,7 +37,7 @@ from torchvision.transforms import ToTensor
 
 import os.path as osp 
 
-
+from os.path import join, split, exists, split
 
 import scipy.io as scio
  
@@ -73,12 +73,21 @@ class SBU(data.Dataset):
         logger.info(f'ready to process data')
         self.preprocess()
         logger.info(f'process done ')
-        self.edge_list= sorted(os.listdir(self.edge_path ))
+        self.edge_list = sorted(os.listdir(self.edge_path ))
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.trans = transforms.Compose([transforms.ToTensor(),normalize])  ## pre-process of pre-trained model of pytorch resnet-50
         self.save_mat_for_eval()
         self.images_name = ['.'.join(x.split('.')[:-1]) for x in self.image_list]
-        
+
+
+        #* EDTER dataloader 
+        save_list = []
+        for idx in range(self.__len__()):
+            save_list.append('#'.join([os.path.join('/'.join(self.image_path.split('/')[-2:]),
+                        self.image_list[idx]),os.path.join('/'.join(self.edge_mat_path.split('/')[-2:]),'.'.join(self.image_list[idx].split('.')[:-1])+".mat")]))
+
+        np.savetxt(join(path,'ImageSets/test.txt'),save_list,fmt='%s')
+
         
 
     '''

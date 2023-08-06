@@ -1,10 +1,10 @@
 '''
 Author:   "  "
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-19 19:55:16
+LastEditTime: 2023-08-06 21:35:48
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/test_IIW.py
+FilePath: /Cerberus-main/transferibility/test_IIW.py
 email:  
 '''
 
@@ -55,7 +55,6 @@ from utils.global_var import *
 
 
 
-from dataloaders.datasets.nyud2 import Nyud2
 
 
 

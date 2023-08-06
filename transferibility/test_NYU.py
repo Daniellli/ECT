@@ -1,10 +1,10 @@
 '''
 Author:   "  "
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-02-21 16:38:49
+LastEditTime: 2023-08-06 21:35:51
 LastEditors: daniel
 Description: 
-FilePath: /Cerberus-main/test_NYU.py
+FilePath: /Cerberus-main/transferibility/test_NYU.py
 email:  
 '''
 
@@ -52,9 +52,6 @@ warnings.filterwarnings('ignore')
 
 from utils.global_var import *
 
-
-
-# from dataloaders.datasets.nyud2 import Nyud2
 from dataloaders.datasets.nyud3 import Nyud3
 
 

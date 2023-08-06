@@ -11,7 +11,7 @@ from os.path import join, split, exists, isdir, isfile
 import torchvision.transforms as transforms 
 from utils import * 
 
-
+from PIL import Image
 def draw_point(img,point,point_color=(255,0,0),point_size = 1,thickness = 4):
     # thickness = 4 # 可以为 0 、4、8
     cv2.circle(img,point, point_size, point_color, thickness)
@@ -227,7 +227,21 @@ class Checker:
     def draw_qualitative_results(self,index,thresholds_range = np.arange(0.5,1,0.1)):
 
         image,points, labels,pred, name = self.getitem(index)
+        
+        #* transform pred, only for EDTER 
+        #!===========================================
+        # pred = Image.fromarray(pred)
+        # w, h = pred.size
+        # tw = image.shape[0]
+        # th = image.shape[1]
+        # if tw / w < 1:
+        #     interpolation = Image.ANTIALIAS
+        # else:
+        #     interpolation = Image.CUBIC
+        # pred = pred.resize((tw, th), interpolation)
+        # pred = np.array(pred)
 
+        #!===========================================
         name_format = '%s_%d.jpg'
         
         for threshold in thresholds_range:

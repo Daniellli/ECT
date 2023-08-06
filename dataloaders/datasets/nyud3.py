@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-10 19:53:33
-LastEditTime: 2023-03-06 08:06:29
+LastEditTime: 2023-08-01 14:04:16
 LastEditors: daniel
 Description: NYUD2 dataloader
 FilePath: /Cerberus-main/dataloaders/datasets/nyud3.py
@@ -135,7 +135,7 @@ class Nyud3:
         
         # process_mp(self.gen_edge,range(self.__len__()),num_threads=256)
         # print(f"edge generation done ")
-
+        
         if gen_edge:
             
             # self.gen_depth_normal_edge(0)
@@ -147,6 +147,20 @@ class Nyud3:
 
         
         # process_mp(self.fix_bug,range(self.__len__()),num_threads=512)
+        #* EDTER dataloader 
+        save_list = []
+        for name in self.name_list:
+            save_list.append(' '.join(['/'.join(['nyu_crop',name]),'/'.join(['nyu_crop',name])]))
+            
+
+        np.savetxt(join(self.images_path,'..','ImageSets/test.txt'),save_list,fmt='%s')
+
+        # for name in tqdm(self.name_list):
+        #     img = imread(join(self.images_path,name))
+        #     imwrite(join(self.images_path,'..','nyu_crop',name),img[45:471, 41:601,:])
+
+
+            
         
             
     def get_depth_normal_edge_genation_stategy(self):

@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-07-21 19:21:58
-LastEditTime: 2023-03-04 09:31:09
+LastEditTime: 2023-07-31 21:50:27
 LastEditors: daniel
 Description:  
 FilePath: /Cerberus-main/plot/plot_precision_recall_plot.py
@@ -79,9 +79,10 @@ if __name__ =="__main__":
 
     # best_performance = osp.join(EVAL_RES_ROOT,"edge_cerberus8/edge_residualpth_0")
     edge_cerberus= osp.join(EVAL_RES_ROOT,"need2release/full_version_0")
+    # edge_cerberus= '/home/DISCOVER_summer2022/xusc/exp/EDTER/work_dirs/EDTER_BIMLA_320x320_80k_bsds_rind_bs_8/10000'
     test_edge = False
-    move_alg_res2plot_dir(my_res=edge_cerberus,
-                        test_edge = test_edge)
+    # move_alg_res2plot_dir(my_res=edge_cerberus,prefix='EDTER',test_edge = test_edge)
+    # move_alg_res2plot_dir(my_res=edge_cerberus,test_edge = test_edge)
 
     plot(test_edge = test_edge)
 

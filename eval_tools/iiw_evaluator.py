@@ -242,6 +242,8 @@ class IIWEvaluator:
         #* calculate recall for each image 
         tic = time.time()
         process_mp(self.eval_one_image,range(self.dataloader.__len__()),num_threads=256)
+        # for idx in tqdm(range(self.dataloader.__len__())):
+        #     self.eval_one_image(idx)
         #* debug 
         # self.eval_one_image(10)
         print('spend time : ',time.strftime("%H:%M:%S",time.gmtime(time.time()- tic)))

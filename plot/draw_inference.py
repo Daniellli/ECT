@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-09-06 13:40:43
-LastEditTime: 2023-03-04 09:34:51
+LastEditTime: 2023-08-01 19:22:20
 LastEditors: daniel
 Description: inference video and save 
 FilePath: /Cerberus-main/plot/draw_inference.py
@@ -28,6 +28,8 @@ from IPython import embed
 
 
 from my_script.utils import interp_img
+
+
 
 #* 每种边缘对应的颜色
 RINDE_COLOR = [
@@ -187,7 +189,6 @@ param {*} rind_nms_map
 return {*}
 '''
 def filter_by_maximun(rind_nms_map):
-
     x = torch.from_numpy(np.array(rind_nms_map))
     values,indices = torch.max(x,0)
     #* filter 
@@ -246,7 +247,6 @@ def draw_grid(origin_path,inference_res_path,origin_img_suffix='png',model_res_r
         else :
             cv2.imwrite(osp.join(save_path,im_name+".png"),np.concatenate([origin_img_max,np.stack([c , c , c] , axis = 2)],axis=0))
     
-        
     imgs2video(save_path)
 
 '''
@@ -330,15 +330,3 @@ if __name__ == "__main__":
     origin_path = osp.join(BASE_PATH,"robotics/imgs")
     inference_res_path = osp.join(BASE_PATH,"robotics/nms_res_0")
     draw_grid2(origin_path,inference_res_path,origin_img_suffix='png')
-
-
-    
-
-
-    
-
-
-
-
-
-

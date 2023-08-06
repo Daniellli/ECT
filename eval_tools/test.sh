@@ -1,7 +1,7 @@
 ###
  # @Author:   "  "
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-05-24 14:41:19
+ # @LastEditTime: 2023-07-19 20:04:34
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -40,7 +40,7 @@ conda activate cerberus2
 # python test.py -d $1 --test-edge;
 
 # python test.py --eval-data-dir "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/2023-03-16-15:10:1678950646"  --dataset BSDS-RIND
-python test.py --eval-data-dir $1  --dataset BSDS-RIND
+python test.py --eval-data-dir $1  --dataset BSDS-RIND --test-edge
 
 
 # * SBU

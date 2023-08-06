@@ -8,8 +8,8 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            // "program": "${file}",
-            "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
+            "program": "${file}",
+            // "program": "/home/DISCOVER_summer2022/xusc/.conda/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/data3/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
             // "program": "/DATA2/envs/mdetr/lib/python3.8/site-packages/torch/distributed/launch.py",
             // "program": "/DATA2/xusc/miniconda3/envs/cerberus2/lib/python3.7/site-packages/torch/distributed/launch.py",
@@ -62,13 +62,18 @@
 
 
             //* edge cerberus
-            "args": [
-                "--nproc_per_node=1","--master_port","29510","ect_trainer.py",
-                "train",  "-s", "320", "--batch-size=2",
-                 "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
-                 "--gpu-ids","0", "--cause-token-num=10",
-                //  "--resume=networks/2023-05-26-13:04:1685077468#CN20/checkpoints/ckpt_ep0299.pth.tar"
+            // "args": [
+            //     "--nproc_per_node=1","--master_port","29510","ect_trainer.py",
+            //     "train",  "-s", "320", "--batch-size=2",
+            //      "--epochs","5","--lr","0.007","--momentum","0.9","--lr-mode","poly","--workers", "10",
+            //      "--gpu-ids","0", "--cause-token-num=10",
+            // ]
 
+
+            //*eval IIW 
+
+            "args": [
+                "--eval-data-dir=/home/DISCOVER_summer2022/xusc/exp/EDTER/logs/IIW",
             ]
 
 
