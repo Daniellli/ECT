@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-08-06 22:10:42
+LastEditTime: 2023-08-07 07:33:26
 LastEditors: daniel
 Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
 FilePath: /Cerberus-main/model/ECT_SE.py
@@ -330,7 +330,7 @@ class EdgeCerberusMultiClass(BaseModel):
 
 '''
 description: The images passed are all in PIL image format.
-param {*} gray_img interpolate输出的灰度图
+param {*} gray_img 
 param {*} origin_img
 param {*} save_name
 return {*}

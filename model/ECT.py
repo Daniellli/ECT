@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-08-06 22:17:19
+LastEditTime: 2023-08-07 07:32:12
 LastEditors: daniel
 Description:  stantardize the code of ECT for different class number, such 4 or 20,21 ...
 FilePath: /Cerberus-main/model/ECT.py
@@ -267,7 +267,6 @@ class EdgeCerberusMultiClass(BaseModel):
         
         learnable_embedding = self.edge_query_embed.weight.unsqueeze(1).repeat(1,B,1)#* (query_num,C) --> (query_num,B,C)
 
-        #? edge_path_2 的时候不知道是不是显存不够, 跑不动!!
         if self.return_attention:
             unloader = transforms.ToPILImage()
             # unloader(origin_image.cpu().clone().squeeze(0)).save(f'origin.jpg')
@@ -307,7 +306,7 @@ class EdgeCerberusMultiClass(BaseModel):
             decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
             
 
-        #* decoder_out 正则化  , 
+        #* decoder_out
         # !+===========================
         decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
         decoder_out = self.final_norm1(decoder_out)
@@ -338,7 +337,6 @@ def blend_atten_origin_image(gray_img,origin_img,save_name):
     plt.xticks([])
     plt.yticks([])
     plt.axis('off')
-    #* 将裁减的数据和原来数据融合到一起
     To_tensor=transforms.ToTensor()
 
     a =To_tensor(fig2data(figure).convert('RGB'))
