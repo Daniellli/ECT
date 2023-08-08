@@ -1,16 +1,13 @@
 <!--
  * @Author: daniel
  * @Date: 2022-05-19 22:27:52
- * @LastEditTime: 2023-08-07 07:48:57
+ * @LastEditTime: 2023-08-08 11:56:46
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/readme.md
  * have a nice day
 -->
-# ECT: Fine-grained Edge Detection with Learned Cause Tokens
-
-
-
+# ECT: Fine-grained Edge Detection with Learned Cause Tokens [[Paper](https://arxiv.org/abs/2308.03092)]
 
 
 ## Introduction
@@ -64,6 +61,10 @@ models will be made public.
 
 
 ![qual](imgs/transferability_qualitative.png)
+
+
+
+
 
 ## Installation
 
@@ -181,5 +182,12 @@ networks
 If you find our work useful in your research, please consider citing:
 
 ```
-coming soon 
+@misc{xu2023ect,
+      title={ECT: Fine-grained Edge Detection with Learned Cause Tokens}, 
+      author={Shaocong Xu and Xiaoxue Chen and Yuhang Zheng and Guyue Zhou and Yurong Chen and Hongbin Zha and Hao Zhao},
+      year={2023},
+      eprint={2308.03092},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
 ```
