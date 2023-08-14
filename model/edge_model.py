@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-08-07 07:33:44
+LastEditTime: 2023-08-14 10:38:29
 LastEditors: daniel
 Description:  the oldest model 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -201,6 +201,8 @@ class EdgeCerberus(BaseModel):
                         nn.Sequential(
                         # Interpolate(scale_factor=2, mode="bilinear", align_corners=True)
                         nn.ConvTranspose2d(num_classes, num_classes, kernel_size=2, stride=2, bias=False),#*
+                        nn.BatchNorm2d(num_classes),
+                        nn.Sigmoid()
                         )
                     )
 

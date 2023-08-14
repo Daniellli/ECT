@@ -127,6 +127,13 @@ class ECTTrainer:
                 #         name = name.replace("module.","") 
                 #         self.model.state_dict()[name].copy_(param)
                 # else:
+                """
+                debug : 
+                current  = [x  for x in self.model.state_dict().keys() if 'upsample' in x]
+                loaded  = [x  for x in checkpoint['state_dict'].keys() if 'upsample' in x]
+
+                """
+                
                 self.model.load_state_dict(checkpoint['state_dict'], True)
                     
             else:
@@ -184,10 +191,10 @@ class ECTTrainer:
 
     def init_model(self):
         #* construct model 
-        # self.model = EdgeCerberus(backbone="vitb_rn50_384")
-        
-        self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",
-            hard_edge_cls_num=4,cause_token_num = self.args.cause_token_num)
+        self.model = EdgeCerberus(backbone="vitb_rn50_384")
+        #* for new wrapped code, from model.ECT import EdgeCerberusMultiClass
+        # self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",
+        #     hard_edge_cls_num=4,cause_token_num = self.args.cause_token_num)
             
         self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
         self.model = torch.nn.parallel.DistributedDataParallel(self.model,device_ids=[self.args.local_rank],

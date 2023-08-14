@@ -2,7 +2,7 @@
 ###
  # @Author: daniel
  # @Date: 2023-02-06 20:17:43
- # @LastEditTime: 2023-05-28 09:41:00
+ # @LastEditTime: 2023-08-14 11:00:20
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/scripts/train_ect.sh
@@ -11,57 +11,19 @@
 
 
 
-# source ~/miniconda3/etc/profile.d/conda.sh 
 
-source /usr/local/miniconda3/etc/profile.d/conda.sh 
+conda activate ect
+gpuids="2";
+gpu_number=1;
 
-
-conda activate cerberus2
-
-
-gpuids="0,1,2,3,4,5,6,7";
-gpu_number=8;
-
-lr=1e-5;
-batch_size=4;
-# batch_size=24;
-epoch=300;
-bg_weights=0.5;
-rind_weights=1;
-extra_loss_weight=1000;
-edge_loss_beta=1;
-edge_loss_gamma=0.3;
-rind_loss_beta=5;
-rind_loss_gamma=0.3
-
-# python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
-# train.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr --momentum 0.9 \
-# --lr-mode poly --workers 12 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights \
-# --extra-loss-weight $extra_loss_weight --edge-loss-gamma $edge_loss_gamma --edge-loss-beta $edge_loss_beta \
-# --rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta --constraint-loss --wandb \
-# 2>&1 | tee -a logs/train.log
-
-
-#* trainer version
-# resume=/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/checkpoints/full_version.pth.tar;
 
 CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port 29510 \
-ect_trainer.py train  -s 320 --batch-size $batch_size  --epochs $epoch --lr $lr \
---lr-mode poly --workers 16 --gpu-ids $gpuids --bg-weight $bg_weights --rind-weight $rind_weights \
---extra-loss-weight $extra_loss_weight --edge-loss-gamma $edge_loss_gamma --edge-loss-beta $edge_loss_beta \
---rind-loss-gamma $rind_loss_gamma  --rind-loss-beta $rind_loss_beta --cause-token-num 8 --wandb \
+ect_trainer.py train  -s 320 --batch-size 4  --epochs 300 --lr 1e-5 \
+--lr-mode poly --workers 16 --gpu-ids $gpuids --bg-weight 0.5 --rind-weight 1 \
+--extra-loss-weight 1e+3 --edge-loss-gamma 0.3 --edge-loss-beta 1 \
+--rind-loss-gamma 0.3  --rind-loss-beta 5 --cause-token-num 8 \
 2>&1 | tee -a logs/train.log
  
+# --wandb
 
-
-#* test version 
-# gpuids="1";
-# gpu_number=1;
-# port=29550;
-# resume=/data3/xusc/exp/cerberus/networks/2023-03-16-17:05:1678957549/checkpoints/ckpt_ep0319.pth.tar;
-
- 
-# CUDA_VISIBLE_DEVICES=$gpuids python  -m torch.distributed.launch --nproc_per_node=$gpu_number   --master_port $port \
-# ect_trainer.py test  -s 320 --batch-size $batch_size  --workers 8 --gpu-ids $gpuids --resume $resume \
-# 2>&1 | tee -a logs/train.log
 
