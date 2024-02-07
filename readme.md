@@ -103,7 +103,7 @@ BSDS-RIND
 
 ### Pretrained model 
 
-The alignment network [BaiDuNetDisk](https://pan.baidu.com/s/1K_HWsIJOoGrtcOmtcEj9wg)(code eka2): should be placed inside `pretrained_models` directory.
+The alignment network ([BaiDuNetDisk](https://pan.baidu.com/s/1K_HWsIJOoGrtcOmtcEj9wg), code eka2; [GoogleNetDist](https://drive.google.com/file/d/1DAcgByeyN7zK7Sz-jlDEZeNqwH8dofwH/view?usp=drive_link)) and : should be placed inside `pretrained_models` directory.(
 
 
 
@@ -122,7 +122,7 @@ After finishing training, the training and evaluation results can be found at `n
 
 ## Reproducing the results reported in our paper
 
-download our [trained model](https://pan.baidu.com/s/1A4okqEcx8VxUE36QpNwupw) (code: t6hc) the evaluate by following steps: 
+download our trained model ([[BaiDuNetDisk](https://pan.baidu.com/s/1A4okqEcx8VxUE36QpNwupw), code: t6hc; [GoogleNetDisk](https://drive.google.com/file/d/10b8fqd2cea-Ca2dPYXSkD_mLmgWxK5si/view?usp=drive_link)) the evaluate by following steps: 
 1. modify the variable of  `resume_model` in `scripts/test_ect.sh` 
 <!-- 2. change the `from model.ECT import EdgeCerberusMultiClass`  to `from model.edge_model import EdgeCerberus` -->
 2. run: 
