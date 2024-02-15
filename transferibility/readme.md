@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2024-02-15 20:57:06
- * @LastEditTime: 2024-02-15 21:43:00
+ * @LastEditTime: 2024-02-15 21:44:49
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/transferibility/readme.md
@@ -22,7 +22,7 @@ This document aims to detail the benchmark of Transferability Experiments.
 | EDTER     | 0.458             | 0.552                   | 0.631 | 0.511 | 0.599                 | 0.651 | 0.534 | 0.333               | 0.340 | 0.131 | 0.349               | 0.360 | 0.170 |
 | **Ours**  | **0.641**         | **0.642**               | **0.689** | **0.664** | **0.591**         | **0.656** | **0.599 (+3.4%)** | **0.343** | **0.352** | 0.146 | **0.369** | **0.383** | **0.197** |
 
-Note: In the original table, values highlighted in red denote the performance margin in comparison to the second-best method. This effect is represented here with a textual note as Markdown does not support color coding.
+
 
 ##  SBU 
 
