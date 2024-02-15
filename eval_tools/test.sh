@@ -1,7 +1,7 @@
 ###
  # @Author:   "  "
  # @Date: 2022-06-13 15:54:14
- # @LastEditTime: 2023-08-14 10:44:47
+ # @LastEditTime: 2023-12-22 10:37:54
  # @LastEditors: daniel
  # @Description: eval BSDS-RIND, NYUD2, SBU,ISTD...
  # @FilePath: /Cerberus-main/eval_tools/test.sh
@@ -12,9 +12,8 @@
 
 
 cd eval_tools;
-
-source /usr/local/miniconda3/etc/profile.d/conda.sh 
-conda activate cerberus2
+# source /usr/local/miniconda3/etc/profile.d/conda.sh 
+# conda activate cerberus2
 
 
 
@@ -38,9 +37,11 @@ conda activate cerberus2
 # python test.py -d $1 --test-edge;
 
 
-python test.py --eval-data-dir "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/300"  --dataset BSDS-RIND
+# python test.py --eval-data-dir "/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/need2release/300"  --dataset BSDS-RIND
 
-# python test.py --eval-data-dir $1  --dataset BSDS-RIND --test-edge
+python test.py --eval-data-dir $1  --dataset BSDS-RIND 
+# python test.py --eval-data-dir /home/DISCOVER_summer2022/xusc/exp/Cerberus-main/networks/2023-12-20-13:32:1703050351#CN4/256 --dataset BSDS-RIND 
+# --test-edge
 
 #*================================================================
 

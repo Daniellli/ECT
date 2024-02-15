@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 21:10:45
-LastEditTime: 2023-08-14 10:38:29
+LastEditTime: 2023-12-23 23:24:43
 LastEditors: daniel
 Description:  the oldest model 
 FilePath: /Cerberus-main/model/edge_model.py
@@ -345,6 +345,111 @@ class EdgeCerberus(BaseModel):
       
 
 
+
+
+class EdgeCerberusWithoutCauseToken(EdgeCerberus):
+
+
+    def __init__(
+        self,
+        features=256,
+        backbone="vitb_rn50_384",
+        readout="project",
+        channels_last=False,
+        use_bn=False,
+        enable_attention_hooks=False,
+        decoder_head_num = 8, 
+    ):
+        super(EdgeCerberusWithoutCauseToken, self).__init__()
+
+
+        del self.edge_query_embed
+
+    
+    def forward(self, x ):
+        if self.return_attention:
+            origin_image= x.clone()
+        _B,_C,_H,_W=x.shape
+        if self.channels_last == True:
+            x.contiguous(memory_format=torch.channels_last)
+        #* layer1 : (B,256,80,80)
+        #* layer2 : (B,512,40,40)
+        #* layer3 : (B,768,20,20)
+        #* layer4 : (B,768,10,10)
+        layer_1, layer_2, layer_3, layer_4 = forward_vit(self.pretrained, x) 
+        
+        
+        layer_1_rn = self.scratch.layer1_rn(layer_1)#*  : (B,256,80,80)
+        layer_2_rn = self.scratch.layer2_rn(layer_2)#*  : (B,256,40,40)
+        layer_3_rn = self.scratch.layer3_rn(layer_3)#*  : (B,256,20,20)
+        layer_4_rn = self.scratch.layer4_rn(layer_4)#*  : (B,256,10,10)
+
+        
+
+
+        edge_path_4 = self.scratch.refinenet04(layer_4_rn)#* enlarge to  (B,256,20,20)
+        edge_path_3 = self.scratch.refinenet03(edge_path_4, layer_3_rn)#* fusion to  (B,256,40,40) ,  spend  0s  to pass decoder 
+        edge_path_2 = self.scratch.refinenet02(edge_path_3, layer_2_rn)#* fusion to  (B,256,80,80), 
+        edge_path_1 = self.scratch.refinenet01(edge_path_2, layer_1_rn)#* fusion to  (B,256,160,160)
+
+
+        model_out = []
+        #* background 
+        edge_it = self.full_output_task_list[0][1][0]
+        fun = eval("self.scratch.output_" + edge_it)
+        out = fun(edge_path_1)
+        fun = eval("self.scratch.output_" + edge_it + '_upsample')
+        model_out.append(fun(out))
+        
+
+        #*==============================
+        decoder_input=self.scratch.output_downsample(edge_path_1)#* downsample from  (B,256,160,160) to   (B,256,40,40)
+        #*==============================
+
+        B,C,W,H=decoder_input.shape
+        decoder_input=  decoder_input.permute([2,3,0,1]).reshape([-1,B,C])  #*(B,C,W,H)  to (WH, B,C)
+        
+        decoder_out = self.decoder(decoder_input,decoder_input) #* (Q,KV)  ,shape == [1,WH,B,256], [ decoder_layer_number,Query number , B,inputC ]
+
+
+
+        if self.return_intermediate_dec : 
+            #* [6,WH,B,256] == 
+            decoder_out = torch.stack([ x.permute([2,3,0,1]).reshape(B,C,W,H)  for x in decoder_out.unsqueeze(1) ])
+            #* pick up layer 1 and layer6
+            decoder_layer1 =decoder_out[0]
+            decoder_layer6 =decoder_out[-1]
+            #* refinenet05-09
+            a= self.scratch.refinenet11(decoder_layer1) #* from [B,C,40,40] to  [B,C,80,80]
+            b= self.scratch.refinenet10(decoder_layer6)#* from [B,C,40,40] to  [B,C,80,80]
+            decoder_out  = self.scratch.refinenet09(a,b)#* from [B,C,80,80] to  [B,C,160,160]
+        else:
+            decoder_out =decoder_out.permute([2,3,0,1]).reshape(B,C,W,H) #* reshape back  
+            
+
+        #* decoder_out 
+        # !+===========================        
+        decoder_out  = edge_path_1 + self.final_dropout1(decoder_out)
+        decoder_out = self.final_norm1(decoder_out)
+        decoder_out = self.final_rcu(decoder_out)
+
+        # !+===========================
+        #* rind 
+        for  x in self.full_output_task_list[1:]:
+            it = x[1][0]
+            fun = eval("self.scratch.output_" + it) 
+            out = fun(decoder_out)
+            fun = eval("self.scratch.output_" + it + '_upsample')
+            out = fun(out)
+            model_out.append(out)
+        return model_out
+        
+
+        
+
+        
+
+        
 
 def blend_atten_origin_image(gray_img,origin_img,save_name):
     figure = plt.figure()

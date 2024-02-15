@@ -26,7 +26,7 @@ from IPython import embed
 
 # from min_norm_solvers import MinNormSolver
 #* origin model version 
-from model.edge_model import EdgeCerberus
+from model.edge_model import EdgeCerberus,EdgeCerberusWithoutCauseToken
 
 
 #* modified version for generalization
@@ -49,7 +49,6 @@ from utils.edge_loss2 import AttentionLoss2
 
 
 import scipy.io as sio
-
 
 
 def load_model(model_path):
@@ -192,6 +191,7 @@ class ECTTrainer:
     def init_model(self):
         #* construct model 
         self.model = EdgeCerberus(backbone="vitb_rn50_384")
+        # self.model = EdgeCerberusWithoutCauseToken(backbone="vitb_rn50_384")
         #* for new wrapped code, from model.ECT import EdgeCerberusMultiClass
         # self.model =  EdgeCerberusMultiClass(backbone="vitb_rn50_384",
         #     hard_edge_cls_num=4,cause_token_num = self.args.cause_token_num)
@@ -329,6 +329,7 @@ class ECTTrainer:
                         {'result': illumination_pred})
         
         #* eval by the matlab
+        print('save_dir : ', save_dir)
         os.system("./eval_tools/test.sh %s %s"%(save_dir,"1"))
 
         
@@ -457,13 +458,97 @@ class ECTTrainer:
                 self.log('b_loss is: {0}'.format(b_loss))
                 self.log('rind_loss is: {0}'.format(rind_loss)) 
                 exit(0)
+            """
+                use generic edge to guide the find-grained edge: 
+                - why vice versa? 
+                - if do not detach any of them, what would happen : same results, but have not idea what is the final results. try in very latter 
 
-            extra_loss = self.inverse_form_criterion(
-                            torch.stack(output[1:]).max(0)[0],
-                            output[0].clone().detach())
+                try different losses here: 
+                1. reverse network  : done 
+                2. MSE
+                3. SSIM 
+                4. KL
+            """
+            #* mse loss
             
+            # extra_loss = 1 - ssim(torch.stack(output[1:]).max(0)[0], output[0].clone().detach(), data_range=1.) #* SSIM loss detached
+            # extra_loss = 1 - ssim(torch.stack(output[1:]).max(0)[0], output[0], data_range=1.) #* SSIM loss
+            # extra_loss = torch.nn.functional.mse_loss(torch.stack(output[1:]).max(0)[0], output[0].clone().detach(),reduction = 'sum') #* mse loss, detached 
+            # extra_loss = torch.nn.functional.mse_loss(torch.stack(output[1:]).max(0)[0], output[0],reduction = 'sum') #* mse loss,
+            extra_loss = self.inverse_form_criterion(torch.stack(output[1:]).max(0)[0], output[0].clone().detach()) #* alignment loss, detached
+            # extra_loss = self.inverse_form_criterion(torch.stack(output[1:]).max(0)[0], output[0])#* alignment loss
+            
+            """
+                #* cross entropy loss
+                #*  two dimension, first dimension indicate the non-edge probability and the others indicate the edge probability
+            """
+            # threashold = 0.5
+            # pred_fine_grained_edge_map = torch.stack(output[1:]).max(0)[0]
+            # binary_pred_fine_grained_edge_map = torch.cat([1 - pred_fine_grained_edge_map, pred_fine_grained_edge_map], dim=1)
+            # extra_loss = torch.nn.functional.cross_entropy(binary_pred_fine_grained_edge_map, (output[0] > threashold).long().squeeze(1),reduction='sum') / 10
+            
+            #* alignment loss
+            # loss =  0.5* b_loss+ rind_loss +   extra_loss
+
             loss =  self.args.bg_weight*b_loss+ self.args.rind_weight*rind_loss + \
                 self.args.extra_loss_weight * extra_loss
+
+
+            """
+            #* background loss
+            self.optimizer.zero_grad()
+            b_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : ~30.87
+
+
+            #* RIND Loss
+            rind_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : ~11.83
+
+            #* SSIM, deteched
+            self.optimizer.zero_grad()
+            extra_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : 0.0027 ~= 1e-3
+
+
+            #* SSIM
+            self.optimizer.zero_grad()
+            extra_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : 0.003339 ~= 1e-3
+
+            #* MSE, deteched
+            grad_list.mean() : 140.1987
+
+            #* MSE
+            self.optimizer.zero_grad()
+            extra_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : 237.70871
+
+            #* Alignment loss
+            grad_list.mean(): 0 ??,  is it the problem of "output[0].clone().detach()" ----> yes
+
+            #* Alignment loss, do not detatch, 
+            grad_list.mean(): 0.028526362 ~= 1e-2
+
+            #* cross entropy loss, sum for reducation
+            self.optimizer.zero_grad()
+            extra_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : 130.1901
+
+
+            #* cross entropy loss, sum for reducation and  divide 10
+            self.optimizer.zero_grad()
+            extra_loss.backward()
+            grad_list  = np.array([ x.grad.mean().abs().cpu().numpy() for x in self.model.parameters() if x.grad is not None ] )
+            grad_list.mean() : 13.014645
+
+            """
             
             self.optimizer.zero_grad()
             loss.backward()

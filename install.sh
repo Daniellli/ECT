@@ -3,7 +3,7 @@
 ###
  # @Author:   "  "
  # @Date: 2022-05-12 21:51:13
- # @LastEditTime: 2023-05-28 14:14:38
+ # @LastEditTime: 2023-12-22 20:36:43
  # @LastEditors: daniel
  # @Description: 
  # @FilePath: /Cerberus-main/install.sh
@@ -43,3 +43,6 @@ echo " install  over ======================= ===================================
 
 python -c "import torch; print(torch.cuda.is_available(), 'cuda version : ',torch.version.cuda);"
 
+
+
+pip install piq

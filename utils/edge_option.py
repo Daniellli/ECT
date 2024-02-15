@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:21:58
-LastEditTime: 2023-05-26 20:48:48
+LastEditTime: 2023-12-22 10:51:40
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/edge_option.py
@@ -37,11 +37,11 @@ def parse_args():
     #* train
     parser.add_argument('--batch-size', type=int, default=4, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('-j', '--workers', type=int, default=10)
+    parser.add_argument('-j', '--workers', type=int, default=16)
     parser.add_argument('--gpu-ids', default='7', type=str)
 
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of epochs to train (default: 10)')
+    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+                        help='number of epochs to train (default: 300)')
     parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                         help='learning rate (default: 0.01)')
     parser.add_argument('--lr-mode', type=str, default='poly')
