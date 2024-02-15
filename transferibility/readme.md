@@ -11,7 +11,7 @@
 # Transferability Experiments
 This document aims to detail the benchmark of Transferability Experiments.
 
-![Transferability](imgs/Transferability_qualitative_res.png)
+![Transferability](../imgs/Transferability_qualitative_res.png)
 
 ##  SBU 
 
