@@ -1,7 +1,7 @@
 '''
 Author:   "  "
 Date: 2022-06-20 22:49:32
-LastEditTime: 2023-08-06 22:39:04
+LastEditTime: 2024-02-15 21:13:16
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/transferibility/test_ISTD_SBU.py
@@ -292,12 +292,11 @@ def main():
     #* load data 
     #!=================
     # test_dataset = Mydataset(root_path=args.test_dir, split='test', crop_size=args.crop_size)
-
-    # test_dataset = SBU(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow',subset='val')
-    test_dataset = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='test')
-    
+    if args.eval_dataset is not None and  args.eval_dataset =='SBU':
+        test_dataset = SBU(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/SBU/SBU-shadow',subset='val')
+    elif args.eval_dataset is not None and  args.eval_dataset =='ISTD':
+        test_dataset = ISTD(path='/home/DISCOVER_summer2022/xusc/exp/Cerberus-main/data/ISTD/ISTD_Dataset',subset='test')
     #!=================
-
 
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, 
                         shuffle=False,num_workers=args.workers,pin_memory=False)

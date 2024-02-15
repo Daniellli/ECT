@@ -1,7 +1,7 @@
 '''
 Author: daniel
 Date: 2023-02-25 20:21:58
-LastEditTime: 2023-12-22 10:51:40
+LastEditTime: 2024-02-15 21:31:02
 LastEditors: daniel
 Description: 
 FilePath: /Cerberus-main/utils/edge_option.py
@@ -76,7 +76,7 @@ def parse_args():
     parser.add_argument("--print-freq", type=int,default=10)
     parser.add_argument("--val-freq", type=int,default=5)
     parser.add_argument("--save-freq", type=int,default=5)
-
+    parser.add_argument('--eval_dataset',type=str, default="SBU",help='the eval dataset')
                 
     args = parser.parse_args()
     # if args.bn_sync:
