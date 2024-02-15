@@ -47,7 +47,13 @@ networks/*
 networks/*.json
 
 
-data 
+data/*
+!data/IIW
+data/IIW/*
+!data/IIW/iiw_dataset.py
+!data/IIW/data_transforms.py
+
+
 *.pyc
 logs/*
 
