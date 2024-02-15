@@ -1,7 +1,7 @@
 <!--
  * @Author: daniel
  * @Date: 2024-02-15 20:57:06
- * @LastEditTime: 2024-02-15 21:32:04
+ * @LastEditTime: 2024-02-15 21:43:00
  * @LastEditors: daniel
  * @Description: 
  * @FilePath: /Cerberus-main/transferibility/readme.md
@@ -12,6 +12,17 @@
 This document aims to detail the benchmark of Transferability Experiments.
 
 ![Transferability](../imgs/Transferability_qualitative_res.png)
+
+| Method    | Reflectance (IIW) | Illumination (ISTD) ODS | Illumination (ISTD) OIS | Illumination (ISTD) AP | Illumination (SBU) ODS | Illumination (SBU) OIS | Illumination (SBU) AP | Normal (NYUDv2) ODS | Normal (NYUDv2) OIS | Normal (NYUDv2) AP | Depth (NYUDv2) ODS | Depth (NYUDv2) OIS | Depth (NYUDv2) AP |
+|-----------|-------------------|-------------------------|-----|----|-----------------------|-----|----|---------------------|-----|----|---------------------|-----|----|
+| HED       | 0.638             | 0.508                   | 0.515 | 0.499 | 0.566                 | 0.618 | 0.565 | 0.332               | 0.342 | 0.149 | 0.360               | 0.376 | 0.185 |
+| RCF       | 0.594             | 0.492                   | 0.510 | 0.463 | 0.535                 | 0.586 | 0.510 | 0.320               | 0.325 | 0.120 | 0.347               | 0.364 | 0.172 |
+| DFF       | 0.481             | 0.478                   | 0.495 | 0.299 | 0.475                 | 0.483 | 0.297 | 0.271               | 0.272 | 0.081 | 0.340               | 0.348 | 0.142 |
+| RINDNet   | 0.519             | 0.547                   | 0.584 | 0.465 | 0.557                 | 0.595 | 0.471 | 0.333               | 0.337 | **0.156** | 0.357               | 0.369 | 0.175 |
+| EDTER     | 0.458             | 0.552                   | 0.631 | 0.511 | 0.599                 | 0.651 | 0.534 | 0.333               | 0.340 | 0.131 | 0.349               | 0.360 | 0.170 |
+| **Ours**  | **0.641**         | **0.642**               | **0.689** | **0.664** | **0.591**         | **0.656** | **0.599 (+3.4%)** | **0.343** | **0.352** | 0.146 | **0.369** | **0.383** | **0.197** |
+
+Note: In the original table, values highlighted in red denote the performance margin in comparison to the second-best method. This effect is represented here with a textual note as Markdown does not support color coding.
 
 ##  SBU 
 
